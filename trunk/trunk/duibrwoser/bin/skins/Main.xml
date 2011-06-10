@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window caption="0,0,0,36" roundcorner="5,5" size="800,600" sizebox="6,6,6,6" mininfo="80,60">
+  <Font name="微软雅黑" size="12" bold="false"/>
+  <Font name="微软雅黑" size="24"/>
+  <Default name="VScrollBar" value="button1normalimage=&quot;file='$scroll.png' source='0,0,16,16'&quot; button1hotimage=&quot;file='$scroll.png' source='0,0,16,16' mask='#FFFF00FF'&quot; button1pushedimage=&quot;file='$scroll.png' source='0,16,16,32' mask='#FFFF00FF'&quot; button1disabledimage=&quot;file='$scroll.png' source='0,0,16,16' mask='#FFFF00FF'&quot; button2normalimage=&quot;file='$scroll.png' source='0,32,16,48' mask='#FFFF00FF'&quot; button2hotimage=&quot;file='$scroll.png' source='0,32,16,48' mask='#FFFF00FF'&quot; button2pushedimage=&quot;file='$scroll.png' source='0,48,16,64' mask='#FFFF00FF'&quot; button2disabledimage=&quot;file='$scroll.png' source='0,32,16,48' mask='#FFFF00FF'&quot; thumbnormalimage=&quot;file='$scroll.png' source='0,64,16,80' corner='2,2,2,2' mask='#FFFF00FF'&quot; thumbhotimage=&quot;file='$scroll.png' source='0,64,16,80' corner='2,2,2,2' mask='#FFFF00FF'&quot; thumbpushedimage=&quot;file='$scroll.png' source='0,64,16,80' corner='2,2,2,2' mask='#FFFF00FF'&quot; thumbdisabledimage=&quot;file='$scroll.png' source='0,64,16,80' corner='2,2,2,2' mask='#FFFF00FF'&quot; railnormalimage=&quot;file='$scroll.png' source='0,80,16,96' corner='2,2,2,2' mask='#FFFF00FF'&quot; railhotimage=&quot;file='$scroll.png' source='0,80,16,96' corner='2,2,2,2' mask='#FFFF00FF'&quot; railpushedimage=&quot;file='$scroll.png' source='0,96,16,112' corner='2,2,2,2' mask='#FFFF00FF'&quot; raildisabledimage=&quot;file='$scroll.png' source='0,80,16,96' corner='2,2,2,2' mask='#FFFF00FF'&quot; bknormalimage=&quot;file='$scroll.png' source='0,128,16,146' corner='2,2,2,2' mask='#FFFF00FF'&quot; bkhotimage=&quot;file='$scroll.png' source='0,128,16,146' corner='2,2,2,2' mask='#FFFF00FF'&quot; bkpushedimage=&quot;file='$scroll.png' source='0,128,16,146' corner='2,2,2,2' mask='#FFFF00FF'&quot; bkdisabledimage=&quot;file='$scroll.png' source='0,128,16,146' corner='2,2,2,2' mask='#FFFF00FF'&quot; " />
+  <VerticalLayout bkcolor="#FFFFFFFF" bordersize="1" bordercolor="#FF554e42">
+    
+    <HorizontalLayout name="header" height="32" bkimage="file='Dialog_background.png' source='0,0,585,32' xtiled='true'">
+      <HorizontalLayout >
+        <Container float="true" pos="7,0,39,32" bkimage="file='$logo.png'"/>
+        <Text name="apptitle" text="Webkit" font="1" textcolor="#FFFFFFFF" float="true" pos="42,0,550,32"></Text>
+      </HorizontalLayout>
+
+      <HorizontalLayout width="219" height="26" inset="0,0,0,4">
+        <HorizontalLayout inset="0,1,0,4" width="130">
+          <Button name="backbtn" width="27" tooltip="后退" normalimage="file='$WebB_Back.png' source='0,0,27,17'" hotimage="file='$WebB_Back.png' source='27,0,54,17'" pushedimage="file='$WebB_Back.png' source='54,0,81,17'" disabledimage="$WebB_Back.png' source='81,0,108,17'"/>
+          <Button name="forwardbtn" width="27" tooltip="向前" normalimage="file='$WebB_Forward.png' source='0,0,27,17'" hotimage="file='$WebB_Forward.png' source='27,0,54,17'" pushedimage="file='$WebB_Forward.png' source='54,0,81,17'" disabledimage="$WebB_Forward.png' source='81,0,108,17'"/>
+          <Button name="refreshbtn" width="27" tooltip="刷新" normalimage="file='$WebB_Refresh.png' source='0,0,27,17'" hotimage="file='$WebB_Refresh.png' source='27,0,54,17'" pushedimage="file='$WebB_Refresh.png' source='54,0,81,17'" disabledimage="$WebB_Refresh.png' source='81,0,108,17'"/>
+          <Control width="4"/>
+          <Button name="fullscreenbtn" width="45" tooltip="全屏" normalimage="file='$FullScreen.png' source='0,0,45,17'" hotimage="file='$FullScreen.png' source='45,0,90,17'" pushedimage="file='$FullScreen.png' source='90,0,135,17'"/>
+        </HorizontalLayout>
+        <Control width="4"/>
+        <Button name="minbtn" tooltip="最小化" width="33" normalimage="file='$sysmenu_min.png' source='0,0,33,22'" hotimage="file='$sysmenu_min.png' source='33,0,66,22'" pushedimage="file='$sysmenu_min.png' source='66,0,99,22'" disabledimage="$sysmenu_min.png' source='99,0,133,22'"/>
+        <Button name="closebtn" tooltip="关闭" width="47" normalimage="file='$sysmenu_close.png' source='0,0,47,22'" hotimage="file='$sysmenu_close.png' source='47,0,94,22'" pushedimage="file='$sysmenu_close.png' source='94,0,142,22'" disabledimage="$sysmenu_close.png' source='142,0,188,22'"/>
+      </HorizontalLayout>
+    </HorizontalLayout>
+
+    <VerticalLayout name="body" inset="1,0,1,1">
+      <Webkit name="webkit"/>
+    </VerticalLayout>
+    
+  </VerticalLayout>
+</Window>
