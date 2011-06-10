@@ -8,7 +8,7 @@
     <HorizontalLayout name="header" height="32" bkimage="file='Dialog_background.png' source='0,0,585,32' xtiled='true'">
       <HorizontalLayout >
         <Container float="true" pos="7,0,39,32" bkimage="file='$logo.png'"/>
-        <Text name="apptitle" text="Webkit" font="1" textcolor="#FFFFFFFF" float="true" pos="42,0,550,32"></Text>
+        <Label name="apptitle" text="Webkit" font="1" textcolor="#FFFFFFFF" float="true" pos="42,0,550,32" />
       </HorizontalLayout>
 
       <HorizontalLayout width="219" height="26" inset="0,0,0,4">

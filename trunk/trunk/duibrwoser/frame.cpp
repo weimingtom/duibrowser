@@ -403,8 +403,8 @@ void MainFrame::OnPrepare(TNotifyUI& msg)
 		view_->InitView(vp);		
 		webkit_control->SetEARasterAndView(raster_, view_);
 
-		view_->SetURI("file:///E:/Webkit/chapter02/chapter02.html");
-		//view_->SetURI("http://www.baidu.com");
+		//view_->SetURI("file:///E:/Webkit/chapter02/chapter02.html");
+		view_->SetURI("http://www.oschina.net");
 	}
 }
 
