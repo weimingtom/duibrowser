@@ -7,7 +7,7 @@
     
     <HorizontalLayout name="header" height="36" bkcolor="#FF4775CC">
       <HorizontalLayout>
-        <Container float="true" pos="7,0,39,36" bkimage="file='$logo.png'"/>
+        <Container name="logo" float="true" pos="7,2,39,34" bkimage="file='$logo.png' source='0,0,64,64'"/>
         <Label name="apptitle" text="Webkit" font="1" textcolor="#FFFFFFFF" float="true" pos="42,0,550,36" />
       </HorizontalLayout>
       <HorizontalLayout height="26" width="90" inset="0,0,0,4">
