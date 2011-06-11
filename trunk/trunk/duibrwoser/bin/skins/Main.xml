@@ -10,8 +10,10 @@
         <Container name="logo" float="true" pos="7,2,39,34" bkimage="file='$logo.png' source='0,0,64,64'"/>
         <Label name="apptitle" text="Webkit" font="1" textcolor="#FFFFFFFF" float="true" pos="42,0,550,36" />
       </HorizontalLayout>
-      <HorizontalLayout height="26" width="90" inset="0,0,0,4">
+      <HorizontalLayout height="26" width="120" inset="0,0,0,4">
         <Button name="minbtn" tooltip="最小化" width="33" normalimage="file='$sysmenu_min.png' source='0,0,33,22'" hotimage="file='$sysmenu_min.png' source='33,0,66,22'" pushedimage="file='$sysmenu_min.png' source='66,0,99,22'" disabledimage="$sysmenu_min.png' source='99,0,133,22'"/>
+        <Button name="maxbtn" tooltip="最大化" width="33" normalimage="file='$sysmenu_min.png' source='0,0,33,22'" hotimage="file='$sysmenu_min.png' source='33,0,66,22'" pushedimage="file='$sysmenu_min.png' source='66,0,99,22'" disabledimage="$sysmenu_min.png' source='99,0,133,22'"/>
+        <Button name="restorebtn" visible="false" tooltip="恢复" width="33" normalimage="file='$sysmenu_min.png' source='0,0,33,22'" hotimage="file='$sysmenu_min.png' source='33,0,66,22'" pushedimage="file='$sysmenu_min.png' source='66,0,99,22'" disabledimage="$sysmenu_min.png' source='99,0,133,22'"/>
         <Button name="closebtn" tooltip="关闭" width="47" normalimage="file='$sysmenu_close.png' source='0,0,47,22'" hotimage="file='$sysmenu_close.png' source='47,0,94,22'" pushedimage="file='$sysmenu_close.png' source='94,0,142,22'" disabledimage="$sysmenu_close.png' source='142,0,188,22'"/>
       </HorizontalLayout>
     </HorizontalLayout>

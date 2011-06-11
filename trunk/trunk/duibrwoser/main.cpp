@@ -62,7 +62,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 	MainFrame* pFrame = new MainFrame();
 	if( pFrame == NULL ) return 0;
 #if defined(UI_BUILD_FOR_WIN32) && !defined(UI_BUILD_FOR_WINCE)
-	pFrame->Create(NULL, _T("Webkit"), WS_VISIBLE, WS_EX_STATICEDGE | WS_EX_APPWINDOW, 0, 0, 600, 800);
+	pFrame->Create(NULL, _T("Webkit"), UI_WNDSTYLE_FRAME, WS_EX_STATICEDGE | WS_EX_APPWINDOW, 0, 0, 600, 800);
 #else
 	pFrame->Create(NULL, _T("DuiWebkitBrowser"), UI_WNDSTYLE_FRAME, WS_EX_TOPMOST, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
 #endif

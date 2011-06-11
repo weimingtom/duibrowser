@@ -23,6 +23,10 @@
 #define new   new(_NORMAL_BLOCK, __FILE__, __LINE__)
 #endif
 
+#if USE(ZIP_SKIN)
+static const TCHAR* const kResourceSkinZipFileName = _T("skins.zip");
+#endif
+
 WindowImplBase::WindowImplBase()
 {}
 
@@ -226,14 +230,14 @@ LRESULT WindowImplBase::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& 
 	if (!resource_unzipped)
 	{
 		resource_unzipped = true;
-		paint_manager_.SetResourceZip(GlobalVariable::kResourceSkinZipFileName);
+		paint_manager_.SetResourceZip(kResourceSkinZipFileName);
 		paint_manager_.UnzipResource();
-		paint_manager_.SetResourceZip(GlobalVariable::kNullString);
+		paint_manager_.SetResourceZip(_T(""));
 	}
 	tString tstrSkin = paint_manager_.GetResourcePath();
 	tstrSkin += GetSkinFile();
 #else
-	paint_manager_.SetResourceZip(GlobalVariable::kResourceSkinZipFileName);
+	paint_manager_.SetResourceZip(kResourceSkinZipFileName);
 	tString tstrSkin = GetSkinFile();
 #endif
 
