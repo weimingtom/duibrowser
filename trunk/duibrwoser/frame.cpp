@@ -39,13 +39,6 @@ namespace EA {
 
 using namespace EA::TextWrapper;
 
-const int kViewTickTimerId = 1001;
-const int kViewTickTimerElapse = 200;
-const TCHAR* const kWebkitControlName = _T("webkit");
-const int kDefaultFontSize = 18;
-const int kMiniFontSize = 12;
-const int kPageTimeoutSeconds = 30;
-
 class MyAllocator : public Allocator
 {
 public:
@@ -73,6 +66,24 @@ private:
 	StackAllocator allocator_;
 };
 
+const int kViewTickTimerId = 1001;
+const int kViewTickTimerElapse = 100;
+const int kDefaultFontSize = 18;
+const int kMiniFontSize = 12;
+const int kPageTimeoutSeconds = 30;
+const int kLoadingIconChangingTimeElapse = 500;
+const int kLoadingIconsCount = 4;
+
+const TCHAR* const kWebkitControlName = _T("webkit");
+const TCHAR* const kTitleControlName = _T("apptitle");
+const TCHAR* const kAddressControlName = _T("addresedt");
+const TCHAR* const kCloseButtonControlName = _T("closebtn");
+const TCHAR* const kMinButtonControlName = _T("minbtn");
+const TCHAR* const kBackButtonControlName = _T("backbtn");
+const TCHAR* const kForwardButtonControlName = _T("forwardbtn");
+const TCHAR* const kRefreshButtonControlName = _T("refreshbtn");
+const TCHAR* const kLogoControlName = _T("logo");
+
 MainFrame::MainFrame()
 : webkit_dll_(NULL)
 , webkit_(NULL)
@@ -84,6 +95,7 @@ MainFrame::MainFrame()
 , allocator_(NULL)
 , font_style_(NULL)
 , did_first_layout_(false)
+, logo_image_index(0)
 {
 	allocator_ = new MyAllocator();
 }
@@ -139,196 +151,8 @@ tString MainFrame::GetSkinFile()
 	return _T("main.xml");
 }
 
-void MainFrame::HandleMouseMoveEvent(MouseMoveEvent mouseEvent)
-{
-    view_->OnMouseMoveEvent(mouseEvent);
-}
-
-void MainFrame::HandleMouseButtonEvent(MouseButtonEvent mouseEvent)
-{
-    view_->OnMouseButtonEvent(mouseEvent);
-}
-
-void MainFrame::HandleMouseWheelEvent(MouseWheelEvent mouseEvent)
-{
-    view_->OnMouseWheelEvent(mouseEvent);
-}
-
-void MainFrame::HandleKeyboardEvent(KeyboardEvent keyEvent)
-{	
-    view_->OnKeyboardEvent(keyEvent);
-}
-
-void MainFrame::HandleFocusChangeEvent(bool bHasFocus)
-{
-    view_->OnFocusChangeEvent(bHasFocus);
-}
-
-CPoint MainFrame::GetClientPoint(LPARAM lParam, bool relative_upper_left_screen)
-{
-	CPoint point(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-	if (relative_upper_left_screen)
-		ScreenToClient(m_hWnd, &point);
-
-	CWebkitUI* webkit_control = static_cast<CWebkitUI*>(paint_manager_.FindControl(kWebkitControlName));
-	if (webkit_control)
-	{
-		CRect webkit_rect = webkit_control->GetPos();
-		point.x -= webkit_rect.left;
-		point.y -= webkit_rect.top;
-	}
-
-	return point;
-}
-
 LRESULT MainFrame::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	static CPoint globalPrevPoint;
-
-	if (view_)
-	{
-		switch (uMsg)
-		{
-		case WM_MOUSEMOVE:
-			if (did_first_layout_)
-			{
-				CWebkitUI* webkit_control = static_cast<CWebkitUI*>(paint_manager_.FindControl(kWebkitControlName));
-				CRect webkit_rect;
-				if (webkit_control)
-					webkit_rect = webkit_control->GetPos();
-				if (webkit_rect.PtInRect(CPoint(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam))))
-				{
-					MouseMoveEvent mouseEvent;
-
-					CPoint point = GetClientPoint(lParam);
-
-					mouseEvent.mX = point.x;
-					mouseEvent.mY = point.y;
-
-					mouseEvent.mDX = -(point.x - globalPrevPoint.x);
-					mouseEvent.mDY = -(point.y - globalPrevPoint.y);
-
-					mouseEvent.mbShift = wParam & MK_SHIFT;
-					mouseEvent.mbControl = wParam & MK_CONTROL;
-
-					HandleMouseMoveEvent(mouseEvent);
-				}
-			}
-			break;
-
-        case WM_LBUTTONDOWN:
-        case WM_MBUTTONDOWN:
-        case WM_RBUTTONDOWN:
-        case WM_LBUTTONDBLCLK:
-        case WM_MBUTTONDBLCLK:
-        case WM_RBUTTONDBLCLK:
-        case WM_LBUTTONUP:
-        case WM_MBUTTONUP:
-		case WM_RBUTTONUP:
-			if (did_first_layout_)
-			{
-				CWebkitUI* webkit_control = static_cast<CWebkitUI*>(paint_manager_.FindControl(kWebkitControlName));
-				CRect webkit_rect;
-				if (webkit_control)
-					webkit_rect = webkit_control->GetPos();
-				if (webkit_rect.PtInRect(CPoint(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam))))
-				{
-					CPoint point = GetClientPoint(lParam);
-					globalPrevPoint = point;
-
-					MouseButtonEvent mouseEvent;
-					mouseEvent.mX = point.x;
-					mouseEvent.mY = point.y;
-
-					if (uMsg == WM_LBUTTONDOWN || uMsg == WM_LBUTTONDBLCLK || uMsg == WM_LBUTTONUP)
-						mouseEvent.mId = kMouseLeft;
-					else if (uMsg == WM_MBUTTONDOWN || uMsg == WM_MBUTTONDBLCLK || uMsg == WM_MBUTTONUP)
-						mouseEvent.mId = kMouseMiddle;
-					else if (uMsg == WM_RBUTTONDOWN || uMsg == WM_RBUTTONDBLCLK || uMsg == WM_RBUTTONUP)
-						mouseEvent.mId = kMouseRight;
-
-					if (uMsg == WM_LBUTTONDOWN || uMsg == WM_MBUTTONDOWN || uMsg == WM_RBUTTONDOWN)
-						mouseEvent.mbDepressed = true;
-					else if (uMsg == WM_LBUTTONDBLCLK || uMsg == WM_MBUTTONDBLCLK || uMsg == WM_RBUTTONDBLCLK)
-						mouseEvent.mbDepressed = false;
-					else if (uMsg == WM_LBUTTONUP || uMsg == WM_MBUTTONUP || uMsg == WM_RBUTTONUP)
-						mouseEvent.mbDepressed = false;
-
-					mouseEvent.mbShift = wParam & MK_SHIFT;
-					mouseEvent.mbControl = wParam & MK_CONTROL;
-
-					HandleMouseButtonEvent(mouseEvent);
-				}
-			}
-            break;
-
-        case WM_MOUSEWHEEL:
-			if (did_first_layout_)
-			{
-				MouseWheelEvent mouseEvent;
-
-				mouseEvent.mX = GetClientPoint(lParam, true).x;
-				mouseEvent.mY = GetClientPoint(lParam, true).y;
-
-				short fwKeys = GET_KEYSTATE_WPARAM(wParam);
-				short zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
-
-				mouseEvent.mZDelta = zDelta;
-
-				// default value is 3
-				UINT param = 3;
-				SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &param, 0);
-				mouseEvent.mLineDelta = param;
-
-				mouseEvent.mbShift = fwKeys & MK_SHIFT;
-				mouseEvent.mbControl = fwKeys & MK_CONTROL;
-
-				// Ctrl+Mouse wheel doesn't ever go into WebCore.  It is used to
-				// zoom instead (Mac zooms the whole Desktop, but Windows browsers trigger their
-				// own local zoom modes for Ctrl+wheel).
-				//if (wParam & MK_CONTROL)
-				//{
-				//	short delta = short(HIWORD(wParam));
-				//	if (delta < 0)
-				//		makeTextLarger();
-				//	else
-				//		makeTextSmaller();
-				//}
-
-				HandleMouseWheelEvent(mouseEvent);
-			}
-            break;
-
-        case WM_SYSKEYDOWN:
-        case WM_KEYDOWN:
-        case WM_SYSKEYUP:
-        case WM_KEYUP:
-        case WM_SYSCHAR:
-        case WM_CHAR:
-			if (did_first_layout_)
-			{
-				KeyboardEvent keyEvent;
-
-				keyEvent.mId = wParam;
-				keyEvent.mbChar = false;
-				keyEvent.mbDepressed = false;
-
-				if (uMsg == WM_CHAR)
-					keyEvent.mbChar = true;
-
-				if (uMsg == WM_KEYDOWN || uMsg == WM_SYSKEYDOWN)
-					keyEvent.mbDepressed = true;
-
-				HandleKeyboardEvent(keyEvent);
-			}
-            break;
-
-		case WM_SETFOCUS:
-		case WM_KILLFOCUS:
-			HandleFocusChangeEvent(uMsg == WM_SETFOCUS);
-			break;
-		}
-	}
 
 	return __super::HandleMessage(uMsg, wParam, lParam);
 }
@@ -351,8 +175,50 @@ void MainFrame::OnTimer(TNotifyUI& msg)
 	switch (msg.wParam)
 	{
 	case kViewTickTimerId:
-		if (view_ != NULL) view_->Tick();
-		//paint_manager_.KillTimer(msg.pSender, kViewTickTimerId);
+		{
+			if (view_ != NULL)
+				view_->Tick();
+
+			static int timer_count = 0;
+
+			timer_count += kViewTickTimerElapse;
+			if (timer_count < kLoadingIconChangingTimeElapse)
+				return;
+
+			timer_count = 0;
+
+			LoadInfo& load_info = view_->GetLoadInfo();
+
+			if ((load_info.mLET == kLETNone) || (kLETLoadFailed == load_info.mLET) 
+				|| (kLETLoadCompleted == load_info.mLET) || (kLETLayoutCompleted == load_info.mLET))
+				logo_image_index = 0;
+			else
+				++logo_image_index;
+
+			if (logo_image_index > kLoadingIconsCount - 1)
+				logo_image_index = 0;
+			
+			CControlUI* logo = paint_manager_.FindControl(kLogoControlName);
+			if (logo !=  NULL)
+			{
+				TCHAR szBuf[MAX_PATH] = {0};
+
+#if defined(UI_BUILD_FOR_WINCE)
+				_stprintf(szBuf, _T(""));
+#else
+				_stprintf_s(szBuf, MAX_PATH - 1, _T("file='$logo.png' source='%d,0,%d,64'"), logo_image_index * 64, (logo_image_index + 1) * 64);
+#endif
+
+				tString logo_image = logo->GetBkImage();
+				if (_tcsicmp(logo_image.c_str(), szBuf) != 0)
+				{
+					logo->SetBkImage(szBuf);
+					logo->Invalidate();
+				}
+			}
+
+			//paint_manager_.KillTimer(msg.pSender, kViewTickTimerId);
+		}
 		break;
 	default:
 		break;
@@ -409,6 +275,10 @@ void MainFrame::Init()
 
 		Parameters& param = webkit_->GetParameters();
 
+		param.mbEnableGammaCorrection = false;
+		//param.mColors[kColorActiveSelectionBack] = Color::MAGENTA;
+		//param.mColors[kColorActiveSelectionFore] = Color::BLUE;
+
 //		// default "en-us"
 //		param.mpLocale = "zh-cn";
 //
@@ -447,13 +317,12 @@ void MainFrame::Init()
 
 void MainFrame::OnPrepare(TNotifyUI& msg)
 {
-	CControlUI* title = paint_manager_.FindControl(_T("header"));
-	if (title != NULL)
-		paint_manager_.SetTimer(title, kViewTickTimerId, kViewTickTimerElapse);
-
+	CControlUI* app_title = paint_manager_.FindControl(kTitleControlName);
 	CWebkitUI* webkit_control = static_cast<CWebkitUI*>(paint_manager_.FindControl(kWebkitControlName));
-	if (webkit_control != NULL)
+	if ((webkit_control != NULL) && (app_title != NULL))
 	{
+		paint_manager_.SetTimer(app_title, kViewTickTimerId, kViewTickTimerElapse);
+
 		ViewParameters vp = view_->GetParameters();
 		vp.mbTransparentBackground = false;
 		vp.mWidth = webkit_control->GetPos().right - webkit_control->GetPos().left;
@@ -474,14 +343,24 @@ void MainFrame::Notify(TNotifyUI& msg)
 	{
 		OnPrepare(msg);
 	}
+	else if (_tcsicmp(msg.pSender->GetName(), _T("return")) == 0)
+	{
+		CEditUI* address_edit = static_cast<CEditUI*>(paint_manager_.FindControl(kAddressControlName));
+		if ((address_edit != NULL) && _tcslen(address_edit->GetText()) > 0)
+		{
+			tString input_url = address_edit->GetText();
+			view_->CancelLoad();
+			view_->SetURI(StringConvertor::WideToUtf8(input_url.c_str()));
+		}
+	}
 	else if (_tcsicmp(msg.sType, DuiLib::kClick) == 0)
 	{
 		int view_count = webkit_->GetViewCount();
 		view_ = webkit_->GetView(0);
 
-		if (_tcsicmp(msg.pSender->GetName(), _T("closebtn")) == 0)
+		if (_tcsicmp(msg.pSender->GetName(), kCloseButtonControlName) == 0)
 			OnExit(msg);
-		else if (_tcsicmp(msg.pSender->GetName(), _T("minbtn")) == 0)
+		else if (_tcsicmp(msg.pSender->GetName(), kMinButtonControlName) == 0)
 		{
 #if defined(UI_BUILD_FOR_WINCE)
 			::ShowWindow(m_hWnd, SW_MINIMIZE);
@@ -489,17 +368,17 @@ void MainFrame::Notify(TNotifyUI& msg)
 			SendMessage(WM_SYSCOMMAND, SC_MINIMIZE, 0);
 #endif
 		}
-		else if (_tcsicmp(msg.pSender->GetName(), _T("backbtn")) == 0)
+		else if (_tcsicmp(msg.pSender->GetName(), kBackButtonControlName) == 0)
 		{
 			if (view_ != NULL)
 				view_->GoBack();
 		}
-		else if (_tcsicmp(msg.pSender->GetName(), _T("forwardbtn")) == 0)
+		else if (_tcsicmp(msg.pSender->GetName(), kForwardButtonControlName) == 0)
 		{
 			if (view_ != NULL)
 				view_->GoForward();
 		}
-		else if (_tcsicmp(msg.pSender->GetName(), _T("refreshbtn")) == 0)
+		else if (_tcsicmp(msg.pSender->GetName(), kRefreshButtonControlName) == 0)
 		{
 			if (view_ != NULL)
 				view_->Refresh();
@@ -522,18 +401,20 @@ bool MainFrame::ViewUpdate(ViewUpdateInfo& view_update_info)
 
 bool MainFrame::LoadUpdate(LoadInfo& load_info)
 {
-	CControlUI* app_title = paint_manager_.FindControl(_T("apptitle"));
-	if ((app_title != NULL) && load_info.mbCompleted && _tcslen(webkit_->GetCharacters(load_info.mPageTitle)) > 0)
+	CControlUI* app_title = paint_manager_.FindControl(kTitleControlName);
+	if ((app_title != NULL) && _tcslen(webkit_->GetCharacters(load_info.mPageTitle)) > 0)
 	{
 		TCHAR szTitle[MAX_PATH] = {0};
 		_stprintf(szTitle, webkit_->GetCharacters(load_info.mPageTitle));
 		app_title->SetText(webkit_->GetCharacters(load_info.mPageTitle));
 	}
 
-	CControlUI* address_edit = paint_manager_.FindControl(_T("addresedt"));
-	if ((address_edit != NULL) && load_info.mbCompleted && _tcslen(webkit_->GetCharacters(load_info.mURI)) > 0)
+	CEditUI* address_edit = static_cast<CEditUI*>(paint_manager_.FindControl(kAddressControlName));
+	if ((address_edit != NULL) && _tcslen(webkit_->GetCharacters(load_info.mURI)) > 0 &&
+		_tcsicmp(webkit_->GetCharacters(load_info.mURI), navigating_url_.c_str()) != 0)
 	{
-		address_edit->SetText(webkit_->GetCharacters(load_info.mURI));
+		navigating_url_ = webkit_->GetCharacters(load_info.mURI);
+		address_edit->SetText(navigating_url_.c_str());
 	}
 
 	return true;

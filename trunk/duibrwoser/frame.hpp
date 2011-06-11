@@ -97,16 +97,8 @@ protected:
 	void OnExit(TNotifyUI& msg);
 	void OnTimer(TNotifyUI& msg);
 
-    void HandleMouseMoveEvent(MouseMoveEvent mouseEvent);
-	void HandleMouseButtonEvent(MouseButtonEvent mouseEvent);
-    void HandleMouseWheelEvent(MouseWheelEvent mouseEvent);
-    void HandleKeyboardEvent(KeyboardEvent keyEvent);
-	void HandleFocusChangeEvent(bool bHasFocus);
-
 	virtual bool LoadUpdate(LoadInfo&);
 	virtual bool ViewUpdate(ViewUpdateInfo&);
-
-	CPoint GetClientPoint(LPARAM lParam, bool relative_upper_left_screen = false);
 
 private:
 	HINSTANCE		webkit_dll_;	
@@ -119,7 +111,10 @@ private:
 	IFontStyle*		font_style_;
 	MyAllocator*	allocator_;
 
+	int				logo_image_index;
 	bool			did_first_layout_;
+
+	tString			navigating_url_;
 };
 
 #endif // MAINFRAME_HPP

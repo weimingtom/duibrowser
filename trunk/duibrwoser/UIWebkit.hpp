@@ -48,6 +48,7 @@ public:
 
 	void SetEARasterAndView(IEARaster* raster, View* view);
 
+    virtual void DoEvent(TEventUI& event);
 	virtual void DoPaint(void* ctx, const RECT& rcPaint);
 
 	bool LayoutChanged();
@@ -57,6 +58,7 @@ private:
 	IEARaster*	raster_;
 	LPBYTE		bitmap_bits_;
 	bool		did_first_layout_;
+    POINT       last_mouse_point_;
 };
 
 } // namespace DuiLib
