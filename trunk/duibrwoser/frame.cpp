@@ -94,7 +94,6 @@ MainFrame::MainFrame()
 , raster_(NULL)
 , allocator_(NULL)
 , font_style_(NULL)
-, did_first_layout_(false)
 , logo_image_index(0)
 {
 	allocator_ = new MyAllocator();
@@ -392,7 +391,6 @@ void MainFrame::Notify(TNotifyUI& msg)
 
 bool MainFrame::ViewUpdate(ViewUpdateInfo& view_update_info)
 {
-	did_first_layout_ = true;
 	CWebkitUI* webkit_control = static_cast<CWebkitUI*>(paint_manager_.FindControl(kWebkitControlName));
 	if (webkit_control != NULL)
 		webkit_control->LayoutChanged();
