@@ -112,8 +112,6 @@ private:
 	MyAllocator*	allocator_;
 
 	int				logo_image_index;
-	bool			did_first_layout_;
-
 	tString			navigating_url_;
 };
 
