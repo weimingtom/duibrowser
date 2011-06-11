@@ -404,8 +404,8 @@ void MainFrame::Init()
 #else
 		swprintf_s(szFontDir, MAX_PATH - 1, L"%s\\Fonts", szWindowsDir);
 #endif
-		//font_server_->AddDirectory(szFontDir, L"*.*");
-		font_server_->AddDirectory(L"./", L"*.ttf");
+		font_server_->AddDirectory(szFontDir, L"*.*");
+		//font_server_->AddDirectory(L"./", L"*.ttf");
 
 		Parameters& param = webkit_->GetParameters();
 
