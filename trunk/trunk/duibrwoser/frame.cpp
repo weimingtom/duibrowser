@@ -40,7 +40,7 @@ namespace EA {
 using namespace EA::TextWrapper;
 
 const int kViewTickTimerId = 1001;
-const int kViewTickTimerElapse = 360;
+const int kViewTickTimerElapse = 200;
 const TCHAR* const kWebkitControlName = _T("webkit");
 const int kDefaultFontSize = 18;
 const int kMiniFontSize = 12;
@@ -404,40 +404,40 @@ void MainFrame::Init()
 #else
 		swprintf_s(szFontDir, MAX_PATH - 1, L"%s\\Fonts", szWindowsDir);
 #endif
-		font_server_->AddDirectory(szFontDir, L"*.*");
-		//font_server_->AddDirectory(L"./", L"*.ttf");
+		//font_server_->AddDirectory(szFontDir, L"*.*");
+		font_server_->AddDirectory(L"./", L"*.ttf");
 
 		Parameters& param = webkit_->GetParameters();
 
-		// default "en-us"
-		param.mpLocale = "zh-cn";
-
-		param.mDefaultFontSize = kDefaultFontSize;
-		param.mDefaultMonospaceFontSize = kDefaultFontSize;
-		param.mMinimumFontSize = kMiniFontSize;
-		param.mMinimumLogicalFontSize = kMiniFontSize;
-
-		param.mEnableSmoothText = true;
-		param.mFontSmoothingEnabled = true;
-
-		param.mSystemFontDescription.mSize = kDefaultFontSize;
-		sprintf_s(param.mSystemFontDescription.mFamilies, sizeof(param.mSystemFontDescription.mFamilies) / sizeof(param.mSystemFontDescription.mFamilies[0]),\
-			"System");
-#if 1
-		sprintf_s(param.mFontFamilyStandard, sizeof(param.mFontFamilyStandard) / sizeof(param.mFontFamilyStandard[0]), "System");
-		sprintf_s(param.mFontFamilySerif, sizeof(param.mFontFamilySerif) / sizeof(param.mFontFamilySerif[0]), "Times New Roman");
-		sprintf_s(param.mFontFamilySansSerif, sizeof(param.mFontFamilySansSerif) / sizeof(param.mFontFamilySansSerif[0]), "Tahoma");
-		sprintf_s(param.mFontFamilyMonospace, sizeof(param.mFontFamilyMonospace) / sizeof(param.mFontFamilyMonospace[0]), "System");
-		sprintf_s(param.mFontFamilyCursive, sizeof(param.mFontFamilyCursive) / sizeof(param.mFontFamilyCursive[0]), "Times New Roman");
-		sprintf_s(param.mFontFamilyFantasy, sizeof(param.mFontFamilyFantasy) / sizeof(param.mFontFamilyFantasy[0]), "System");
-#else
-		//iFonts.default_font = _strdup("Bitstream Vera Sans");
-		//iFonts.cursive_font = _strdup("Times New Roman");
-		//iFonts.fantasy_font = _strdup("System");
-		//iFonts.monospace_font = _strdup("Bitstream Vera Sans Mono");
-		//iFonts.sans_serif_font = _strdup("Tahoma");
-		//iFonts.serif_font = _strdup("Bitstream Vera Serif");
-#endif
+//		// default "en-us"
+//		param.mpLocale = "zh-cn";
+//
+//		param.mDefaultFontSize = kDefaultFontSize;
+//		param.mDefaultMonospaceFontSize = kDefaultFontSize;
+//		param.mMinimumFontSize = kMiniFontSize;
+//		param.mMinimumLogicalFontSize = kMiniFontSize;
+//
+//		param.mEnableSmoothText = true;
+//		param.mFontSmoothingEnabled = true;
+//
+//		param.mSystemFontDescription.mSize = kDefaultFontSize;
+//		sprintf_s(param.mSystemFontDescription.mFamilies, sizeof(param.mSystemFontDescription.mFamilies) / sizeof(param.mSystemFontDescription.mFamilies[0]),\
+//			"System");
+//#if 1
+//		sprintf_s(param.mFontFamilyStandard, sizeof(param.mFontFamilyStandard) / sizeof(param.mFontFamilyStandard[0]), "System");
+//		sprintf_s(param.mFontFamilySerif, sizeof(param.mFontFamilySerif) / sizeof(param.mFontFamilySerif[0]), "Times New Roman");
+//		sprintf_s(param.mFontFamilySansSerif, sizeof(param.mFontFamilySansSerif) / sizeof(param.mFontFamilySansSerif[0]), "Tahoma");
+//		sprintf_s(param.mFontFamilyMonospace, sizeof(param.mFontFamilyMonospace) / sizeof(param.mFontFamilyMonospace[0]), "System");
+//		sprintf_s(param.mFontFamilyCursive, sizeof(param.mFontFamilyCursive) / sizeof(param.mFontFamilyCursive[0]), "Times New Roman");
+//		sprintf_s(param.mFontFamilyFantasy, sizeof(param.mFontFamilyFantasy) / sizeof(param.mFontFamilyFantasy[0]), "System");
+//#else
+//		//iFonts.default_font = _strdup("Bitstream Vera Sans");
+//		//iFonts.cursive_font = _strdup("Times New Roman");
+//		//iFonts.fantasy_font = _strdup("System");
+//		//iFonts.monospace_font = _strdup("Bitstream Vera Sans Mono");
+//		//iFonts.sans_serif_font = _strdup("Tahoma");
+//		//iFonts.serif_font = _strdup("Bitstream Vera Serif");
+//#endif
 
 		view_ = webkit_->CreateView();
 		webkit_->SetViewNotification(this);
@@ -464,7 +464,7 @@ void MainFrame::OnPrepare(TNotifyUI& msg)
 		webkit_control->SetEARasterAndView(raster_, view_);
 
 		//view_->SetURI("file:///E:/Webkit/chapter02/chapter02.html");
-		view_->SetURI("http://www.oschina.net/");
+		view_->SetURI("http://www.google.com/");
 	}
 }
 
@@ -528,6 +528,12 @@ bool MainFrame::LoadUpdate(LoadInfo& load_info)
 		TCHAR szTitle[MAX_PATH] = {0};
 		_stprintf(szTitle, webkit_->GetCharacters(load_info.mPageTitle));
 		app_title->SetText(webkit_->GetCharacters(load_info.mPageTitle));
+	}
+
+	CControlUI* address_edit = paint_manager_.FindControl(_T("addresedt"));
+	if ((address_edit != NULL) && load_info.mbCompleted && _tcslen(webkit_->GetCharacters(load_info.mURI)) > 0)
+	{
+		address_edit->SetText(webkit_->GetCharacters(load_info.mURI));
 	}
 
 	return true;
