@@ -50,13 +50,18 @@ public:
 
     virtual void DoEvent(TEventUI& event);
 	virtual void DoPaint(void* ctx, const RECT& rcPaint);
+	virtual void SetPos(RECT rc);
 
 	bool LayoutChanged();
+
+protected:
+	void RestoreSurfaceBuffer();
 
 private:
 	View*		view_;
 	IEARaster*	raster_;
 	LPBYTE		bitmap_bits_;
+	BITMAPINFOHEADER bitmap_header_info_;
 	bool		did_first_layout_;
     POINT       last_mouse_point_;
 };

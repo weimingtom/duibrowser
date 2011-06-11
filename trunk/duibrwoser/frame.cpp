@@ -79,6 +79,8 @@ const TCHAR* const kTitleControlName = _T("apptitle");
 const TCHAR* const kAddressControlName = _T("addresedt");
 const TCHAR* const kCloseButtonControlName = _T("closebtn");
 const TCHAR* const kMinButtonControlName = _T("minbtn");
+const TCHAR* const kMaxButtonControlName = _T("maxbtn");
+const TCHAR* const kRestoreButtonControlName = _T("restorebtn");
 const TCHAR* const kBackButtonControlName = _T("backbtn");
 const TCHAR* const kForwardButtonControlName = _T("forwardbtn");
 const TCHAR* const kRefreshButtonControlName = _T("refreshbtn");
@@ -189,7 +191,8 @@ void MainFrame::OnTimer(TNotifyUI& msg)
 			LoadInfo& load_info = view_->GetLoadInfo();
 
 			if ((load_info.mLET == kLETNone) || (kLETLoadFailed == load_info.mLET) 
-				|| (kLETLoadCompleted == load_info.mLET) || (kLETLayoutCompleted == load_info.mLET))
+				|| (kLETLoadCompleted == load_info.mLET) || (kLETLayoutCompleted == load_info.mLET)
+				|| (kLETPageRedirect == load_info.mLET))
 				logo_image_index = 0;
 			else
 				++logo_image_index;
@@ -321,14 +324,6 @@ void MainFrame::OnPrepare(TNotifyUI& msg)
 	if ((webkit_control != NULL) && (app_title != NULL))
 	{
 		paint_manager_.SetTimer(app_title, kViewTickTimerId, kViewTickTimerElapse);
-
-		ViewParameters vp = view_->GetParameters();
-		vp.mbTransparentBackground = false;
-		vp.mWidth = webkit_control->GetPos().right - webkit_control->GetPos().left;
-		vp.mWidth = (vp.mWidth + 3) / 4 * 4;
-		vp.mHeight = webkit_control->GetPos().bottom - webkit_control->GetPos().top;
-		view_->InitView(vp);
-
 		webkit_control->SetEARasterAndView(raster_, view_);
 
 		//view_->SetURI("file:///E:/Webkit/chapter02/chapter02.html");
@@ -358,7 +353,9 @@ void MainFrame::Notify(TNotifyUI& msg)
 		view_ = webkit_->GetView(0);
 
 		if (_tcsicmp(msg.pSender->GetName(), kCloseButtonControlName) == 0)
+		{
 			OnExit(msg);
+		}
 		else if (_tcsicmp(msg.pSender->GetName(), kMinButtonControlName) == 0)
 		{
 #if defined(UI_BUILD_FOR_WINCE)
@@ -366,6 +363,14 @@ void MainFrame::Notify(TNotifyUI& msg)
 #else
 			SendMessage(WM_SYSCOMMAND, SC_MINIMIZE, 0);
 #endif
+		}
+		else if (_tcsicmp(msg.pSender->GetName(), kMaxButtonControlName) == 0)
+		{
+			SendMessage(WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+		}
+		else if (_tcsicmp(msg.pSender->GetName(), kRestoreButtonControlName) == 0)
+		{
+			SendMessage(WM_SYSCOMMAND, SC_RESTORE, 0);
 		}
 		else if (_tcsicmp(msg.pSender->GetName(), kBackButtonControlName) == 0)
 		{
@@ -402,8 +407,6 @@ bool MainFrame::LoadUpdate(LoadInfo& load_info)
 	CControlUI* app_title = paint_manager_.FindControl(kTitleControlName);
 	if ((app_title != NULL) && _tcslen(webkit_->GetCharacters(load_info.mPageTitle)) > 0)
 	{
-		TCHAR szTitle[MAX_PATH] = {0};
-		_stprintf(szTitle, webkit_->GetCharacters(load_info.mPageTitle));
 		app_title->SetText(webkit_->GetCharacters(load_info.mPageTitle));
 	}
 

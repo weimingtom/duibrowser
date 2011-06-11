@@ -23,7 +23,9 @@
 namespace DuiLib {
 	
 CWebkitUI::CWebkitUI()
-: bitmap_bits_(NULL)
+: raster_(NULL)
+, view_(NULL)
+, bitmap_bits_(NULL)
 , did_first_layout_(false)
 {
     last_mouse_point_.x = 0;
@@ -44,10 +46,72 @@ bool CWebkitUI::LayoutChanged()
 	return did_first_layout_;
 }
 
+void CWebkitUI::RestoreSurfaceBuffer()
+{
+	if (bitmap_bits_ != NULL)
+		delete[] bitmap_bits_;
+	bitmap_bits_ = NULL;
+
+	if (view_ != NULL)
+	{
+		int mWidth = (m_rcItem.right - m_rcItem.left);
+		mWidth = (mWidth + 3) / 4 * 4;
+		int mHeight = (m_rcItem.bottom - m_rcItem.top);
+
+		bitmap_header_info_.biSize			= sizeof(BITMAPINFOHEADER);
+		bitmap_header_info_.biWidth			= mWidth;
+		bitmap_header_info_.biHeight		= mHeight;
+		bitmap_header_info_.biPlanes		= 1;
+		bitmap_header_info_.biBitCount		= 32;
+		bitmap_header_info_.biCompression	= 0;
+		bitmap_header_info_.biSizeImage		= bitmap_header_info_.biWidth * bitmap_header_info_.biHeight * 4;
+		bitmap_header_info_.biXPelsPerMeter	= 0;
+		bitmap_header_info_.biYPelsPerMeter	= 0;
+		bitmap_header_info_.biClrUsed		= 0;
+		bitmap_header_info_.biClrImportant	= 0;
+
+		bitmap_bits_ = new BYTE[bitmap_header_info_.biSizeImage];
+		memset(bitmap_bits_, 0xED, bitmap_header_info_.biSizeImage);
+	}
+}
+
 void CWebkitUI::SetEARasterAndView(IEARaster* raster, View* view)
 {
-	raster_ = raster;
-	view_ = view;
+	if (view_ == NULL)
+	{
+		raster_ = raster;
+		view_ = view;
+
+		ViewParameters vp = view_->GetParameters();
+		vp.mbTransparentBackground = false;
+		vp.mWidth = (m_rcItem.right - m_rcItem.left);
+		vp.mWidth = (vp.mWidth + 3) / 4 * 4;
+		vp.mHeight = (m_rcItem.bottom - m_rcItem.top);
+		view_->InitView(vp);
+
+		RestoreSurfaceBuffer();
+	}
+
+	if (bitmap_bits_ == NULL)
+	{
+		bitmap_bits_ = new BYTE[bitmap_header_info_.biSizeImage];
+		memset(bitmap_bits_, 0xED, bitmap_header_info_.biSizeImage);
+	}
+}
+
+void CWebkitUI::SetPos(RECT rc)
+{
+	CControlUI::SetPos(rc);
+
+	int mWidth = (m_rcItem.right - m_rcItem.left);
+	mWidth = (mWidth + 3) / 4 * 4;
+	int mHeight = (m_rcItem.bottom - m_rcItem.top);
+
+	if ((view_ != NULL) && ((bitmap_header_info_.biWidth != mWidth) || (bitmap_header_info_.biHeight != mHeight)))
+	{
+		view_->SetSize(mWidth, mHeight);
+		RestoreSurfaceBuffer();
+	}
 }
 
 void CWebkitUI::DoEvent(TEventUI& event)
@@ -57,6 +121,8 @@ void CWebkitUI::DoEvent(TEventUI& event)
         else CControlUI::DoEvent(event);
         return;
     }
+
+	if (bitmap_bits_ == NULL) return;
 
     if( event.Type == UIEVENT_SETFOCUS ) 
     {
@@ -150,46 +216,27 @@ void CWebkitUI::DoEvent(TEventUI& event)
 
 void CWebkitUI::DoPaint(void* ctx, const RECT& rcPaint)
 {
-	if ((ctx == NULL) || (raster_ == NULL))
+	if ((ctx == NULL) || (raster_ == NULL) || (bitmap_bits_ == NULL))
 		return;
 
     if( !::IntersectRect(&m_rcPaint, &rcPaint, &m_rcItem) ) return;
 
 	HDC hDC = (HDC)ctx;
 
-	BITMAPINFO bi = {0};
-	bi.bmiHeader.biSize			= sizeof(BITMAPINFOHEADER);
-	bi.bmiHeader.biWidth		= ((m_rcItem.right - m_rcItem.left) + 3) / 4 * 4;
-	bi.bmiHeader.biHeight		= (m_rcItem.bottom - m_rcItem.top);
-	bi.bmiHeader.biPlanes		= 1;
-	bi.bmiHeader.biBitCount		= 32;
-	bi.bmiHeader.biCompression	= 0;
-	bi.bmiHeader.biSizeImage	= bi.bmiHeader.biWidth * bi.bmiHeader.biHeight * 4;
-	bi.bmiHeader.biXPelsPerMeter= 0;
-	bi.bmiHeader.biYPelsPerMeter= 0;
-	bi.bmiHeader.biClrUsed		= 0;
-	bi.bmiHeader.biClrImportant	= 0;	
-
-	if (bitmap_bits_ == NULL)
+	if (did_first_layout_ && bitmap_bits_ != NULL)
 	{
-		bitmap_bits_ = new BYTE[bi.bmiHeader.biSizeImage];
-		memset(bitmap_bits_, 0xED, bi.bmiHeader.biSizeImage);
-	}
-	else if (did_first_layout_ && bitmap_bits_ != NULL)
-	{
-		memcpy_s(bitmap_bits_, bi.bmiHeader.biSizeImage, view_->GetSurface()->mpData, bi.bmiHeader.biSizeImage);
+		memcpy_s(bitmap_bits_, bitmap_header_info_.biSizeImage, view_->GetSurface()->mpData, bitmap_header_info_.biSizeImage);
 	}
 	else if (bitmap_bits_ != NULL)
 	{
-		memset(bitmap_bits_, 0xED, bi.bmiHeader.biSizeImage);
+		memset(bitmap_bits_, 0xED, bitmap_header_info_.biSizeImage);
 	}
 
 	::SetStretchBltMode(hDC, COLORONCOLOR);
-
-	BITMAPINFOHEADER bmiHeader = bi.bmiHeader;
+	BITMAPINFOHEADER bmiHeader = bitmap_header_info_;
 	bmiHeader.biHeight = -bmiHeader.biHeight;
 	StretchDIBits(hDC, m_rcItem.left, m_rcItem.top, m_rcItem.right - m_rcItem.left, m_rcItem.bottom - m_rcItem.top, 
-		0, 0, bi.bmiHeader.biWidth, bi.bmiHeader.biHeight, bitmap_bits_, (LPBITMAPINFO)&bmiHeader, DIB_RGB_COLORS, SRCCOPY);
+		0, 0, bitmap_header_info_.biWidth, bitmap_header_info_.biHeight, bitmap_bits_, (LPBITMAPINFO)&bmiHeader, DIB_RGB_COLORS, SRCCOPY);
 }
 
 } // namespace DuiLib
