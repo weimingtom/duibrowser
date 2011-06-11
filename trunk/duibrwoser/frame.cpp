@@ -404,10 +404,13 @@ void MainFrame::Init()
 #else
 		swprintf_s(szFontDir, MAX_PATH - 1, L"%s\\Fonts", szWindowsDir);
 #endif
-		font_server_->AddDirectory(szFontDir, L"*.ttf");
+		font_server_->AddDirectory(szFontDir, L"*.*");
 		//font_server_->AddDirectory(L"./", L"*.ttf");
 
 		Parameters& param = webkit_->GetParameters();
+
+		// default "en-us"
+		param.mpLocale = "zh-cn";
 
 		param.mDefaultFontSize = kDefaultFontSize;
 		param.mDefaultMonospaceFontSize = kDefaultFontSize;
@@ -416,14 +419,17 @@ void MainFrame::Init()
 
 		param.mEnableSmoothText = true;
 		param.mFontSmoothingEnabled = true;
+
 		param.mSystemFontDescription.mSize = kDefaultFontSize;
+		sprintf_s(param.mSystemFontDescription.mFamilies, sizeof(param.mSystemFontDescription.mFamilies) / sizeof(param.mSystemFontDescription.mFamilies[0]),\
+			"System");
 #if 1
-		sprintf_s(param.mFontFamilyStandard, sizeof(param.mFontFamilyStandard) / sizeof(param.mFontFamilyStandard[0]), "Times New Roman");
+		sprintf_s(param.mFontFamilyStandard, sizeof(param.mFontFamilyStandard) / sizeof(param.mFontFamilyStandard[0]), "System");
 		sprintf_s(param.mFontFamilySerif, sizeof(param.mFontFamilySerif) / sizeof(param.mFontFamilySerif[0]), "Times New Roman");
-		sprintf_s(param.mFontFamilySansSerif, sizeof(param.mFontFamilySansSerif) / sizeof(param.mFontFamilySansSerif[0]), "Arial");
-		sprintf_s(param.mFontFamilyMonospace, sizeof(param.mFontFamilyMonospace) / sizeof(param.mFontFamilyMonospace[0]), "Courier New");
-		sprintf_s(param.mFontFamilyCursive, sizeof(param.mFontFamilyCursive) / sizeof(param.mFontFamilyCursive[0]), "Comic Sans MS");
-		sprintf_s(param.mFontFamilyFantasy, sizeof(param.mFontFamilyFantasy) / sizeof(param.mFontFamilyFantasy[0]), "Comic Sans MS");
+		sprintf_s(param.mFontFamilySansSerif, sizeof(param.mFontFamilySansSerif) / sizeof(param.mFontFamilySansSerif[0]), "Tahoma");
+		sprintf_s(param.mFontFamilyMonospace, sizeof(param.mFontFamilyMonospace) / sizeof(param.mFontFamilyMonospace[0]), "System");
+		sprintf_s(param.mFontFamilyCursive, sizeof(param.mFontFamilyCursive) / sizeof(param.mFontFamilyCursive[0]), "Times New Roman");
+		sprintf_s(param.mFontFamilyFantasy, sizeof(param.mFontFamilyFantasy) / sizeof(param.mFontFamilyFantasy[0]), "System");
 #else
 		//iFonts.default_font = _strdup("Bitstream Vera Sans");
 		//iFonts.cursive_font = _strdup("Times New Roman");
@@ -458,7 +464,7 @@ void MainFrame::OnPrepare(TNotifyUI& msg)
 		webkit_control->SetEARasterAndView(raster_, view_);
 
 		//view_->SetURI("file:///E:/Webkit/chapter02/chapter02.html");
-		view_->SetURI("http://www.oschina.com/");
+		view_->SetURI("http://www.oschina.net/");
 	}
 }
 
