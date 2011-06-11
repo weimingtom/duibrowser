@@ -34,6 +34,9 @@ namespace EA {
 		struct LoadInfo;
 		struct ViewUpdateInfo;
 		struct StringInfo;
+
+		struct Parameters;
+		struct ViewParameters;
 	}
 }
 
@@ -103,6 +106,8 @@ protected:
 	virtual bool LoadUpdate(LoadInfo&);
 	virtual bool ViewUpdate(ViewUpdateInfo&);
 
+	CPoint GetClientPoint(LPARAM lParam, bool relative_upper_left_screen = false);
+
 private:
 	HINSTANCE		webkit_dll_;	
 	IEAWebkit*		webkit_;
@@ -113,6 +118,8 @@ private:
 	View*			view_;
 	IFontStyle*		font_style_;
 	MyAllocator*	allocator_;
+
+	bool			did_first_layout_;
 };
 
 #endif // MAINFRAME_HPP

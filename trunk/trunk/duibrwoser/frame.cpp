@@ -40,8 +40,11 @@ namespace EA {
 using namespace EA::TextWrapper;
 
 const int kViewTickTimerId = 1001;
-const int kViewTickTimerElapse = 500;
+const int kViewTickTimerElapse = 360;
 const TCHAR* const kWebkitControlName = _T("webkit");
+const int kDefaultFontSize = 18;
+const int kMiniFontSize = 12;
+const int kPageTimeoutSeconds = 30;
 
 class MyAllocator : public Allocator
 {
@@ -80,6 +83,7 @@ MainFrame::MainFrame()
 , raster_(NULL)
 , allocator_(NULL)
 , font_style_(NULL)
+, did_first_layout_(false)
 {
 	allocator_ = new MyAllocator();
 }
@@ -160,6 +164,23 @@ void MainFrame::HandleFocusChangeEvent(bool bHasFocus)
     view_->OnFocusChangeEvent(bHasFocus);
 }
 
+CPoint MainFrame::GetClientPoint(LPARAM lParam, bool relative_upper_left_screen)
+{
+	CPoint point(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+	if (relative_upper_left_screen)
+		ScreenToClient(m_hWnd, &point);
+
+	CWebkitUI* webkit_control = static_cast<CWebkitUI*>(paint_manager_.FindControl(kWebkitControlName));
+	if (webkit_control)
+	{
+		CRect webkit_rect = webkit_control->GetPos();
+		point.x -= webkit_rect.left;
+		point.y -= webkit_rect.top;
+	}
+
+	return point;
+}
+
 LRESULT MainFrame::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	static CPoint globalPrevPoint;
@@ -169,6 +190,7 @@ LRESULT MainFrame::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		switch (uMsg)
 		{
 		case WM_MOUSEMOVE:
+			if (did_first_layout_)
 			{
 				CWebkitUI* webkit_control = static_cast<CWebkitUI*>(paint_manager_.FindControl(kWebkitControlName));
 				CRect webkit_rect;
@@ -178,7 +200,7 @@ LRESULT MainFrame::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 				{
 					MouseMoveEvent mouseEvent;
 
-					CPoint point(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+					CPoint point = GetClientPoint(lParam);
 
 					mouseEvent.mX = point.x;
 					mouseEvent.mY = point.y;
@@ -186,8 +208,8 @@ LRESULT MainFrame::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 					mouseEvent.mDX = -(point.x - globalPrevPoint.x);
 					mouseEvent.mDY = -(point.y - globalPrevPoint.y);
 
-					// FIXME: assign the shift keyboard status
-					//mouseEvent.mbShift = ();
+					mouseEvent.mbShift = wParam & MK_SHIFT;
+					mouseEvent.mbControl = wParam & MK_CONTROL;
 
 					HandleMouseMoveEvent(mouseEvent);
 				}
@@ -197,12 +219,13 @@ LRESULT MainFrame::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_LBUTTONDOWN:
         case WM_MBUTTONDOWN:
         case WM_RBUTTONDOWN:
-        //case WM_LBUTTONDBLCLK:
-        //case WM_MBUTTONDBLCLK:
-        //case WM_RBUTTONDBLCLK:
+        case WM_LBUTTONDBLCLK:
+        case WM_MBUTTONDBLCLK:
+        case WM_RBUTTONDBLCLK:
         case WM_LBUTTONUP:
         case WM_MBUTTONUP:
 		case WM_RBUTTONUP:
+			if (did_first_layout_)
 			{
 				CWebkitUI* webkit_control = static_cast<CWebkitUI*>(paint_manager_.FindControl(kWebkitControlName));
 				CRect webkit_rect;
@@ -210,7 +233,7 @@ LRESULT MainFrame::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 					webkit_rect = webkit_control->GetPos();
 				if (webkit_rect.PtInRect(CPoint(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam))))
 				{
-					CPoint point(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+					CPoint point = GetClientPoint(lParam);
 					globalPrevPoint = point;
 
 					MouseButtonEvent mouseEvent;
@@ -231,8 +254,8 @@ LRESULT MainFrame::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 					else if (uMsg == WM_LBUTTONUP || uMsg == WM_MBUTTONUP || uMsg == WM_RBUTTONUP)
 						mouseEvent.mbDepressed = false;
 
-					// FIXME: assign the shift keyboard status
-					//mouseEvent.mbShift = ();
+					mouseEvent.mbShift = wParam & MK_SHIFT;
+					mouseEvent.mbControl = wParam & MK_CONTROL;
 
 					HandleMouseButtonEvent(mouseEvent);
 				}
@@ -240,19 +263,25 @@ LRESULT MainFrame::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
             break;
 
         case WM_MOUSEWHEEL:
+			if (did_first_layout_)
 			{
 				MouseWheelEvent mouseEvent;
 
-				mouseEvent.mX = globalPrevPoint.x;
-				mouseEvent.mY = globalPrevPoint.y;
+				mouseEvent.mX = GetClientPoint(lParam, true).x;
+				mouseEvent.mY = GetClientPoint(lParam, true).y;
 
-				mouseEvent.mZDelta = short(HIWORD(wParam));
+				short fwKeys = GET_KEYSTATE_WPARAM(wParam);
+				short zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
 
-				// FIXME: assign the line delta
-				//mouseEvent.mLineDelta = ;
+				mouseEvent.mZDelta = zDelta;
 
-				// FIXME: assign the shift keyboard status
-				//mouseEvent.mbShift = ();
+				// default value is 3
+				UINT param = 3;
+				SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &param, 0);
+				mouseEvent.mLineDelta = param;
+
+				mouseEvent.mbShift = fwKeys & MK_SHIFT;
+				mouseEvent.mbControl = fwKeys & MK_CONTROL;
 
 				// Ctrl+Mouse wheel doesn't ever go into WebCore.  It is used to
 				// zoom instead (Mac zooms the whole Desktop, but Windows browsers trigger their
@@ -276,6 +305,7 @@ LRESULT MainFrame::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_KEYUP:
         case WM_SYSCHAR:
         case WM_CHAR:
+			if (did_first_layout_)
 			{
 				KeyboardEvent keyEvent;
 
@@ -320,8 +350,9 @@ void MainFrame::OnTimer(TNotifyUI& msg)
 {
 	switch (msg.wParam)
 	{
-	case kViewTickTimerId:		
-		paint_manager_.KillTimer(msg.pSender, kViewTickTimerId);
+	case kViewTickTimerId:
+		if (view_ != NULL) view_->Tick();
+		//paint_manager_.KillTimer(msg.pSender, kViewTickTimerId);
 		break;
 	default:
 		break;
@@ -330,8 +361,6 @@ void MainFrame::OnTimer(TNotifyUI& msg)
 
 LRESULT MainFrame::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-	if (view_ != NULL) view_->Tick();
-
 	return __super::MessageHandler(uMsg, wParam, lParam, bHandled);
 }
 
@@ -375,12 +404,36 @@ void MainFrame::Init()
 #else
 		swprintf_s(szFontDir, MAX_PATH - 1, L"%s\\Fonts", szWindowsDir);
 #endif
-		//font_server_->AddDirectory(szFontDir, L"*.ttf");
-		font_server_->AddDirectory(L"./", L"*.ttf");
+		font_server_->AddDirectory(szFontDir, L"*.ttf");
+		//font_server_->AddDirectory(L"./", L"*.ttf");
 
-		Parameters& sp = webkit_->GetParameters();
+		Parameters& param = webkit_->GetParameters();
+
+		param.mDefaultFontSize = kDefaultFontSize;
+		param.mDefaultMonospaceFontSize = kDefaultFontSize;
+		param.mMinimumFontSize = kMiniFontSize;
+		param.mMinimumLogicalFontSize = kMiniFontSize;
+
+		param.mEnableSmoothText = true;
+		param.mFontSmoothingEnabled = true;
+		param.mSystemFontDescription.mSize = kDefaultFontSize;
+#if 1
+		sprintf_s(param.mFontFamilyStandard, sizeof(param.mFontFamilyStandard) / sizeof(param.mFontFamilyStandard[0]), "Times New Roman");
+		sprintf_s(param.mFontFamilySerif, sizeof(param.mFontFamilySerif) / sizeof(param.mFontFamilySerif[0]), "Times New Roman");
+		sprintf_s(param.mFontFamilySansSerif, sizeof(param.mFontFamilySansSerif) / sizeof(param.mFontFamilySansSerif[0]), "Arial");
+		sprintf_s(param.mFontFamilyMonospace, sizeof(param.mFontFamilyMonospace) / sizeof(param.mFontFamilyMonospace[0]), "Courier New");
+		sprintf_s(param.mFontFamilyCursive, sizeof(param.mFontFamilyCursive) / sizeof(param.mFontFamilyCursive[0]), "Comic Sans MS");
+		sprintf_s(param.mFontFamilyFantasy, sizeof(param.mFontFamilyFantasy) / sizeof(param.mFontFamilyFantasy[0]), "Comic Sans MS");
+#else
+		//iFonts.default_font = _strdup("Bitstream Vera Sans");
+		//iFonts.cursive_font = _strdup("Times New Roman");
+		//iFonts.fantasy_font = _strdup("System");
+		//iFonts.monospace_font = _strdup("Bitstream Vera Sans Mono");
+		//iFonts.sans_serif_font = _strdup("Tahoma");
+		//iFonts.serif_font = _strdup("Bitstream Vera Serif");
+#endif
+
 		view_ = webkit_->CreateView();
-
 		webkit_->SetViewNotification(this);
 		raster_ = webkit_->GetEARasterInstance();
 	}
@@ -400,11 +453,12 @@ void MainFrame::OnPrepare(TNotifyUI& msg)
 		vp.mWidth = webkit_control->GetPos().right - webkit_control->GetPos().left;
 		vp.mWidth = (vp.mWidth + 3) / 4 * 4;
 		vp.mHeight = webkit_control->GetPos().bottom - webkit_control->GetPos().top;
-		view_->InitView(vp);		
+		view_->InitView(vp);
+
 		webkit_control->SetEARasterAndView(raster_, view_);
 
 		//view_->SetURI("file:///E:/Webkit/chapter02/chapter02.html");
-		view_->SetURI("http://www.webkit.org/");
+		view_->SetURI("http://www.oschina.com/");
 	}
 }
 
@@ -453,6 +507,7 @@ void MainFrame::Notify(TNotifyUI& msg)
 
 bool MainFrame::ViewUpdate(ViewUpdateInfo& view_update_info)
 {
+	did_first_layout_ = true;
 	CWebkitUI* webkit_control = static_cast<CWebkitUI*>(paint_manager_.FindControl(kWebkitControlName));
 	if (webkit_control != NULL)
 		webkit_control->LayoutChanged();

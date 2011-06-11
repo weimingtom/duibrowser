@@ -67,7 +67,7 @@ void CWebkitUI::DoPaint(void* ctx, const RECT& rcPaint)
 	bi.bmiHeader.biXPelsPerMeter= 0;
 	bi.bmiHeader.biYPelsPerMeter= 0;
 	bi.bmiHeader.biClrUsed		= 0;
-	bi.bmiHeader.biClrImportant	= 0;	
+	bi.bmiHeader.biClrImportant	= 0;
 
 	if (bitmap_bits_ == NULL)
 	{
