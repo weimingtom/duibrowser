@@ -337,7 +337,7 @@ void MainFrame::Notify(TNotifyUI& msg)
 	{
 		OnPrepare(msg);
 	}
-	else if (_tcsicmp(msg.pSender->GetName(), _T("return")) == 0)
+	else if (_tcsicmp(msg.sType, _T("return")) == 0)
 	{
 		CEditUI* address_edit = static_cast<CEditUI*>(paint_manager_.FindControl(kAddressControlName));
 		if ((address_edit != NULL) && _tcslen(address_edit->GetText()) > 0)
@@ -349,9 +349,6 @@ void MainFrame::Notify(TNotifyUI& msg)
 	}
 	else if (_tcsicmp(msg.sType, DuiLib::kClick) == 0)
 	{
-		int view_count = webkit_->GetViewCount();
-		view_ = webkit_->GetView(0);
-
 		if (_tcsicmp(msg.pSender->GetName(), kCloseButtonControlName) == 0)
 		{
 			OnExit(msg);
