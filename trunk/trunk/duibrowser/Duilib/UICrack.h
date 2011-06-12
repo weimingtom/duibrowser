@@ -1225,6 +1225,8 @@ extern UILIB_API const TCHAR* const kItemClick;// = _T("itemclick");
 extern UILIB_API const TCHAR* const kDropDown;// = _T("dropdown");
 extern UILIB_API const TCHAR* const kTimer;// = _T("timer");
 extern UILIB_API const TCHAR* const kMenu;// = _T("menu");
+extern UILIB_API const TCHAR* const kReturn;// = _T("return");
+extern UILIB_API const TCHAR* const kTextChanged;// = _T("textchanged");
 
 }; // namespace DuiLib
 
