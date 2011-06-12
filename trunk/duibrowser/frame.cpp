@@ -344,6 +344,8 @@ void MainFrame::Notify(TNotifyUI& msg)
 		{
 			tString input_url = address_edit->GetText();
 			view_->CancelLoad();
+			if ((input_url.find(_T("http://")) == tString::npos) || (input_url.find(_T("https://")) == tString::npos))
+				input_url = _T("http://") + input_url;
 			view_->SetURI(StringConvertor::WideToUtf8(input_url.c_str()));
 		}
 	}
