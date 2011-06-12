@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="DuiBrwoser"
+	Name="DuiBrowser"
 	ProjectGUID="{664776D4-85D9-4C9B-ADF0-0AD9E1D7D7ED}"
-	RootNamespace="DuiBrwoser"
+	RootNamespace="DuiBrowser"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -241,7 +241,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\DuiBrwoser.rc"
+				RelativePath=".\DuiBrowser.rc"
 				>
 			</File>
 		</Filter>
