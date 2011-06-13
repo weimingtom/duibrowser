@@ -66,8 +66,9 @@ LRESULT WindowImplBase::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPa
 }
 
 #if defined(UI_BUILD_FOR_WIN32) && !defined(UI_BUILD_FOR_WINCE)
-LRESULT WindowImplBase::OnNcActivate(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/)
+LRESULT WindowImplBase::OnNcActivate(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
 {
+	if( ::IsIconic(*this) ) bHandled = FALSE;
 	return (wParam == 0) ? TRUE : FALSE;
 }
 
