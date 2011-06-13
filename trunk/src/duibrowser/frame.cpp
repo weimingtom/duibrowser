@@ -88,6 +88,8 @@ const TCHAR* const kHomeButtonControlName = _T("homebtn");
 const TCHAR* const kToolButtonControlName = _T("toolbtn");
 const TCHAR* const kLogoControlName = _T("logo");
 
+const char* const kHomeUrl = "http://www.google.com/";
+
 MainFrame::MainFrame()
 : webkit_dll_(NULL)
 , webkit_(NULL)
@@ -152,6 +154,33 @@ void MainFrame::OnFinalMessage(HWND hWnd)
 tString MainFrame::GetSkinFile()
 {
 	return _T("main.xml");
+}
+
+LRESULT MainFrame::OnSysCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+#if defined(UI_BUILD_FOR_WIN32) && !defined(UI_BUILD_FOR_WINCE)
+	BOOL bZoomed = ::IsZoomed(m_hWnd);
+	LRESULT lRes = CWindowWnd::HandleMessage(uMsg, wParam, lParam);
+	if( ::IsZoomed(m_hWnd) != bZoomed ) 
+	{
+		if( !bZoomed ) 
+		{
+			CControlUI* pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kMaxButtonControlName));
+			if( pControl ) pControl->SetVisible(false);
+			pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kRestoreButtonControlName));
+			if( pControl ) pControl->SetVisible(true);
+		}
+		else 
+		{
+			CControlUI* pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kMaxButtonControlName));
+			if( pControl ) pControl->SetVisible(true);
+			pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kRestoreButtonControlName));
+			if( pControl ) pControl->SetVisible(false);
+		}
+	}
+#endif
+
+	return __super::OnSysCommand(uMsg, wParam, lParam, bHandled);
 }
 
 LRESULT MainFrame::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -329,7 +358,7 @@ void MainFrame::OnPrepare(TNotifyUI& msg)
 		webkit_control->SetEARasterAndView(raster_, view_);
 
 		//view_->SetURI("file:///E:/Webkit/chapter02/chapter02.html");
-		view_->SetURI("http://www.google.com/");
+		view_->SetURI(kHomeUrl);
 	}
 }
 
@@ -369,30 +398,33 @@ void MainFrame::Notify(TNotifyUI& msg)
 		{
 #if defined(UI_BUILD_FOR_WINCE)
 			::ShowWindow(m_hWnd, SW_MAXIMIZE);
-#else
-			SendMessage(WM_SYSCOMMAND, SC_MAXIMIZE, 0);
-#endif
 			CControlUI* pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kMaxButtonControlName));
 			if( pControl ) pControl->SetVisible(false);
 			pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kRestoreButtonControlName));
 			if( pControl ) pControl->SetVisible(true);
+#else
+			SendMessage(WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+#endif
 		}
 		else if (_tcsicmp(msg.pSender->GetName(), kRestoreButtonControlName) == 0)
 		{
 #if defined(UI_BUILD_FOR_WINCE)
 			::ShowWindow(m_hWnd, SW_RESTORE);
-#else
-			SendMessage(WM_SYSCOMMAND, SC_RESTORE, 0);
-#endif
 			CControlUI* pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kMaxButtonControlName));
 			if( pControl ) pControl->SetVisible(true);
 			pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kRestoreButtonControlName));
 			if( pControl ) pControl->SetVisible(false);
+#else
+			SendMessage(WM_SYSCOMMAND, SC_RESTORE, 0);
+#endif
 		}
 		else if (_tcsicmp(msg.pSender->GetName(), kToolButtonControlName) == 0)
 		{}
 		else if (_tcsicmp(msg.pSender->GetName(), kHomeButtonControlName) == 0)
-		{}
+		{
+			if (view_ != NULL)
+				view_->SetURI(kHomeUrl);
+		}
 		else if (_tcsicmp(msg.pSender->GetName(), kBackButtonControlName) == 0)
 		{
 			if (view_ != NULL)
