@@ -178,9 +178,11 @@ LRESULT MainFrame::OnSysCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& b
 			if( pControl ) pControl->SetVisible(false);
 		}
 	}
+#else
+	return __super::OnSysCommand(uMsg, wParam, lParam, bHandled);
 #endif
 
-	return __super::OnSysCommand(uMsg, wParam, lParam, bHandled);
+	return 0;
 }
 
 LRESULT MainFrame::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
