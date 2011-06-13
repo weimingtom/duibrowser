@@ -91,6 +91,8 @@ public:
 
 	virtual LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
+	virtual LRESULT OnSysCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+
 protected:	
 	void Notify(TNotifyUI& msg);
 	void OnPrepare(TNotifyUI& msg);
