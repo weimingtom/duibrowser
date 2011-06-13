@@ -19,12 +19,12 @@
     </HorizontalLayout>
 
     <HorizontalLayout padding="2,0,2,2" bkcolor="#FFF8F8F8" bkcolor2="#FFE4E4E4" height="50" inset="0,1,0,4">
-      <HorizontalLayout height="29" width="140" padding="0,8,0,0">
+      <HorizontalLayout height="29" width="112" padding="0,8,0,0">
         <Control width="4"/>
         <Button name="backbtn" width="27" tooltip="后退" normalimage="file='back.png'" hotimage="file='back_h.png'" pushedimage="file='back_p.png'" disabledimage="file='back_d.png'"/>
         <Button name="forwardbtn" width="27" tooltip="向前" normalimage="file='forward.png'" hotimage="file='forward_h.png'" pushedimage="file='forward_p.png'" disabledimage="forward_d.png"/>
         <Button name="refreshbtn" width="27" tooltip="刷新" normalimage="file='reload.png'" hotimage="file='reload_h.png'" pushedimage="file='reload_p.png'"/>
-        <Button name="stopbtn" width="27" tooltip="停止" normalimage="file='stop.png'" hotimage="file='stop_h.png'" pushedimage="file='stop_p.png'" disabledimage="file='stop_d.png'"/>
+        <Button name="stopbtn" visible="false" width="27" tooltip="停止" normalimage="file='stop.png'" hotimage="file='stop_h.png'" pushedimage="file='stop_p.png'" disabledimage="file='stop_d.png'"/>
         <Button name="homebtn" width="27" tooltip="停止" normalimage="file='home.png'" hotimage="file='home_h.png'" pushedimage="file='home_p.png'"/>
       </HorizontalLayout>
       <Control width="4"/>
