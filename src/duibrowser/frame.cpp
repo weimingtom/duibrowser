@@ -295,7 +295,7 @@ void MainFrame::Init()
 		font_server_ = webkit_->CreateFontServerWrapperInterface(NULL);
 
 		font_style_ = font_server_->CreateTextStyle();
-		font_style_->SetSize(14);
+		font_style_->SetSize(kDefaultFontSize);
 		font_style_->SetSmooth(kSmoothEnabled);
 		font_style_->SetWeight(1200);
 
@@ -411,6 +411,7 @@ void MainFrame::Notify(TNotifyUI& msg)
 		{
 			tString input_url = address_edit->GetText();			
 			view_->ResetForNewLoad();
+			view_->CancelLoad();
 			if ((input_url.find(_T("http://")) == tString::npos) && (input_url.find(_T("https://")) == tString::npos))
 				input_url = _T("http://") + input_url;
 			view_->SetURI(StringConvertor::WideToUtf8(input_url.c_str()));
@@ -461,6 +462,7 @@ void MainFrame::Notify(TNotifyUI& msg)
 			if (view_ != NULL)
 			{
 				view_->ResetForNewLoad();
+				view_->CancelLoad();
 				view_->SetURI(kHomeUrl);
 			}
 		}
