@@ -84,6 +84,7 @@ const TCHAR* const kRestoreButtonControlName = _T("restorebtn");
 const TCHAR* const kBackButtonControlName = _T("backbtn");
 const TCHAR* const kForwardButtonControlName = _T("forwardbtn");
 const TCHAR* const kRefreshButtonControlName = _T("refreshbtn");
+const TCHAR* const kStopButtonControlName = _T("stopbtn");
 const TCHAR* const kHomeButtonControlName = _T("homebtn");
 const TCHAR* const kToolButtonControlName = _T("toolbtn");
 const TCHAR* const kLogoControlName = _T("logo");
@@ -373,11 +374,11 @@ void MainFrame::Notify(TNotifyUI& msg)
 	else if (_tcsicmp(msg.sType, DuiLib::kReturn) == 0)
 	{
 		CEditUI* address_edit = static_cast<CEditUI*>(paint_manager_.FindControl(kAddressControlName));
-		if ((address_edit != NULL) && _tcslen(address_edit->GetText()) > 0)
+		if ((view_ != NULL) && (address_edit != NULL) && _tcslen(address_edit->GetText()) > 0)
 		{
-			tString input_url = address_edit->GetText();
-			view_->CancelLoad();
-			if ((input_url.find(_T("http://")) == tString::npos) || (input_url.find(_T("https://")) == tString::npos))
+			tString input_url = address_edit->GetText();			
+			view_->ResetForNewLoad();
+			if ((input_url.find(_T("http://")) == tString::npos) && (input_url.find(_T("https://")) == tString::npos))
 				input_url = _T("http://") + input_url;
 			view_->SetURI(StringConvertor::WideToUtf8(input_url.c_str()));
 		}
@@ -425,7 +426,10 @@ void MainFrame::Notify(TNotifyUI& msg)
 		else if (_tcsicmp(msg.pSender->GetName(), kHomeButtonControlName) == 0)
 		{
 			if (view_ != NULL)
+			{
+				view_->ResetForNewLoad();
 				view_->SetURI(kHomeUrl);
+			}
 		}
 		else if (_tcsicmp(msg.pSender->GetName(), kBackButtonControlName) == 0)
 		{
@@ -441,6 +445,11 @@ void MainFrame::Notify(TNotifyUI& msg)
 		{
 			if (view_ != NULL)
 				view_->Refresh();
+		}
+		else if (_tcsicmp(msg.pSender->GetName(), kStopButtonControlName) == 0)
+		{
+			if (view_ != NULL)
+				view_->CancelLoad();
 		}
 	}
 	else if (_tcsicmp(msg.sType, DuiLib::kTimer) == 0)
