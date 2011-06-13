@@ -84,6 +84,8 @@ const TCHAR* const kRestoreButtonControlName = _T("restorebtn");
 const TCHAR* const kBackButtonControlName = _T("backbtn");
 const TCHAR* const kForwardButtonControlName = _T("forwardbtn");
 const TCHAR* const kRefreshButtonControlName = _T("refreshbtn");
+const TCHAR* const kHomeButtonControlName = _T("homebtn");
+const TCHAR* const kToolButtonControlName = _T("toolbtn");
 const TCHAR* const kLogoControlName = _T("logo");
 
 MainFrame::MainFrame()
@@ -365,12 +367,32 @@ void MainFrame::Notify(TNotifyUI& msg)
 		}
 		else if (_tcsicmp(msg.pSender->GetName(), kMaxButtonControlName) == 0)
 		{
+#if defined(UI_BUILD_FOR_WINCE)
+			::ShowWindow(m_hWnd, SW_MAXIMIZE);
+#else
 			SendMessage(WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+#endif
+			CControlUI* pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kMaxButtonControlName));
+			if( pControl ) pControl->SetVisible(false);
+			pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kRestoreButtonControlName));
+			if( pControl ) pControl->SetVisible(true);
 		}
 		else if (_tcsicmp(msg.pSender->GetName(), kRestoreButtonControlName) == 0)
 		{
+#if defined(UI_BUILD_FOR_WINCE)
+			::ShowWindow(m_hWnd, SW_RESTORE);
+#else
 			SendMessage(WM_SYSCOMMAND, SC_RESTORE, 0);
+#endif
+			CControlUI* pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kMaxButtonControlName));
+			if( pControl ) pControl->SetVisible(true);
+			pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kRestoreButtonControlName));
+			if( pControl ) pControl->SetVisible(false);
 		}
+		else if (_tcsicmp(msg.pSender->GetName(), kToolButtonControlName) == 0)
+		{}
+		else if (_tcsicmp(msg.pSender->GetName(), kHomeButtonControlName) == 0)
+		{}
 		else if (_tcsicmp(msg.pSender->GetName(), kBackButtonControlName) == 0)
 		{
 			if (view_ != NULL)
