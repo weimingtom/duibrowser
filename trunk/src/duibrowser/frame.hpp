@@ -99,6 +99,8 @@ protected:
 	void OnExit(TNotifyUI& msg);
 	void OnTimer(TNotifyUI& msg);
 
+	void UpdateNavigatingButtonStatus();
+
 	virtual bool LoadUpdate(LoadInfo&);
 	virtual bool ViewUpdate(ViewUpdateInfo&);
 

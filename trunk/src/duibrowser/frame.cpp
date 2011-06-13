@@ -224,8 +224,7 @@ void MainFrame::OnTimer(TNotifyUI& msg)
 
 			LoadInfo& load_info = view_->GetLoadInfo();
 
-			if ((load_info.mLET == kLETNone) || (kLETLoadFailed == load_info.mLET) 
-				|| (kLETLoadCompleted == load_info.mLET) || (kLETLayoutCompleted == load_info.mLET)
+			if ((load_info.mLET == kLETNone) || (kLETLoadFailed == load_info.mLET)
 				|| (kLETPageRedirect == load_info.mLET))
 				logo_image_index = 0;
 			else
@@ -250,6 +249,8 @@ void MainFrame::OnTimer(TNotifyUI& msg)
 				{
 					logo->SetBkImage(szBuf);
 					logo->Invalidate();
+
+					UpdateNavigatingButtonStatus();
 				}
 			}
 
@@ -362,6 +363,38 @@ void MainFrame::OnPrepare(TNotifyUI& msg)
 
 		//view_->SetURI("file:///E:/Webkit/chapter02/chapter02.html");
 		view_->SetURI(kHomeUrl);
+	}
+}
+
+void MainFrame::UpdateNavigatingButtonStatus()
+{
+	if (view_ != NULL)
+	{
+		LoadInfo& load_info = view_->GetLoadInfo();
+
+		CButtonUI* refresh_button = static_cast<CButtonUI*>(paint_manager_.FindControl(kRefreshButtonControlName));
+		CButtonUI* stop_button = static_cast<CButtonUI*>(paint_manager_.FindControl(kStopButtonControlName));
+		if (stop_button != NULL)
+		{
+			if ((load_info.mLET == kLETNone) || (kLETLoadFailed == load_info.mLET)
+				|| (kLETPageRedirect == load_info.mLET))
+			{
+				stop_button->SetEnabled(false);
+				stop_button->SetVisible(false);
+				refresh_button->SetVisible();
+			}
+			else
+			{
+				stop_button->SetVisible(true);
+				stop_button->SetEnabled();
+				refresh_button->SetVisible(false);
+			}
+		}
+
+		CButtonUI* back_button = static_cast<CButtonUI*>(paint_manager_.FindControl(kBackButtonControlName));
+		CButtonUI* forward_button = static_cast<CButtonUI*>(paint_manager_.FindControl(kForwardButtonControlName));
+		if ((back_button != NULL) && (forward_button != NULL))
+		{}
 	}
 }
 
