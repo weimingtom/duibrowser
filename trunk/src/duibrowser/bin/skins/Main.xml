@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Window caption="0,0,0,36" roundcorner="5,5" size="800,600" sizebox="6,6,6,6" mininfo="80,60">
   <Font name="微软雅黑" size="18" bold="false" default="true"/>
   <Font name="微软雅黑" size="18"/>
@@ -10,25 +10,30 @@
         <Container name="logo" float="true" pos="7,2,39,34" bkimage="file='$logo.png' source='0,0,64,64'"/>
         <Label name="apptitle" text="Webkit" font="1" textcolor="#FFFFFFFF" float="true" pos="42,0,550,36" />
       </HorizontalLayout>
-      <HorizontalLayout height="26" width="120" inset="0,0,0,4">
-        <Button name="minbtn" tooltip="最小化" width="33" normalimage="file='$sysmenu_min.png' source='0,0,33,22'" hotimage="file='$sysmenu_min.png' source='33,0,66,22'" pushedimage="file='$sysmenu_min.png' source='66,0,99,22'" disabledimage="$sysmenu_min.png' source='99,0,133,22'"/>
-        <Button name="maxbtn" tooltip="最大化" width="33" normalimage="file='$sysmenu_min.png' source='0,0,33,22'" hotimage="file='$sysmenu_min.png' source='33,0,66,22'" pushedimage="file='$sysmenu_min.png' source='66,0,99,22'" disabledimage="$sysmenu_min.png' source='99,0,133,22'"/>
-        <Button name="restorebtn" visible="false" tooltip="恢复" width="33" normalimage="file='$sysmenu_min.png' source='0,0,33,22'" hotimage="file='$sysmenu_min.png' source='33,0,66,22'" pushedimage="file='$sysmenu_min.png' source='66,0,99,22'" disabledimage="$sysmenu_min.png' source='99,0,133,22'"/>
-        <Button name="closebtn" tooltip="关闭" width="47" normalimage="file='$sysmenu_close.png' source='0,0,47,22'" hotimage="file='$sysmenu_close.png' source='47,0,94,22'" pushedimage="file='$sysmenu_close.png' source='94,0,142,22'" disabledimage="$sysmenu_close.png' source='142,0,188,22'"/>
+      <HorizontalLayout height="29" width="96" inset="0,0,0,4">
+        <Button name="minbtn" tooltip="最小化" width="26" normalimage="file='minimize.png'" hotimage="minimize_h.png'" pushedimage="file='minimize_p.png'"/>
+        <Button name="maxbtn" tooltip="最大化" width="25" normalimage="file='maximize.png'" hotimage="file='maximize_h.png'" pushedimage="maximize_p.png'"/>
+        <Button name="restorebtn" visible="false" tooltip="恢复" width="25" normalimage="file='restore.png'" hotimage="file='restore_h.png'" pushedimage="file='restore_p.png'"/>
+        <Button name="closebtn" tooltip="关闭" width="43" normalimage="file='close.png'" hotimage="file='close_h.png'" pushedimage="file='close_p.png'"/>
       </HorizontalLayout>
     </HorizontalLayout>
 
-    <HorizontalLayout padding="2,0,2,2" bkcolor="#FF9CB5DF" height="42" inset="0,1,0,4">
-      <HorizontalLayout height="26" width="145" padding="0,8,0,0">
+    <HorizontalLayout padding="2,0,2,2" bkcolor="#FFF8F8F8" bkcolor2="#FFE4E4E4" height="42" inset="0,1,0,4">
+      <HorizontalLayout height="29" width="140" padding="0,8,0,0">
         <Control width="4"/>
-        <Button name="backbtn" width="27" tooltip="后退" normalimage="file='$WebB_Back.png' source='0,0,27,17'" hotimage="file='$WebB_Back.png' source='27,0,54,17'" pushedimage="file='$WebB_Back.png' source='54,0,81,17'" disabledimage="$WebB_Back.png' source='81,0,108,17'"/>
-        <Button name="forwardbtn" width="27" tooltip="向前" normalimage="file='$WebB_Forward.png' source='0,0,27,17'" hotimage="file='$WebB_Forward.png' source='27,0,54,17'" pushedimage="file='$WebB_Forward.png' source='54,0,81,17'" disabledimage="$WebB_Forward.png' source='81,0,108,17'"/>
-        <Button name="refreshbtn" width="27" tooltip="刷新" normalimage="file='$WebB_Refresh.png' source='0,0,27,17'" hotimage="file='$WebB_Refresh.png' source='27,0,54,17'" pushedimage="file='$WebB_Refresh.png' source='54,0,81,17'" disabledimage="$WebB_Refresh.png' source='81,0,108,17'"/>
-        <Button name="fullscreenbtn" width="45" tooltip="全屏" normalimage="file='$FullScreen.png' source='0,0,45,17'" hotimage="file='$FullScreen.png' source='45,0,90,17'" pushedimage="file='$FullScreen.png' source='90,0,135,17'"/>
+        <Button name="backbtn" width="27" tooltip="后退" normalimage="file='back.png'" hotimage="file='back_h.png'" pushedimage="file='back_p.png'" disabledimage="file='back_d.png'"/>
+        <Button name="forwardbtn" width="27" tooltip="向前" normalimage="file='forward.png'" hotimage="file='forward_h.png'" pushedimage="file='forward_p.png'" disabledimage="forward_d.png"/>
+        <Button name="refreshbtn" width="27" tooltip="刷新" normalimage="file='reload.png'" hotimage="file='reload_h.png'" pushedimage="file='reload_p.png'"/>
+        <Button name="stopbtn" width="27" tooltip="停止" normalimage="file='stop.png'" hotimage="file='stop_h.png'" pushedimage="file='stop_p.png'" disabledimage="file='stop_d.png'"/>
+<Button name="homebtn" width="27" tooltip="停止" normalimage="file='home.png'" hotimage="file='home_h.png'" pushedimage="file='home_p.png'"/>
       </HorizontalLayout>
       <Control width="4"/>
-      <Edit name="addresedt" font="1" bkcolor="#FFFFFFFF" textpadding="30,6,7,6" bordersize="0" bkimage="file='$WebB_Address.png' corner='30,6,7,6' hole='true'"/>
-      <Control width="4"/>
+      <Edit name="addresedt" font="1" bkcolor="#FFFFFFFF" textpadding="30,6,7,6" bordersize="0" bkimage="file='$WebB_Address.png' corner='30,6,7,6' hole='true'"/>      
+      <HorizontalLayout height="29" width="36" padding="0,8,0,0">
+<Control width="4"/>
+        <Button name="toolbtn" width="27" tooltip="工具" normalimage="file='tools.png'" hotimage="file='tools_h.png'" pushedimage="file='tools_p.png'"/>
+<Control width="4"/>
+      </HorizontalLayout>
     </HorizontalLayout>
 
     <VerticalLayout name="body" padding="2,0,2,2">
