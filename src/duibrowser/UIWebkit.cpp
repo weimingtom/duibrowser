@@ -173,6 +173,9 @@ void CWebkitUI::DoEvent(TEventUI& event)
         mouseEvent.mId = kMouseLeft;
         if( event.Type == UIEVENT_BUTTONDOWN || event.Type == UIEVENT_DBLCLICK )
             mouseEvent.mbDepressed = true;
+		else
+			mouseEvent.mbDepressed = false;
+
         mouseEvent.mbShift = ((event.wKeyState & MK_SHIFT) != 0);
         mouseEvent.mbControl = ((event.wKeyState & MK_CONTROL) != 0);
         mouseEvent.mbAlt = ((event.wKeyState & MK_ALT) != 0);
