@@ -89,7 +89,7 @@ const TCHAR* const kHomeButtonControlName = _T("homebtn");
 const TCHAR* const kToolButtonControlName = _T("toolbtn");
 const TCHAR* const kLogoControlName = _T("logo");
 
-const char* const kHomeUrl = "http://www.google.com/";
+const char* const kHomeUrl = "http://www.baidu.com/";
 
 MainFrame::MainFrame()
 : webkit_dll_(NULL)
@@ -294,10 +294,9 @@ void MainFrame::Init()
 		glyph_cache_ = webkit_->CreateGlyphCacheWrapperInterface(NULL);
 		font_server_ = webkit_->CreateFontServerWrapperInterface(NULL);
 
-		font_style_ = font_server_->CreateTextStyle();
-		font_style_->SetSize(kDefaultFontSize);
-		font_style_->SetSmooth(kSmoothEnabled);
-		font_style_->SetWeight(1200);
+		//font_style_ = font_server_->CreateTextStyle();
+		//font_style_->SetSize(kDefaultFontSize);
+		//font_style_->SetSmooth(kSmoothEnabled);
 
 		wchar_t szWindowsDir[MAX_PATH] = {0};
 		GetWindowsDirectoryW(szWindowsDir, MAX_PATH);
@@ -307,29 +306,29 @@ void MainFrame::Init()
 #else
 		swprintf_s(szFontDir, MAX_PATH - 1, L"%s\\Fonts", szWindowsDir);
 #endif
-		font_server_->AddDirectory(szFontDir, L"*.*");
-		//font_server_->AddDirectory(L"./", L"*.ttf");
+		//font_server_->AddDirectory(szFontDir, L"*.*");
+		font_server_->AddDirectory(L"./", L"*.ttf");
 
 		Parameters& param = webkit_->GetParameters();
 
-		param.mbEnableGammaCorrection = false;
+		//param.mbEnableGammaCorrection = false;
 		//param.mColors[kColorActiveSelectionBack] = Color::MAGENTA;
 		//param.mColors[kColorActiveSelectionFore] = Color::BLUE;
 
 //		// default "en-us"
 //		param.mpLocale = "zh-cn";
 //
-//		param.mDefaultFontSize = kDefaultFontSize;
-//		param.mDefaultMonospaceFontSize = kDefaultFontSize;
-//		param.mMinimumFontSize = kMiniFontSize;
-//		param.mMinimumLogicalFontSize = kMiniFontSize;
-//
-//		param.mEnableSmoothText = true;
-//		param.mFontSmoothingEnabled = true;
-//
-//		param.mSystemFontDescription.mSize = kDefaultFontSize;
-//		sprintf_s(param.mSystemFontDescription.mFamilies, sizeof(param.mSystemFontDescription.mFamilies) / sizeof(param.mSystemFontDescription.mFamilies[0]),\
-//			"System");
+		param.mDefaultFontSize = kDefaultFontSize;
+		param.mDefaultMonospaceFontSize = kDefaultFontSize;
+		param.mMinimumFontSize = kMiniFontSize;
+		param.mMinimumLogicalFontSize = kMiniFontSize;
+
+		//param.mEnableSmoothText = true;
+		//param.mFontSmoothingEnabled = true;
+
+		//param.mSystemFontDescription.mSize = kDefaultFontSize;
+		//sprintf_s(param.mSystemFontDescription.mFamilies, sizeof(param.mSystemFontDescription.mFamilies) / sizeof(param.mSystemFontDescription.mFamilies[0]),\
+		//	"System");
 //#if 1
 //		sprintf_s(param.mFontFamilyStandard, sizeof(param.mFontFamilyStandard) / sizeof(param.mFontFamilyStandard[0]), "System");
 //		sprintf_s(param.mFontFamilySerif, sizeof(param.mFontFamilySerif) / sizeof(param.mFontFamilySerif[0]), "Times New Roman");
