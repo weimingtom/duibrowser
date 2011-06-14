@@ -588,7 +588,7 @@ bool MainFrame::LoadUpdate(LoadInfo& load_info)
 	}
 
 	CEditUI* address_edit = static_cast<CEditUI*>(paint_manager_.FindControl(kAddressControlName));
-	if ((address_edit != NULL) && (kLETLoadStarted == load_info.mLET) && _tcslen(webkit_->GetCharacters(load_info.mURI)) > 0 &&
+	if ((address_edit != NULL) && (kLETResponseReceived == load_info.mLET) && _tcslen(webkit_->GetCharacters(load_info.mURI)) > 0 &&
 		_tcsicmp(webkit_->GetCharacters(load_info.mURI), navigating_url_.c_str()) != 0)
 	{
 		navigating_url_ = webkit_->GetCharacters(load_info.mURI);

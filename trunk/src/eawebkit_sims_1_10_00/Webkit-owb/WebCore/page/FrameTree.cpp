@@ -168,9 +168,15 @@ Frame* FrameTree::find(const AtomicString& name) const
     if (name == "_parent")
         return parent() ? parent() : m_thisFrame;
 
+	// FIXME: this following coding is disabled by achellies to implement to disable the new window created
+#if 1
+	if (name == "_blank")
+		return parent() ? parent() : m_thisFrame;
+#else
     // Since "_blank" should never be any frame's name, the following just amounts to an optimization.
     if (name == "_blank")
         return 0;
+#endif
 
     // Search subtree starting with this frame first.
     for (Frame* frame = m_thisFrame; frame; frame = frame->tree()->traverseNext(m_thisFrame))
