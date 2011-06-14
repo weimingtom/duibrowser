@@ -71,7 +71,7 @@ void CWebkitUI::RestoreSurfaceBuffer()
 		bitmap_header_info_.biClrImportant	= 0;
 
 		bitmap_bits_ = new BYTE[bitmap_header_info_.biSizeImage];
-		memset(bitmap_bits_, 0xED, bitmap_header_info_.biSizeImage);
+		memset(bitmap_bits_, 0xFF, bitmap_header_info_.biSizeImage);
 	}
 }
 
@@ -95,7 +95,7 @@ void CWebkitUI::SetEARasterAndView(IEARaster* raster, View* view)
 	if (bitmap_bits_ == NULL)
 	{
 		bitmap_bits_ = new BYTE[bitmap_header_info_.biSizeImage];
-		memset(bitmap_bits_, 0xED, bitmap_header_info_.biSizeImage);
+		memset(bitmap_bits_, 0xFF, bitmap_header_info_.biSizeImage);
 	}
 }
 
@@ -232,7 +232,7 @@ void CWebkitUI::DoPaint(void* ctx, const RECT& rcPaint)
 	}
 	else if (bitmap_bits_ != NULL)
 	{
-		memset(bitmap_bits_, 0xED, bitmap_header_info_.biSizeImage);
+		memset(bitmap_bits_, 0xFF, bitmap_header_info_.biSizeImage);
 	}
 
 	::SetStretchBltMode(hDC, COLORONCOLOR);

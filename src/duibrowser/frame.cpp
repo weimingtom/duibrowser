@@ -17,6 +17,7 @@
 //
 
 #include "stdafx.h"
+#include <windows.h>
 #include <EAWebKit/EAWebKit.h>
 #include <EAWebkit/EAWebkitAllocator.h>
 #include <EAWebKit/EAWebKitTextInterface.h>
@@ -102,8 +103,16 @@ MainFrame::MainFrame()
 , allocator_(NULL)
 , font_style_(NULL)
 , logo_image_index(0)
+, is_loading_(false)
 {
 	allocator_ = new MyAllocator();
+#if defined(UI_BUILD_FOR_WINCE)
+	sprintf(application_name_, "DuiBrowser");
+	sprintf(user_agent_, GetUserAgent().c_str());
+#else
+	sprintf_s(application_name_, MAX_PATH, "DuiBrowser");
+	sprintf_s(user_agent_, MAX_PATH, GetUserAgent().c_str());
+#endif
 }
 
 MainFrame::~MainFrame()
@@ -113,9 +122,78 @@ MainFrame::~MainFrame()
 	PostQuitMessage(0);
 }
 
+std::string MainFrame::GetUserAgent()
+{
+	std::string user_agent;
+	// FireFox 3.0.3 uses:
+	//     Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3
+	// IE7 uses:
+	//     Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0; Win64; x64; .NET CLR 2.0.50727; SLCC1; Media Center PC 5.0)
+	// Safari uses:
+	//     Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US) AppleWebKit/525.19 (KHTML, like Gecko) Version/3.1.2 Safari/525.21
+
+#if defined(EA_PLATFORM_WINDOWS)
+#define kPlatformName "Windows"
+
+	std::string osVersion;
+	OSVERSIONINFO versionInfo = {0};
+	versionInfo.dwOSVersionInfoSize = sizeof(versionInfo);
+	GetVersionEx(&versionInfo);
+
+	if (versionInfo.dwPlatformId == VER_PLATFORM_WIN32_WINDOWS) {
+		if (versionInfo.dwMajorVersion == 4) {
+			if (versionInfo.dwMinorVersion == 0)
+				osVersion = "Windows 95";
+			else if (versionInfo.dwMinorVersion == 10)
+				osVersion = "Windows 98";
+			else if (versionInfo.dwMinorVersion == 90)
+				osVersion = "Windows 98; Win 9x 4.90";
+		}
+	} 
+	else if (versionInfo.dwPlatformId == VER_PLATFORM_WIN32_NT)
+	{
+		char szBuf[MAX_PATH] = {0};
+#if defined(UI_BUILD_FOR_WINCE)
+		sprintf(szBuf, "Windows NT %d.%d", versionInfo.dwMajorVersion, versionInfo.dwMinorVersion);
+#else
+		sprintf_s(szBuf, MAX_PATH, "Windows NT %d.%d", versionInfo.dwMajorVersion, versionInfo.dwMinorVersion);
+#endif
+		osVersion = szBuf;
+	}
+
+	if (osVersion.empty())
+	{
+		char szBuf[MAX_PATH] = {0};
+#if defined(UI_BUILD_FOR_WINCE)
+		sprintf(szBuf, "Windows %d.%d", versionInfo.dwMajorVersion, versionInfo.dwMinorVersion);
+#else
+		sprintf_s(szBuf, MAX_PATH, "Windows %d.%d", versionInfo.dwMajorVersion, versionInfo.dwMinorVersion);
+#endif
+	}
+
+#else
+#define kPlatformName EA_PLATFORM_NAME  // EA_PLATFORM_NAME comes from the EABase package.
+#endif
+
+	char szBuf[MAX_PATH] = {0};
+#if defined(UI_BUILD_FOR_WINCE)
+	sprintf(szBuf, "Mozilla/5.0 (%s; U; %s; zh-cn) AppleWebKit/525.1 (KHTML, like Gecko) EAWebKit/1.0.0 %s",   
+		kPlatformName,
+		osVersion.c_str(),
+		application_name_);
+#else
+	sprintf_s(szBuf, MAX_PATH, "Mozilla/5.0 (%s; U; %s; zh-cn) AppleWebKit/525.1 (KHTML, like Gecko) EAWebKit/1.0.0 %s",   
+		kPlatformName,
+		osVersion.c_str(),
+		application_name_);
+#endif
+
+	return user_agent = szBuf;
+}
+
 LPCTSTR MainFrame::GetWindowClassName() const
 {
-	return _T("DuiWebkitBrowser");
+	return _T("DuiBrowserMainFrame");
 }
 
 CControlUI* MainFrame::CreateControl(LPCTSTR pstrClass, CPaintManagerUI* pManager)
@@ -130,7 +208,7 @@ void MainFrame::OnFinalMessage(HWND hWnd)
 {
 	if ((webkit_ != NULL) && (view_ != NULL))
 	{
-		view_->CancelLoad();	
+		view_->CancelLoad();
 		view_->ShutdownView();
 		webkit_->DestroyView(view_);
 		webkit_->DestroyFontServerWrapperInterface(font_server_);
@@ -224,8 +302,7 @@ void MainFrame::OnTimer(TNotifyUI& msg)
 
 			LoadInfo& load_info = view_->GetLoadInfo();
 
-			if ((load_info.mLET == kLETNone) || (kLETLoadFailed == load_info.mLET)
-				|| (kLETPageRedirect == load_info.mLET))
+			if (!is_loading_)
 				logo_image_index = 0;
 			else
 				++logo_image_index;
@@ -310,6 +387,8 @@ void MainFrame::Init()
 		font_server_->AddDirectory(L"./", L"*.ttf");
 
 		Parameters& param = webkit_->GetParameters();
+		param.mpUserAgent = user_agent_;
+		param.mpApplicationName = application_name_;
 
 		//param.mbEnableGammaCorrection = false;
 		//param.mColors[kColorActiveSelectionBack] = Color::MAGENTA;
@@ -323,8 +402,8 @@ void MainFrame::Init()
 		param.mMinimumFontSize = kMiniFontSize;
 		param.mMinimumLogicalFontSize = kMiniFontSize;
 
-		//param.mEnableSmoothText = true;
-		//param.mFontSmoothingEnabled = true;
+		param.mEnableSmoothText = true;
+		param.mFontSmoothingEnabled = true;
 
 		//param.mSystemFontDescription.mSize = kDefaultFontSize;
 		//sprintf_s(param.mSystemFontDescription.mFamilies, sizeof(param.mSystemFontDescription.mFamilies) / sizeof(param.mSystemFontDescription.mFamilies[0]),\
@@ -344,6 +423,7 @@ void MainFrame::Init()
 //		//iFonts.sans_serif_font = _strdup("Tahoma");
 //		//iFonts.serif_font = _strdup("Bitstream Vera Serif");
 //#endif
+		webkit_->SetParameters(param);
 
 		view_ = webkit_->CreateView();
 		webkit_->SetViewNotification(this);
@@ -360,7 +440,7 @@ void MainFrame::OnPrepare(TNotifyUI& msg)
 		paint_manager_.SetTimer(app_title, kViewTickTimerId, kViewTickTimerElapse);
 		webkit_control->SetEARasterAndView(raster_, view_);
 
-		//view_->SetURI("file:///E:/Webkit/chapter02/chapter02.html");
+		//view_->SetURI("http://www.oschina.net/question/12_21647?from=20110612");
 		view_->SetURI(kHomeUrl);
 	}
 }
@@ -375,8 +455,7 @@ void MainFrame::UpdateNavigatingButtonStatus()
 		CButtonUI* stop_button = static_cast<CButtonUI*>(paint_manager_.FindControl(kStopButtonControlName));
 		if (stop_button != NULL)
 		{
-			if ((load_info.mLET == kLETNone) || (kLETLoadFailed == load_info.mLET)
-				|| (kLETPageRedirect == load_info.mLET))
+			if (!is_loading_)
 			{
 				stop_button->SetEnabled(false);
 				stop_button->SetVisible(false);
@@ -503,18 +582,23 @@ bool MainFrame::ViewUpdate(ViewUpdateInfo& view_update_info)
 bool MainFrame::LoadUpdate(LoadInfo& load_info)
 {
 	CControlUI* app_title = paint_manager_.FindControl(kTitleControlName);
-	if ((app_title != NULL) && _tcslen(webkit_->GetCharacters(load_info.mPageTitle)) > 0)
+	if ((app_title != NULL) && (load_info.mLET == kLETTitleReceived) && _tcslen(webkit_->GetCharacters(load_info.mPageTitle)) > 0)
 	{
 		app_title->SetText(webkit_->GetCharacters(load_info.mPageTitle));
 	}
 
 	CEditUI* address_edit = static_cast<CEditUI*>(paint_manager_.FindControl(kAddressControlName));
-	if ((address_edit != NULL) && _tcslen(webkit_->GetCharacters(load_info.mURI)) > 0 &&
+	if ((address_edit != NULL) && (kLETLoadStarted == load_info.mLET) && _tcslen(webkit_->GetCharacters(load_info.mURI)) > 0 &&
 		_tcsicmp(webkit_->GetCharacters(load_info.mURI), navigating_url_.c_str()) != 0)
 	{
 		navigating_url_ = webkit_->GetCharacters(load_info.mURI);
 		address_edit->SetText(navigating_url_.c_str());
 	}
+
+	if (load_info.mLET == kLETLoadStarted)
+		is_loading_ = true;
+	else if ((load_info.mLET == kLETLoadFailed) || (kLETLoadCompleted == load_info.mLET))
+		is_loading_ = false;
 
 	return true;
 }
