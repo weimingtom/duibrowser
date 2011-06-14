@@ -104,6 +104,8 @@ protected:
 	virtual bool LoadUpdate(LoadInfo&);
 	virtual bool ViewUpdate(ViewUpdateInfo&);
 
+	std::string GetUserAgent();
+
 private:
 	HINSTANCE		webkit_dll_;	
 	IEAWebkit*		webkit_;
@@ -116,7 +118,11 @@ private:
 	MyAllocator*	allocator_;
 
 	int				logo_image_index;
+	bool			is_loading_;
 	tString			navigating_url_;
+
+	char			user_agent_[MAX_PATH];
+	char			application_name_[MAX_PATH];
 };
 
 #endif // MAINFRAME_HPP
