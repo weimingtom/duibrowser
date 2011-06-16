@@ -87,7 +87,7 @@
 
 #include "UIlib.h"
 
-#define USE_ZIP_SKIN 0
+#define USE_ZIP_SKIN 1
 
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.
