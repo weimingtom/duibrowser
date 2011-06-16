@@ -88,7 +88,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef EAWEBKIT_DEBUG
     #if defined(EA_DEBUG) || defined(_DEBUG)
-        #define EAWEBKIT_DEBUG 1
+        #define EAWEBKIT_DEBUG 0
     #else
         #define EAWEBKIT_DEBUG 0
     #endif
