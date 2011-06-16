@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006, 2007 Apple Inc. All rights reserved.
+ * Copyright (C) 2004, 2006 Apple Computer, Inc.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,33 +27,5 @@
 * This file was modified by Electronic Arts Inc Copyright ?2009
 */
 
-#ifndef TextEncodingRegistry_h
-#define TextEncodingRegistry_h
+#include "../../BAL/OWBAL/Concretizations/Internationalization/WK/BCTextCodecUTF8WK.h"
 
-#include <memory>
-#include <wtf/unicode/Unicode.h>
-
-namespace OWBAL {
-
-    class TextCodec;
-    class TextEncoding;
-
-    // Only TextEncoding and TextDecoder should use this function directly.
-    // - Use TextDecoder::decode to decode, since it handles BOMs.
-    // - Use TextEncoding::decode to decode if you have all the data at once.
-    //   It's implemented by calling TextDecoder::decode so works just as well.
-    // - Use TextEncoding::encode to encode, since it takes care of normalization.
-    std::auto_ptr<TextCodec> newTextCodec(const TextEncoding&);
-
-    // Only TextEncoding should use this function directly.
-    const char* atomicCanonicalTextEncodingName(const char* alias);
-    const char* atomicCanonicalTextEncodingName(const UChar* aliasCharacters, size_t aliasLength);
-
-    // Only TextEncoding should use this function directly.
-    bool noExtendedTextEncodingNameUsed();
-
-    //+daw ca 24/07 static and global management
-    void releaseBaseTextCodecMaps();
-}
-
-#endif // TextEncodingRegistry_h

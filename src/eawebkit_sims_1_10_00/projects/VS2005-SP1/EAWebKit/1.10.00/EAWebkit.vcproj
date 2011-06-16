@@ -47,8 +47,8 @@
 				Name="VCCLCompilerTool"
 				AdditionalOptions="-Wall "
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;..\..\..\..\include&quot;;&quot;..\..\..\..\WebKit-owb&quot;;&quot;..\..\..\..\WebKit-owb\BAL\Base&quot;;&quot;..\..\..\..\WebKit-owb\BAL\Base\wtf&quot;;&quot;..\..\..\..\WebKit-owb\generated_link\OWBAL&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\os-win32&quot;;&quot;..\..\..\..\source\private&quot;;&quot;..\..\..\..\WebKit-owb\generated_link\WKAL&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\ForwardingHeaders&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\VM&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\kjs&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\svg&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\css&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\dom&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\page&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\html&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\loader&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\editing&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\rendering&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\rendering\style&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\loader\icon&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\history&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\bridge&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\plugins&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\bindings\js&quot;;&quot;..\..\..\..\WebKit-owb\WebKit\OrigynWebBrowser\Api&quot;;&quot;..\..\..\..\WebKit-owb\WebKit\OrigynWebBrowser&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebCore&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\icu&quot;;&quot;..\..\..\..\include\EAWebKit\internal&quot;;&quot;..\..\..\..\include\EAWebKit\internal\icu\include\common&quot;;&quot;..\..\..\..\include\EAWebKit\internal\libiconv\include&quot;;&quot;..\..\..\..\WebKit-owb\AddOns\BindingJS\Interfaces&quot;;&quot;..\..\..\..\WebKit-owb\BAL\Includes&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\API&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\bindings&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\bindings\bal&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\bindings\c&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\pcre&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\profiler&quot;;&quot;..\..\..\..\WebKit-owb\WebCore&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\bridge\bal&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\bridge\c&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\loader\appcache&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\loader\archive&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\storage&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\svg\animation&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\svg\graphics&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\svg\graphics\filters&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\xml&quot;;&quot;..\..\..\..\WebKit-owb\WebKit\OrigynWebBrowser\Api\EA&quot;;&quot;..\..\..\..\WebKit-owb\WebKit\OrigynWebBrowser\WebCoreSupport&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebCore\html&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebCore\svg&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebCore\xml&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebKit&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\kjs&quot;;&quot;..\..\..\..\EAWebKitSupportPackages\EAAssertEAWebKit\local\include&quot;;&quot;..\..\..\..\EAWebKitSupportPackages\EASTLEAWebKit\local\include&quot;;&quot;..\..\..\..\EAWebKitSupportPackages\EATextEAWebKit\local\include&quot;;&quot;..\..\..\..\EAWebKitSupportPackages\EAIOEAWebKit\local\include&quot;;&quot;..\..\..\..\EAWebKitSupportPackages\EAIOEAWebKit\local\include\EAIO\Wii&quot;;&quot;..\..\..\..\EAWebKitSupportPackages\PPMallocEAWebKit\local\include&quot;;&quot;..\..\..\..\EAWebKitSupportPackages\PPMallocEAWebKit\local\Extras&quot;;&quot;..\..\..\..\EAWebKitSupportPackages\libjpegEAWebKit\local\include\&quot;;&quot;..\..\..\..\EAWebKitSupportPackages\libpngEAWebKit\local\include\libpng12&quot;;&quot;..\..\..\..\EAWebKitSupportPackages\zlibEAWebKit\local\include&quot;;&quot;..\..\..\..\EAWebKitSupportPackages\FreeTypeEAWebKit\local\freetype-2.3.9\include&quot;;&quot;..\..\..\..\EAWebKitSupportPackages\UTFXmlEAWebKit\local\include&quot;;&quot;..\..\..\..\EAWebKitSupportPackages\DirtySDKEAWebKit\local\platform&quot;;&quot;..\..\..\..\EAWebKitSupportPackages\DirtySDKEAWebKit\local\core\include&quot;;&quot;..\..\..\..\EAWebKitSupportPackages\DirtySDKEAWebKit\local\core\include\pc&quot;;&quot;..\..\..\..\EAWebKitSupportPackages\EABaseEAWebKit\local\include\common&quot;;&quot;..\..\..\..\EAWebKitSupportPackages\coreallocatorEAWebKit\local\include&quot;;&quot;C:\Program Files\Microsoft Visual Studio 8\VC\ATLMFC\INCLUDE&quot;;&quot;C:\Program Files\Microsoft Visual Studio 8\VC\INCLUDE&quot;;&quot;C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK\include&quot;;&quot;C:\Program Files\Microsoft Visual Studio 8\SDK\v2.0\include&quot;;&quot;C:\Program Files\Microsoft Visual Studio 8\INCLUDE&quot;"
-				PreprocessorDefinitions="EA_DLL;WIN32;_SECURE_SCL=1;EA_DEBUG;_DEBUG;APPLE_CHANGES=1;BAL_LOG;DEBUG_LAYOUTTEST;DEEPSEE_INCLUDE=\&quot;BAL/Includes/FakedDeepsee.h\&quot;;D_MULTISCAN_FILES_SUPPORTED;HAVE_FUNC_ISNAN;ENABLE_XSLT=0;ENABLE_XPATH=1;ENABLE_XBL=0;ENABLE_FTPDIR=1;ENABLE_CROSS_DOCUMENT_MESSAGING=1;ENABLE_DATABASE=0;ENABLE_ICONDATABASE=0;ENABLE_NETSCAPE_PLUGIN_API=1;NOMINMAX;__OWB__;__OWBAL_PLATFORM_WIN32PORT__=1;OWBAL=WebCore;_THREAD_SAFE;USE_SYSTEM_MALLOC=1;USE_CONSERVATIVE_GC=0;WKAL=WebCore;WTF_DisallowCType_h;WTF_PLATFORM_SDL=1;WTF_PLATFORM_BAL=1;WTF_PLATFORM_EA=1;WTF_PLATFORM_CG=0;WTF_PLATFORM_CF=0;WTF_USE_BALI18N=1;WTF_USE_CFNETWORK=0;WTF_USE_ICU_UNICODE=1;WTF_USE_JAVASCRIPTCORE_BINDINGS=1;WTF_USE_MULTIPLE_THREADS=0;WTF_USE_PTHREADS=0;WTF_CHANGES;MY_ZCALLOC=1;EATEXT_USE_FREETYPE=1;SDL_GFX_STATICLIB=1;SDL_CUSTOM_MALLOC_ENABLED=1;UTF_USE_EAASSERT=1;BUILDING_EAWEBKIT_DLL;EAWEBKIT_API=;EARASTER_API=;EASTL_API=;EASTL_DLL=0;EATHREADLIB_API=;EATHREAD_DLL=0;UTFXML_API=;UTFXML_DLL=0;PPM_API=;PPMALLOC_DLL=0;EA_ASSERT_API=;EAASSERT_DLL=0;EAIO_API=;EAIO_DLL=0;PNG_IMPEXP=;WTF_USE_UTFXML=1;WTF_USE_DIRTYSDK=1;WTF_USE_CURL=0;_WIN32_WINNT=0x0501;WINVER=0x501"
+				AdditionalIncludeDirectories="..\..\..\..\include;&quot;..\..\..\..\WebKit-owb&quot;;&quot;..\..\..\..\WebKit-owb\BAL\Base&quot;;&quot;..\..\..\..\WebKit-owb\BAL\Base\wtf&quot;;&quot;..\..\..\..\WebKit-owb\generated_link\OWBAL&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\os-win32&quot;;..\..\..\..\source\private;&quot;..\..\..\..\WebKit-owb\generated_link\WKAL&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\ForwardingHeaders&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\VM&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\kjs&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\svg&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\css&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\dom&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\page&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\html&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\loader&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\editing&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\rendering&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\rendering\style&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\loader\icon&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\history&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\bridge&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\plugins&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\bindings\js&quot;;&quot;..\..\..\..\WebKit-owb\WebKit\OrigynWebBrowser\Api&quot;;&quot;..\..\..\..\WebKit-owb\WebKit\OrigynWebBrowser&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebCore&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\icu&quot;;..\..\..\..\include\EAWebKit\internal;..\..\..\..\include\EAWebKit\internal\icu\include\common;..\..\..\..\include\EAWebKit\internal\libiconv\include;&quot;..\..\..\..\WebKit-owb\AddOns\BindingJS\Interfaces&quot;;&quot;..\..\..\..\WebKit-owb\BAL\Includes&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\API&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\bindings&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\bindings\bal&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\bindings\c&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\pcre&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\profiler&quot;;&quot;..\..\..\..\WebKit-owb\WebCore&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\bridge\bal&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\bridge\c&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\loader\appcache&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\loader\archive&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\storage&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\svg\animation&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\svg\graphics&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\svg\graphics\filters&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\xml&quot;;&quot;..\..\..\..\WebKit-owb\WebKit\OrigynWebBrowser\Api\EA&quot;;&quot;..\..\..\..\WebKit-owb\WebKit\OrigynWebBrowser\WebCoreSupport&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebCore\html&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebCore\svg&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebCore\xml&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebKit&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\kjs&quot;;..\..\..\..\EAWebKitSupportPackages\EAAssertEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\EASTLEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\EATextEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\EAIOEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\EAIOEAWebKit\local\include\EAIO\Wii;..\..\..\..\EAWebKitSupportPackages\PPMallocEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\PPMallocEAWebKit\local\Extras;..\..\..\..\EAWebKitSupportPackages\libjpegEAWebKit\local\include\;..\..\..\..\EAWebKitSupportPackages\libpngEAWebKit\local\include\libpng12;..\..\..\..\EAWebKitSupportPackages\zlibEAWebKit\local\include;&quot;..\..\..\..\EAWebKitSupportPackages\FreeTypeEAWebKit\local\freetype-2.3.9\include&quot;;..\..\..\..\EAWebKitSupportPackages\UTFXmlEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\DirtySDKEAWebKit\local\platform;..\..\..\..\EAWebKitSupportPackages\DirtySDKEAWebKit\local\core\include;..\..\..\..\EAWebKitSupportPackages\DirtySDKEAWebKit\local\core\include\pc;..\..\..\..\EAWebKitSupportPackages\EABaseEAWebKit\local\include\common;..\..\..\..\EAWebKitSupportPackages\coreallocatorEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\casqtEAWebKit\local\include"
+				PreprocessorDefinitions="EA_DLL;WIN32;_SECURE_SCL=1;EA_DEBUG;_DEBUG;APPLE_CHANGES=1;BAL_LOG;DEBUG_LAYOUTTEST;DEEPSEE_INCLUDE=\&quot;BAL/Includes/FakedDeepsee.h\&quot;;D_MULTISCAN_FILES_SUPPORTED;HAVE_FUNC_ISNAN;ENABLE_XSLT=0;ENABLE_XPATH=1;ENABLE_XBL=0;ENABLE_FTPDIR=1;ENABLE_CROSS_DOCUMENT_MESSAGING=1;ENABLE_DATABASE=0;ENABLE_ICONDATABASE=0;ENABLE_NETSCAPE_PLUGIN_API=1;NOMINMAX;__OWB__;__OWBAL_PLATFORM_WIN32PORT__=1;OWBAL=WebCore;_THREAD_SAFE;USE_SYSTEM_MALLOC=1;USE_CONSERVATIVE_GC=0;WKAL=WebCore;WTF_DisallowCType_h;WTF_PLATFORM_SDL=1;WTF_PLATFORM_BAL=1;WTF_PLATFORM_EA=1;WTF_PLATFORM_CG=0;WTF_PLATFORM_CF=0;WTF_USE_BALI18N=0;WTF_USE_CFNETWORK=0;WTF_USE_ICU_UNICODE=0;WTF_USE_CASQT_UNICODE=1;WTF_USE_JAVASCRIPTCORE_BINDINGS=1;WTF_USE_MULTIPLE_THREADS=0;WTF_USE_PTHREADS=0;WTF_CHANGES;MY_ZCALLOC=1;EATEXT_USE_FREETYPE=1;SDL_GFX_STATICLIB=1;SDL_CUSTOM_MALLOC_ENABLED=1;UTF_USE_EAASSERT=1;BUILDING_EAWEBKIT_DLL;EAWEBKIT_API=;EARASTER_API=;EASTL_API=;EASTL_DLL=0;EATHREADLIB_API=;EATHREAD_DLL=0;UTFXML_API=;UTFXML_DLL=0;PPM_API=;PPMALLOC_DLL=0;EA_ASSERT_API=;EAASSERT_DLL=0;EAIO_API=;EAIO_DLL=0;PNG_IMPEXP=;WTF_USE_UTFXML=1;WTF_USE_DIRTYSDK=1;WTF_USE_CURL=0;_WIN32_WINNT=0x0501;WINVER=0x501"
 				MinimalRebuild="false"
 				ExceptionHandling="0"
 				BasicRuntimeChecks="3"
@@ -57,7 +57,7 @@
 				ForceConformanceInForLoopScope="true"
 				RuntimeTypeInfo="false"
 				WarningLevel="4"
-				WarnAsError="true"
+				WarnAsError="false"
 				SuppressStartupBanner="true"
 				CompileOnly="true"
 				DebugInformationFormat="3"
@@ -80,7 +80,7 @@
 				OutputFile="..\..\..\..\Distribution\pc\8.0.50727.806-sp1-4-proxy\dev-debug\bin\EAWebkit.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="&quot;C:\Program Files\Microsoft Visual Studio 8\VC\ATLMFC\LIB&quot;;&quot;C:\Program Files\Microsoft Visual Studio 8\VC\LIB&quot;;&quot;C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK\lib&quot;;&quot;C:\Program Files\Microsoft Visual Studio 8\SDK\v2.0\lib&quot;;&quot;C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK\lib\prerelease&quot;;&quot;C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK\PlatformSDK\lib&quot;"
+				AdditionalLibraryDirectories=""
 				GenerateManifest="false"
 				ManifestFile=""
 				ModuleDefinitionFile="..\..\..\..\EAWebkit_Windows.def"
@@ -148,8 +148,8 @@
 				Name="VCCLCompilerTool"
 				AdditionalOptions="-Wall "
 				Optimization="1"
-				AdditionalIncludeDirectories="..\..\..\..\include;&quot;..\..\..\..\WebKit-owb&quot;;&quot;..\..\..\..\WebKit-owb\BAL\Base&quot;;&quot;..\..\..\..\WebKit-owb\BAL\Base\wtf&quot;;&quot;..\..\..\..\WebKit-owb\generated_link\OWBAL&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\os-win32&quot;;..\..\..\..\source\private;&quot;..\..\..\..\WebKit-owb\generated_link\WKAL&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\ForwardingHeaders&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\VM&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\kjs&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\svg&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\css&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\dom&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\page&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\html&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\loader&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\editing&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\rendering&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\rendering\style&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\loader\icon&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\history&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\bridge&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\plugins&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\bindings\js&quot;;&quot;..\..\..\..\WebKit-owb\WebKit\OrigynWebBrowser\Api&quot;;&quot;..\..\..\..\WebKit-owb\WebKit\OrigynWebBrowser&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebCore&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\icu&quot;;..\..\..\..\include\EAWebKit\internal;..\..\..\..\include\EAWebKit\internal\icu\include\common;..\..\..\..\include\EAWebKit\internal\libiconv\include;&quot;..\..\..\..\WebKit-owb\AddOns\BindingJS\Interfaces&quot;;&quot;..\..\..\..\WebKit-owb\BAL\Includes&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\API&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\bindings&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\bindings\bal&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\bindings\c&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\pcre&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\profiler&quot;;&quot;..\..\..\..\WebKit-owb\WebCore&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\bridge\bal&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\bridge\c&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\loader\appcache&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\loader\archive&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\storage&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\svg\animation&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\svg\graphics&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\svg\graphics\filters&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\xml&quot;;&quot;..\..\..\..\WebKit-owb\WebKit\OrigynWebBrowser\Api\EA&quot;;&quot;..\..\..\..\WebKit-owb\WebKit\OrigynWebBrowser\WebCoreSupport&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebCore\html&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebCore\svg&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebCore\xml&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebKit&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\kjs&quot;;..\..\..\..\EAWebKitSupportPackages\EAAssertEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\EASTLEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\EATextEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\EAIOEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\EAIOEAWebKit\local\include\EAIO\Wii;..\..\..\..\EAWebKitSupportPackages\PPMallocEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\PPMallocEAWebKit\local\Extras;..\..\..\..\EAWebKitSupportPackages\libjpegEAWebKit\local\include\;..\..\..\..\EAWebKitSupportPackages\libpngEAWebKit\local\include\libpng12;..\..\..\..\EAWebKitSupportPackages\zlibEAWebKit\local\include;&quot;..\..\..\..\EAWebKitSupportPackages\FreeTypeEAWebKit\local\freetype-2.3.9\include&quot;;..\..\..\..\EAWebKitSupportPackages\UTFXmlEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\DirtySDKEAWebKit\local\platform;..\..\..\..\EAWebKitSupportPackages\DirtySDKEAWebKit\local\core\include;..\..\..\..\EAWebKitSupportPackages\DirtySDKEAWebKit\local\core\include\pc;..\..\..\..\EAWebKitSupportPackages\EABaseEAWebKit\local\include\common;..\..\..\..\EAWebKitSupportPackages\coreallocatorEAWebKit\local\include"
-				PreprocessorDefinitions="EA_DLL;WIN32;_SECURE_SCL=0;NDEBUG;APPLE_CHANGES=1;BAL_LOG;DEBUG_LAYOUTTEST;DEEPSEE_INCLUDE=\&quot;BAL/Includes/FakedDeepsee.h\&quot;;D_MULTISCAN_FILES_SUPPORTED;HAVE_FUNC_ISNAN;ENABLE_XSLT=0;ENABLE_XPATH=1;ENABLE_XBL=0;ENABLE_FTPDIR=1;ENABLE_CROSS_DOCUMENT_MESSAGING=1;ENABLE_DATABASE=0;ENABLE_ICONDATABASE=0;ENABLE_NETSCAPE_PLUGIN_API=1;NOMINMAX;__OWB__;__OWBAL_PLATFORM_WIN32PORT__=1;OWBAL=WebCore;_THREAD_SAFE;USE_SYSTEM_MALLOC=1;USE_CONSERVATIVE_GC=0;WKAL=WebCore;WTF_DisallowCType_h;WTF_PLATFORM_SDL=1;WTF_PLATFORM_BAL=1;WTF_PLATFORM_EA=1;WTF_PLATFORM_EA=1;WTF_PLATFORM_CG=0;WTF_PLATFORM_CF=0;WTF_USE_BALI18N=1;WTF_USE_CFNETWORK=0;WTF_USE_ICU_UNICODE=1;WTF_USE_JAVASCRIPTCORE_BINDINGS=1;WTF_USE_MULTIPLE_THREADS=0;WTF_USE_PTHREADS=0;WTF_CHANGES;MY_ZCALLOC=1;EATEXT_USE_FREETYPE=1;SDL_GFX_STATICLIB=1;SDL_CUSTOM_MALLOC_ENABLED=1;UTF_USE_EAASSERT=1;BUILDING_EAWEBKIT_DLL;EAWEBKIT_API=;EARASTER_API=;EASTL_API=;EASTL_DLL=0;EATHREADLIB_API=;EATHREAD_DLL=0;UTFXML_API=;UTFXML_DLL=0;PPM_API=;PPMALLOC_DLL=0;EA_ASSERT_API=;EAASSERT_DLL=0;EAIO_API=;EAIO_DLL=0;PNG_IMPEXP=;WTF_USE_UTFXML=1;WTF_USE_DIRTYSDK=1;WTF_USE_CURL=0;_WIN32_WINNT=0x0501;WINVER=0x501"
+				AdditionalIncludeDirectories="..\..\..\..\include;&quot;..\..\..\..\WebKit-owb&quot;;&quot;..\..\..\..\WebKit-owb\BAL\Base&quot;;&quot;..\..\..\..\WebKit-owb\BAL\Base\wtf&quot;;&quot;..\..\..\..\WebKit-owb\generated_link\OWBAL&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\os-win32&quot;;..\..\..\..\source\private;&quot;..\..\..\..\WebKit-owb\generated_link\WKAL&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\ForwardingHeaders&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\VM&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\kjs&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\svg&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\css&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\dom&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\page&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\html&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\loader&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\editing&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\rendering&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\rendering\style&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\loader\icon&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\history&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\bridge&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\plugins&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\bindings\js&quot;;&quot;..\..\..\..\WebKit-owb\WebKit\OrigynWebBrowser\Api&quot;;&quot;..\..\..\..\WebKit-owb\WebKit\OrigynWebBrowser&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebCore&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\icu&quot;;..\..\..\..\include\EAWebKit\internal;..\..\..\..\include\EAWebKit\internal\icu\include\common;..\..\..\..\include\EAWebKit\internal\libiconv\include;&quot;..\..\..\..\WebKit-owb\AddOns\BindingJS\Interfaces&quot;;&quot;..\..\..\..\WebKit-owb\BAL\Includes&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\API&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\bindings&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\bindings\bal&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\bindings\c&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\pcre&quot;;&quot;..\..\..\..\WebKit-owb\JavaScriptCore\profiler&quot;;&quot;..\..\..\..\WebKit-owb\WebCore&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\bridge\bal&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\bridge\c&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\loader\appcache&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\loader\archive&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\storage&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\svg\animation&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\svg\graphics&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\svg\graphics\filters&quot;;&quot;..\..\..\..\WebKit-owb\WebCore\xml&quot;;&quot;..\..\..\..\WebKit-owb\WebKit\OrigynWebBrowser\Api\EA&quot;;&quot;..\..\..\..\WebKit-owb\WebKit\OrigynWebBrowser\WebCoreSupport&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebCore\html&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebCore\svg&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebCore\xml&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\WebKit&quot;;&quot;..\..\..\..\WebKit-owb\generated_sources\kjs&quot;;..\..\..\..\EAWebKitSupportPackages\EAAssertEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\EASTLEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\EATextEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\EAIOEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\EAIOEAWebKit\local\include\EAIO\Wii;..\..\..\..\EAWebKitSupportPackages\PPMallocEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\PPMallocEAWebKit\local\Extras;..\..\..\..\EAWebKitSupportPackages\libjpegEAWebKit\local\include\;..\..\..\..\EAWebKitSupportPackages\libpngEAWebKit\local\include\libpng12;..\..\..\..\EAWebKitSupportPackages\zlibEAWebKit\local\include;&quot;..\..\..\..\EAWebKitSupportPackages\FreeTypeEAWebKit\local\freetype-2.3.9\include&quot;;..\..\..\..\EAWebKitSupportPackages\UTFXmlEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\DirtySDKEAWebKit\local\platform;..\..\..\..\EAWebKitSupportPackages\DirtySDKEAWebKit\local\core\include;..\..\..\..\EAWebKitSupportPackages\DirtySDKEAWebKit\local\core\include\pc;..\..\..\..\EAWebKitSupportPackages\EABaseEAWebKit\local\include\common;..\..\..\..\EAWebKitSupportPackages\coreallocatorEAWebKit\local\include;..\..\..\..\EAWebKitSupportPackages\casqtEAWebKit\local\include"
+				PreprocessorDefinitions="EA_DLL;WIN32;_SECURE_SCL=0;NDEBUG;APPLE_CHANGES=1;BAL_LOG;DEBUG_LAYOUTTEST;DEEPSEE_INCLUDE=\&quot;BAL/Includes/FakedDeepsee.h\&quot;;D_MULTISCAN_FILES_SUPPORTED;HAVE_FUNC_ISNAN;ENABLE_XSLT=0;ENABLE_XPATH=1;ENABLE_XBL=0;ENABLE_FTPDIR=1;ENABLE_CROSS_DOCUMENT_MESSAGING=1;ENABLE_DATABASE=0;ENABLE_ICONDATABASE=0;ENABLE_NETSCAPE_PLUGIN_API=1;NOMINMAX;__OWB__;__OWBAL_PLATFORM_WIN32PORT__=1;OWBAL=WebCore;_THREAD_SAFE;USE_SYSTEM_MALLOC=1;USE_CONSERVATIVE_GC=0;WKAL=WebCore;WTF_DisallowCType_h;WTF_PLATFORM_SDL=1;WTF_PLATFORM_BAL=1;WTF_PLATFORM_EA=1;WTF_PLATFORM_CG=0;WTF_PLATFORM_CF=0;WTF_USE_BALI18N=0;WTF_USE_CFNETWORK=0;WTF_USE_ICU_UNICODE=0;WTF_USE_CASQT_UNICODE=1;WTF_USE_JAVASCRIPTCORE_BINDINGS=1;WTF_USE_MULTIPLE_THREADS=0;WTF_USE_PTHREADS=0;WTF_CHANGES;MY_ZCALLOC=1;EATEXT_USE_FREETYPE=1;SDL_GFX_STATICLIB=1;SDL_CUSTOM_MALLOC_ENABLED=1;UTF_USE_EAASSERT=1;BUILDING_EAWEBKIT_DLL;EAWEBKIT_API=;EARASTER_API=;EASTL_API=;EASTL_DLL=0;EATHREADLIB_API=;EATHREAD_DLL=0;UTFXML_API=;UTFXML_DLL=0;PPM_API=;PPMALLOC_DLL=0;EA_ASSERT_API=;EAASSERT_DLL=0;EAIO_API=;EAIO_DLL=0;PNG_IMPEXP=;WTF_USE_UTFXML=1;WTF_USE_DIRTYSDK=1;WTF_USE_CURL=0;_WIN32_WINNT=0x0501;WINVER=0x501"
 				MinimalRebuild="false"
 				ExceptionHandling="0"
 				RuntimeLibrary="0"
@@ -157,7 +157,7 @@
 				ForceConformanceInForLoopScope="true"
 				RuntimeTypeInfo="false"
 				WarningLevel="4"
-				WarnAsError="true"
+				WarnAsError="false"
 				SuppressStartupBanner="true"
 				CompileOnly="true"
 				DebugInformationFormat="3"
@@ -180,7 +180,7 @@
 				OutputFile="..\..\..\..\Distribution\pc\8.0.50727.806-sp1-4-proxy\dev-opt\bin\EAWebkit.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="&quot;C:\Program Files\Microsoft Visual Studio 8\VC\ATLMFC\LIB&quot;;&quot;C:\Program Files\Microsoft Visual Studio 8\VC\LIB&quot;;&quot;C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK\lib&quot;;&quot;C:\Program Files\Microsoft Visual Studio 8\SDK\v2.0\lib&quot;;&quot;C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK\lib\prerelease&quot;;&quot;C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK\PlatformSDK\lib&quot;"
+				AdditionalLibraryDirectories=""
 				GenerateManifest="false"
 				ManifestFile=""
 				ModuleDefinitionFile="..\..\..\..\EAWebkit_Windows.def"
@@ -2189,6 +2189,20 @@
 								<File
 									RelativePath="..\..\..\..\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\EA\BCCollatorEA.h"
 									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										>
+										<Tool
+											Name="VCCustomBuildTool"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										>
+										<Tool
+											Name="VCCustomBuildTool"
+										/>
+									</FileConfiguration>
 								</File>
 								<File
 									RelativePath="..\..\..\..\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\EA\BCLocalizedStringsEA.cpp"
@@ -2213,6 +2227,20 @@
 								<File
 									RelativePath="..\..\..\..\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\EA\BCLocalizedStringsEA.h"
 									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										>
+										<Tool
+											Name="VCCustomBuildTool"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										>
+										<Tool
+											Name="VCCustomBuildTool"
+										/>
+									</FileConfiguration>
 								</File>
 								<File
 									RelativePath="..\..\..\..\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\EA\BCSmartReplaceEA.cpp"
@@ -2239,6 +2267,7 @@
 									>
 									<FileConfiguration
 										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
 										>
 										<Tool
 											Name="VCCLCompilerTool"
@@ -2247,6 +2276,7 @@
 									</FileConfiguration>
 									<FileConfiguration
 										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
 										>
 										<Tool
 											Name="VCCLCompilerTool"
@@ -2257,12 +2287,29 @@
 								<File
 									RelativePath="..\..\..\..\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\EA\BCTextBoundariesEA.h"
 									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCustomBuildTool"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCustomBuildTool"
+										/>
+									</FileConfiguration>
 								</File>
 								<File
 									RelativePath="..\..\..\..\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\EA\BCTextBreakIteratorEA.cpp"
 									>
 									<FileConfiguration
 										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
 										>
 										<Tool
 											Name="VCCLCompilerTool"
@@ -2271,6 +2318,7 @@
 									</FileConfiguration>
 									<FileConfiguration
 										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
 										>
 										<Tool
 											Name="VCCLCompilerTool"
@@ -2281,12 +2329,29 @@
 								<File
 									RelativePath="..\..\..\..\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\EA\BCTextBreakIteratorEA.h"
 									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCustomBuildTool"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCustomBuildTool"
+										/>
+									</FileConfiguration>
 								</File>
 								<File
 									RelativePath="..\..\..\..\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\EA\BCTextBreakIteratorInternalICUEA.cpp"
 									>
 									<FileConfiguration
 										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
 										>
 										<Tool
 											Name="VCCLCompilerTool"
@@ -2295,6 +2360,7 @@
 									</FileConfiguration>
 									<FileConfiguration
 										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
 										>
 										<Tool
 											Name="VCCLCompilerTool"
@@ -2305,12 +2371,29 @@
 								<File
 									RelativePath="..\..\..\..\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\EA\BCTextBreakIteratorInternalICUEA.h"
 									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCustomBuildTool"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCustomBuildTool"
+										/>
+									</FileConfiguration>
 								</File>
 								<File
 									RelativePath="..\..\..\..\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\EA\BCTextCodecICUEA.cpp"
 									>
 									<FileConfiguration
 										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
 										>
 										<Tool
 											Name="VCCLCompilerTool"
@@ -2319,6 +2402,7 @@
 									</FileConfiguration>
 									<FileConfiguration
 										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
 										>
 										<Tool
 											Name="VCCLCompilerTool"
@@ -2329,6 +2413,22 @@
 								<File
 									RelativePath="..\..\..\..\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\EA\BCTextCodecICUEA.h"
 									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCustomBuildTool"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCustomBuildTool"
+										/>
+									</FileConfiguration>
 								</File>
 								<File
 									RelativePath="..\..\..\..\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\EA\BCUnicodeEA.cpp"
@@ -2353,6 +2453,20 @@
 								<File
 									RelativePath="..\..\..\..\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\EA\BCUnicodeEA.h"
 									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										>
+										<Tool
+											Name="VCCustomBuildTool"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										>
+										<Tool
+											Name="VCCustomBuildTool"
+										/>
+									</FileConfiguration>
 								</File>
 							</Filter>
 							<Filter
@@ -2675,6 +2789,30 @@
 									>
 								</File>
 								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\WK\BCTextCodecUTF8WK.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\WK\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\WK\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\WK\BCTextCodecUTF8WK.h"
+									>
+								</File>
+								<File
 									RelativePath="..\..\..\..\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\WK\BCTextCodecWK.cpp"
 									>
 									<FileConfiguration
@@ -2845,6 +2983,481 @@
 								<File
 									RelativePath="..\..\..\..\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\WK\BCUTF8WK.h"
 									>
+								</File>
+							</Filter>
+							<Filter
+								Name="casqt"
+								>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\casqt.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\qbig5codec.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\qeucjpcodec.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\qeuckrcodec.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\qgb18030codec.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\qisciicodec.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\qjiscodec.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\qjpunicode.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\qlatincodec.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\qsimplecodec.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\qsjiscodec.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\qstring.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\qtextcodec.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\qtsciicodec.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\qutfcodec.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\StringCasQt.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\TextBoundaries.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\TextBoundariesIFQ.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\TextBreakIteratorCasQt.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										ExcludedFromBuild="true"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\TextBreakIteratorIFQ.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\TextCodecCasQt.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\TextCodecCasQt.h"
+									>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\ubrk.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\OWBAL\Concretizations\Internationalization\casqt\"
+											CompileAs="0"
+										/>
+									</FileConfiguration>
 								</File>
 							</Filter>
 						</Filter>
@@ -11019,90 +11632,398 @@
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\parseerr.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\platform.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\putil.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\uchar.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\ucnv.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\ucnv_err.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\ucol.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\uconfig.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\uenum.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\uiter.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\uloc.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\umachine.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\unorm.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\urename.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\uset.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\ustring.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\utf.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\utf16.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\utf8.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\utf_old.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\utypes.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 						<File
 							RelativePath="..\..\..\..\WebKit-owb\JavaScriptCore\icu\unicode\uversion.h"
 							>
+							<FileConfiguration
+								Name="pc-vc-dev-debug|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
+							<FileConfiguration
+								Name="pc-vc-dev-opt|Win32"
+								>
+								<Tool
+									Name="VCCustomBuildTool"
+								/>
+							</FileConfiguration>
 						</File>
 					</Filter>
 				</Filter>
