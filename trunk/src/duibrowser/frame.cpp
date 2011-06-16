@@ -68,7 +68,7 @@ private:
 };
 
 const int kViewTickTimerId = 1001;
-const int kViewTickTimerElapse = 100;
+const int kViewTickTimerElapse = 500;
 const int kDefaultFontSize = 18;
 const int kMiniFontSize = 12;
 const int kPageTimeoutSeconds = 30;
@@ -371,10 +371,6 @@ void MainFrame::Init()
 		glyph_cache_ = webkit_->CreateGlyphCacheWrapperInterface(NULL);
 		font_server_ = webkit_->CreateFontServerWrapperInterface(NULL);
 
-		//font_style_ = font_server_->CreateTextStyle();
-		//font_style_->SetSize(kDefaultFontSize);
-		//font_style_->SetSmooth(kSmoothEnabled);
-
 		wchar_t szWindowsDir[MAX_PATH] = {0};
 		GetWindowsDirectoryW(szWindowsDir, MAX_PATH);
 		wchar_t szFontDir[MAX_PATH] = {0};
@@ -383,8 +379,23 @@ void MainFrame::Init()
 #else
 		swprintf_s(szFontDir, MAX_PATH - 1, L"%s\\Fonts", szWindowsDir);
 #endif
-		//font_server_->AddDirectory(szFontDir, L"*.*");
-		font_server_->AddDirectory(L"./", L"*.ttf");
+		//uint32_t nCount = font_server_->AddDirectory(szFontDir, L"*.tt?");
+		uint32_t nCount = font_server_->AddDirectory(L"./", L"*.tt?");
+
+		font_style_ = font_server_->CreateTextStyle();
+		font_style_->SetSize(kDefaultFontSize);
+		font_style_->SetSmooth(kSmoothEnabled);
+		
+		nCount = font_server_->EnumerateFonts(NULL, 0);
+		if (nCount > 0)
+		{
+			EA::Internal::FontDescription* font_description_array = new EA::Internal::FontDescription[nCount];
+			font_server_->EnumerateFonts(font_description_array, nCount);
+			for (uint32_t index = 0; index < nCount; ++index)
+			{
+				*(font_description_array + index);
+			}
+		}
 
 		Parameters& param = webkit_->GetParameters();
 		param.mpUserAgent = user_agent_;
@@ -405,24 +416,24 @@ void MainFrame::Init()
 		param.mEnableSmoothText = true;
 		param.mFontSmoothingEnabled = true;
 
-		//param.mSystemFontDescription.mSize = kDefaultFontSize;
-		//sprintf_s(param.mSystemFontDescription.mFamilies, sizeof(param.mSystemFontDescription.mFamilies) / sizeof(param.mSystemFontDescription.mFamilies[0]),\
-		//	"System");
-//#if 1
-//		sprintf_s(param.mFontFamilyStandard, sizeof(param.mFontFamilyStandard) / sizeof(param.mFontFamilyStandard[0]), "System");
-//		sprintf_s(param.mFontFamilySerif, sizeof(param.mFontFamilySerif) / sizeof(param.mFontFamilySerif[0]), "Times New Roman");
-//		sprintf_s(param.mFontFamilySansSerif, sizeof(param.mFontFamilySansSerif) / sizeof(param.mFontFamilySansSerif[0]), "Tahoma");
-//		sprintf_s(param.mFontFamilyMonospace, sizeof(param.mFontFamilyMonospace) / sizeof(param.mFontFamilyMonospace[0]), "System");
-//		sprintf_s(param.mFontFamilyCursive, sizeof(param.mFontFamilyCursive) / sizeof(param.mFontFamilyCursive[0]), "Times New Roman");
-//		sprintf_s(param.mFontFamilyFantasy, sizeof(param.mFontFamilyFantasy) / sizeof(param.mFontFamilyFantasy[0]), "System");
-//#else
-//		//iFonts.default_font = _strdup("Bitstream Vera Sans");
-//		//iFonts.cursive_font = _strdup("Times New Roman");
-//		//iFonts.fantasy_font = _strdup("System");
-//		//iFonts.monospace_font = _strdup("Bitstream Vera Sans Mono");
-//		//iFonts.sans_serif_font = _strdup("Tahoma");
-//		//iFonts.serif_font = _strdup("Bitstream Vera Serif");
-//#endif
+		param.mSystemFontDescription.mSize = kDefaultFontSize;
+		sprintf_s(param.mSystemFontDescription.mFamilies, sizeof(param.mSystemFontDescription.mFamilies) / sizeof(param.mSystemFontDescription.mFamilies[0]),\
+			"System");
+#if 1
+		sprintf_s(param.mFontFamilyStandard, sizeof(param.mFontFamilyStandard) / sizeof(param.mFontFamilyStandard[0]), "System");
+		sprintf_s(param.mFontFamilySerif, sizeof(param.mFontFamilySerif) / sizeof(param.mFontFamilySerif[0]), "Times New Roman");
+		sprintf_s(param.mFontFamilySansSerif, sizeof(param.mFontFamilySansSerif) / sizeof(param.mFontFamilySansSerif[0]), "Tahoma");
+		sprintf_s(param.mFontFamilyMonospace, sizeof(param.mFontFamilyMonospace) / sizeof(param.mFontFamilyMonospace[0]), "System");
+		sprintf_s(param.mFontFamilyCursive, sizeof(param.mFontFamilyCursive) / sizeof(param.mFontFamilyCursive[0]), "Times New Roman");
+		sprintf_s(param.mFontFamilyFantasy, sizeof(param.mFontFamilyFantasy) / sizeof(param.mFontFamilyFantasy[0]), "System");
+#else
+		//iFonts.default_font = _strdup("Bitstream Vera Sans");
+		//iFonts.cursive_font = _strdup("Times New Roman");
+		//iFonts.fantasy_font = _strdup("System");
+		//iFonts.monospace_font = _strdup("Bitstream Vera Sans Mono");
+		//iFonts.sans_serif_font = _strdup("Tahoma");
+		//iFonts.serif_font = _strdup("Bitstream Vera Serif");
+#endif
 		webkit_->SetParameters(param);
 
 		view_ = webkit_->CreateView();
@@ -440,8 +451,8 @@ void MainFrame::OnPrepare(TNotifyUI& msg)
 		paint_manager_.SetTimer(app_title, kViewTickTimerId, kViewTickTimerElapse);
 		webkit_control->SetEARasterAndView(raster_, view_);
 
-		//view_->SetURI("http://www.oschina.net/question/12_21647?from=20110612");
-		view_->SetURI(kHomeUrl);
+		view_->SetURI("file:///E:/Webkit/chapter01/chapter01.html");
+		//view_->SetURI(kHomeUrl);
 	}
 }
 
@@ -490,7 +501,9 @@ void MainFrame::Notify(TNotifyUI& msg)
 			tString input_url = address_edit->GetText();			
 			view_->ResetForNewLoad();
 			view_->CancelLoad();
-			if ((input_url.find(_T("http://")) == tString::npos) && (input_url.find(_T("https://")) == tString::npos))
+			if (input_url.find(_T("file://")) != tString::npos)
+			{}
+			else if ((input_url.find(_T("http://")) == tString::npos) && (input_url.find(_T("https://")) == tString::npos))
 				input_url = _T("http://") + input_url;
 			view_->SetURI(StringConvertor::WideToUtf8(input_url.c_str()));
 		}
