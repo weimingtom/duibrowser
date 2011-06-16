@@ -140,7 +140,7 @@ bool FileSystemDefault::OpenFile(FileObject fileObject, const char* path, int op
 	//b Open in binary (untranslated) mode; translations involving carriage-return and linefeed characters are suppressed. 
 
 #ifdef _MSC_VER
-	pFileInfo->mpFile = fopen(path, openFlags & kWrite ? "wb" : "r");
+	pFileInfo->mpFile = fopen(path, openFlags & kWrite ? "wb" : "rb");
 #else
 	pFileInfo->mpFile = fopen(path, openFlags & kWrite ? "w" : "r");
 #endif
