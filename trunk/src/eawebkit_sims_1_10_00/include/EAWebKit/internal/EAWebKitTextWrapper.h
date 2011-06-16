@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -116,11 +116,14 @@ namespace EA
 
             EA::Internal::IFont* CreateNewFont(int fontType);
             EA::Internal::IFont* GetFont(EA::Internal::IFontStyle* pTextStyle, EA::Internal::IFont* pFontArray[] = NULL, uint32_t nFontArrayCapacity = 0, 
-                    EA::Internal::Char c = EA::Internal::kCharInvalid, EA::Internal::Script script = EA::Internal::kScriptUnknown, bool bManaged = true);
+            EA::Internal::Char c = EA::Internal::kCharInvalid, EA::Internal::Script script = EA::Internal::kScriptUnknown, bool bManaged = true);
 
             uint32_t EnumerateFonts(EA::Internal::FontDescription* pFontDescriptionArray, uint32_t nCount);
 			uint32_t AddDirectory(const char16_t* pFaceDirectory, const char16_t* pFilter = NULL);
 			virtual bool AddSubstitution(const char16_t* pFamily, const char16_t* pFamilySubstitution);
+            virtual uint32_t AddFace(IO::IStream* pStream, EA::Internal::FontType fontType);
+
+
 
             // Font Style interface wrapper
             EA::Internal::IFontStyle* CreateTextStyle();

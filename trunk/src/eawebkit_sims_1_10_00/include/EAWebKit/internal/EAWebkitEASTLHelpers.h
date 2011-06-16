@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -55,43 +55,79 @@ namespace EA
 {
     namespace WebKit
     {
+		class EASTLFixedString8Wrapper;
+		class EASTLFixedString16Wrapper;
+		class EASTLHeaderMapWrapper;
+
+			
 		///////////////////////////////////////////////////////////////////////
 		// EAWebKit strings
 		///////////////////////////////////////////////////////////////////////
 
-		typedef eastl::fixed_string<char16_t, 256, true, EASTLAllocator> FixedString16;
-		typedef eastl::fixed_string<char8_t,  256, true, EASTLAllocator> FixedString8;
+		typedef eastl::fixed_string<char16_t, 256, true, EASTLAllocator> FixedString16_256;
+		typedef eastl::fixed_string<char8_t,  256, true, EASTLAllocator> FixedString8_256;
 
-		typedef eastl::fixed_string<char16_t, 32, true, EASTLAllocator> FixedString32_16;
-		typedef eastl::fixed_string<char8_t,  32, true, EASTLAllocator> FixedString32_8;
+		typedef eastl::fixed_string<char16_t, 128, true, EASTLAllocator> FixedString16_128;
+		typedef eastl::fixed_string<char8_t, 128, true, EASTLAllocator> FixedString8_128;
+		
+		typedef eastl::fixed_string<char16_t, 64, true, EASTLAllocator> FixedString16_64;
+		typedef eastl::fixed_string<char8_t, 64, true, EASTLAllocator> FixedString8_64;
 
-		void ConvertToString8 (const FixedString16& s16, FixedString8&  s8);
-		void ConvertToString16(const FixedString8&  s8,  FixedString16& s16);
+		typedef eastl::fixed_string<char16_t, 32, true, EASTLAllocator> FixedString16_32;
+		typedef eastl::fixed_string<char8_t,  32, true, EASTLAllocator> FixedString8_32;
+		
+		
 
+		void ConvertToString8 (const FixedString16_256& s16, FixedString8_256&  s8);
+		void ConvertToString8 (const FixedString16_128& s16, FixedString8_128&  s8);
+		void ConvertToString8 (const FixedString16_64& s16, FixedString8_64&  s8);
+		void ConvertToString8 (const FixedString16_32& s16, FixedString8_32&  s8);
+		
+		void ConvertToString16(const FixedString8_256&  s8,  FixedString16_256& s16);
+		void ConvertToString16(const FixedString8_128&  s8,  FixedString16_128& s16);
+		void ConvertToString16(const FixedString8_64&  s8,  FixedString16_64& s16);
+		void ConvertToString16(const FixedString8_32&  s8,  FixedString16_32& s16);
+
+		//Note by Arpit Baldeva: Would rather overload above functions than create the visible templates for an accidental code bloat 
+		//and nuisance of specifying type with each use.
+#if 0 
+		template<typename StringType16_N, typename StringType8_N>
+		void ConvertToString8_Internal(const StringType16_N& s16, StringType8_N& s8);
+
+		template<typename StringType8_N, typename StringType16_N>
+		void ConvertToString16_Internal(const StringType8_N& s8, StringType16_N& s16);
+#endif
 		//Does not belong here. Copy here only to help in port.
 
 		///////////////////////////////////////////////////////////////////////
 		// HeaderMap 
 		///////////////////////////////////////////////////////////////////////
 
+		//Change the HeaderMap to have 64 chars than 256 by default.
+		//It may result in some allocations(usually for value in the key-value pair) at run-time but we are doing thousands of allocations anyway.
+
 		// Used for HTTP header entries.
-		struct fstr_iless : public eastl::binary_function<FixedString16, FixedString16, bool>
+		struct fstr_iless : public eastl::binary_function<FixedString16_64, FixedString16_64, bool>
 		{
-			bool operator()(const FixedString16& a, const FixedString16& b) const { return (a.comparei(b) < 0); }
+			bool operator()(const FixedString16_64& a, const FixedString16_64& b) const { return (a.comparei(b) < 0); }
 		};
 
 		// Used for HeaderMap::find_as() calls.
-		struct str_iless : public eastl::binary_function<FixedString16, const char16_t*, bool>
+		struct str_iless : public eastl::binary_function<FixedString16_64, const char16_t*, bool>
 		{
-			bool operator()(const FixedString16& a, const char16_t*      b) const { return (a.comparei(b) < 0); }
-			bool operator()(const char16_t*      b, const FixedString16& a) const { return (a.comparei(b) > 0); }
+			bool operator()(const FixedString16_64& a, const char16_t*      b) const { return (a.comparei(b) < 0); }
+			bool operator()(const char16_t*      b, const FixedString16_64& a) const { return (a.comparei(b) > 0); }
 		};
 
-		typedef eastl::fixed_multimap<FixedString16, FixedString16, 8, true, fstr_iless, EASTLAllocator> HeaderMap;
+		typedef eastl::fixed_multimap<FixedString16_64, FixedString16_64, 8, true, fstr_iless, EASTLAllocator> HeaderMap;
 		
-		#define GET_FIXEDSTRING8(wrapper) (reinterpret_cast<EA::WebKit::FixedString8*>((wrapper).GetImpl()))
-		#define GET_FIXEDSTRING16(wrapper) (reinterpret_cast<EA::WebKit::FixedString16*>((wrapper).GetImpl()))
-		#define GET_HEADERMAP(wrapper) (reinterpret_cast<EA::WebKit::HeaderMap*>((wrapper).GetImpl()))
+		FixedString8_128*	GetFixedString(const EASTLFixedString8Wrapper& wrapper);
+		FixedString16_128*	GetFixedString(const EASTLFixedString16Wrapper& wrapper);
+		HeaderMap*			GetHeaderMap(const EASTLHeaderMapWrapper& wrapper);
+
+		//#define GetFixedString(wrapper) (reinterpret_cast<EA::WebKit::FixedString8_256*>((wrapper).GetImpl()))
+		//#define GetFixedString(wrapper) (reinterpret_cast<EA::WebKit::FixedString16_256*>((wrapper).GetImpl()))
+		//#define GetHeaderMap(wrapper) (reinterpret_cast<EA::WebKit::HeaderMap*>((wrapper).GetImpl()))
 
     }
 }

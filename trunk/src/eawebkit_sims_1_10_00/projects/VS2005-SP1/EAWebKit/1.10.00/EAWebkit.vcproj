@@ -1295,7 +1295,47 @@
 				Name="internal"
 				>
 				<File
+					RelativePath="..\..\..\..\source\internal\EAWebKitDomainFilter.cpp"
+					>
+					<FileConfiguration
+						Name="pc-vc-dev-debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\source\internal\"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="pc-vc-dev-opt|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\source\internal\"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
 					RelativePath="..\..\..\..\source\internal\EAWebKitEASTLHelpers.cpp"
+					>
+					<FileConfiguration
+						Name="pc-vc-dev-debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\source\internal\"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="pc-vc-dev-opt|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\source\internal\"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath="..\..\..\..\source\internal\EAWebKitNewDelete.cpp"
 					>
 					<FileConfiguration
 						Name="pc-vc-dev-debug|Win32"
@@ -29908,6 +29948,18 @@
 					</Filter>
 				</Filter>
 			</Filter>
+		</Filter>
+		<Filter
+			Name="resources"
+			>
+			<File
+				RelativePath="..\..\..\..\source\Win32\EAWEbKitInfo.rc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\source\Win32\resource.h"
+				>
+			</File>
 		</Filter>
 	</Files>
 	<Globals>

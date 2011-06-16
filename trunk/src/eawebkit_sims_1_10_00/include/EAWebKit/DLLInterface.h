@@ -112,32 +112,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef DllInterface_h
 #define DllInterface_h
 
-#if defined(__PPU__)
-
-#include <sys/prx.h>
-#include <cellstatus.h>
-
-#define PLATFORM_DLL_MODULE(name, attr, major, minor)   SYS_MODULE_INFO(name, attr, major, minor)
-
-#define PLATFORM_DLL_START(funcname)                    SYS_MODULE_START(funcname)
-#define PLATFORM_DLL_START_SUCCESS                      SYS_PRX_START_OK
-#define PLATFORM_DLL_START_FAILURE                      SYS_PRX_NO_RESIDENT
-
-#define PLATFORM_DLL_STOP(funcname)                     SYS_MODULE_STOP(funcname)
-#define PLATFORM_DLL_STOP_SUCCESS                       SYS_PRX_STOP_OK
-#define PLATFORM_DLL_STOP_FAILURE                       SYS_PRX_STOP_FAILED
-
-#define PLATFORM_DLL_LIB(libname, attr)                 SYS_LIB_DECLARE(libname, attr)
-#define PLATFORM_DLL_LIB_ATTR_REGISTER                  SYS_LIB_AUTO_EXPORT
-#define PLATFORM_DLL_LIB_ATTR_OVERRIDE                  SYS_LIB_WEAK_EXPORT
-#define PLATFORM_DLL_LIB_ATTR_NOLINK                    SYS_LIB_NOLINK_EXPORT
-#define PLATFORM_DLL_LIB_ATTR_DEPENDENT_LOAD            SYS_LIB_WEAK_IMPORT
-
-#define PLATFORM_DLL_EXPORT_FUNC(funcname, libname)     SYS_LIB_EXPORT(funcname, libname)
-
-#define PLATFORM_DLL_EXPORT_VAR(variable, libname)      SYS_LIB_EXPORT_VAR(variable, libname)
-
-#elif defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32) || defined(_WIN64)
 
 #define PLATFORM_DLL_MODULE(name,attr,major,minor) 
 

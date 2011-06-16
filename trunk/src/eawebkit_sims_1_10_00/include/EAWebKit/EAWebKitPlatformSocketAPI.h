@@ -37,8 +37,15 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <EABase/eabase.h>
 #include <stddef.h> //for size_t
 
-#if defined(EA_PLATFORM_WINDOWS)
-    //http://msdn.microsoft.com/en-us/library/ms741394(VS.85).aspx 
+#if defined(EA_PLATFORM_PS3)
+	#include <sys/ansi.h> //for socklen_t
+	//typedef unsigned int socklen_t;
+	typedef size_t platform_ssize_t;
+#elif defined(EA_PLATFORM_WINDOWS)
+	//http://msdn.microsoft.com/en-us/library/ms741394(VS.85).aspx 
+	typedef int socklen_t;
+	typedef int platform_ssize_t;
+#elif defined(EA_PLATFORM_XENON)
 	typedef int socklen_t;
 	typedef int platform_ssize_t;
 #endif

@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -176,19 +176,26 @@ namespace EA
             bool Disconnect (TransportInfo* pTInfo, bool& bStateComplete);
             bool Transfer   (TransportInfo* pTInfo, bool& bStateComplete);
 
+            char* GetFileDownloadBuffer();                         /// Get and allocate a shared download buffer if needed.
+            void RemoveFileDownloadBuffer();                             /// Remove the allocated buffer
+
+
             struct FileInfo
             {
                 EA::WebKit::FileSystem::FileObject mFileObject;
                 int64_t mFileSize;
                 bool    mbRead;    // True if Reading, else writing
-                char    mBuffer[4096];
-
                 FileInfo();
             };
 
             #ifdef EA_DEBUG
                 int mJobCount;  // Used to verify jobs are all shut down and not leaked.
             #endif
+            
+            private:
+              static char* spFileDownloadBuffer;                       /// Shared buffer for downloading blocking reads 
+              static int32_t sFileOpenJobCount;                        /// Count for active jobs     
+
         };
 
 
