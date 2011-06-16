@@ -13,7 +13,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// 中文(中华人民共和国) resources
+// Chinese (P.R.C.) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
 #ifdef _WIN32
@@ -53,8 +53,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,0,1,1
- PRODUCTVERSION 0,0,1,1
+ FILEVERSION 0,0,1,2
+ PRODUCTVERSION 0,0,1,2
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -70,12 +70,12 @@ BEGIN
         BLOCK "080404b0"
         BEGIN
             VALUE "FileDescription", "DuiBrowser"
-            VALUE "FileVersion", "0, 0, 1, 1"
+            VALUE "FileVersion", "0, 0, 1, 2"
             VALUE "InternalName", "DuiBrowser"
             VALUE "LegalCopyright", "Copyright (C) 2011 Duilib Develop Group"
             VALUE "OriginalFilename", "DuiBrowser"
             VALUE "ProductName", "DuiBrowser"
-            VALUE "ProductVersion", "0, 0, 1, 1"
+            VALUE "ProductVersion", "0, 0, 1, 2"
         END
     END
     BLOCK "VarFileInfo"
@@ -93,7 +93,7 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_ICON1               ICON                    "res\\DuiBrowser.ico"
-#endif    // 中文(中华人民共和国) resources
+#endif    // Chinese (P.R.C.) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

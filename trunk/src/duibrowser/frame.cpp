@@ -379,8 +379,8 @@ void MainFrame::Init()
 #else
 		swprintf_s(szFontDir, MAX_PATH - 1, L"%s\\Fonts", szWindowsDir);
 #endif
-		//uint32_t nCount = font_server_->AddDirectory(szFontDir, L"*.tt?");
-		uint32_t nCount = font_server_->AddDirectory(L"./", L"*.tt?");
+		uint32_t nCount = font_server_->AddDirectory(szFontDir, L"*.tt?");
+		//uint32_t nCount = font_server_->AddDirectory(L"./", L"*.tt?");
 
 		font_style_ = font_server_->CreateTextStyle();
 		font_style_->SetSize(kDefaultFontSize);
@@ -393,8 +393,10 @@ void MainFrame::Init()
 			font_server_->EnumerateFonts(font_description_array, nCount);
 			for (uint32_t index = 0; index < nCount; ++index)
 			{
-				*(font_description_array + index);
+				if (_tcsicmp(_T("Simsun"), (font_description_array + index)->mFamily) == 0)
+				{}
 			}
+			delete[] font_description_array;
 		}
 
 		Parameters& param = webkit_->GetParameters();
@@ -418,12 +420,12 @@ void MainFrame::Init()
 
 		param.mSystemFontDescription.mSize = kDefaultFontSize;
 		sprintf_s(param.mSystemFontDescription.mFamilies, sizeof(param.mSystemFontDescription.mFamilies) / sizeof(param.mSystemFontDescription.mFamilies[0]),\
-			"System");
+			"Arial Unicode MS");
 #if 1
-		sprintf_s(param.mFontFamilyStandard, sizeof(param.mFontFamilyStandard) / sizeof(param.mFontFamilyStandard[0]), "System");
+		sprintf_s(param.mFontFamilyStandard, sizeof(param.mFontFamilyStandard) / sizeof(param.mFontFamilyStandard[0]), "Arial Unicode MS");
 		sprintf_s(param.mFontFamilySerif, sizeof(param.mFontFamilySerif) / sizeof(param.mFontFamilySerif[0]), "Times New Roman");
-		sprintf_s(param.mFontFamilySansSerif, sizeof(param.mFontFamilySansSerif) / sizeof(param.mFontFamilySansSerif[0]), "Tahoma");
-		sprintf_s(param.mFontFamilyMonospace, sizeof(param.mFontFamilyMonospace) / sizeof(param.mFontFamilyMonospace[0]), "System");
+		sprintf_s(param.mFontFamilySansSerif, sizeof(param.mFontFamilySansSerif) / sizeof(param.mFontFamilySansSerif[0]), "Arial Unicode MS");
+		sprintf_s(param.mFontFamilyMonospace, sizeof(param.mFontFamilyMonospace) / sizeof(param.mFontFamilyMonospace[0]), "MS Courier New");
 		sprintf_s(param.mFontFamilyCursive, sizeof(param.mFontFamilyCursive) / sizeof(param.mFontFamilyCursive[0]), "Times New Roman");
 		sprintf_s(param.mFontFamilyFantasy, sizeof(param.mFontFamilyFantasy) / sizeof(param.mFontFamilyFantasy[0]), "System");
 #else
@@ -451,8 +453,8 @@ void MainFrame::OnPrepare(TNotifyUI& msg)
 		paint_manager_.SetTimer(app_title, kViewTickTimerId, kViewTickTimerElapse);
 		webkit_control->SetEARasterAndView(raster_, view_);
 
-		view_->SetURI("file:///E:/Webkit/chapter01/chapter01.html");
-		//view_->SetURI(kHomeUrl);
+		//view_->SetURI("file:///E:/Webkit/chapter01/chapter01.html");
+		view_->SetURI(kHomeUrl);
 	}
 }
 
