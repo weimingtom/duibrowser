@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006, 2007 Apple Inc. All rights reserved.
+ * Copyright (C) 2006 Nikolas Zimmermann <zimmermann@kde.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,37 +23,34 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-/*
-* This file was modified by Electronic Arts Inc Copyright ?2009
-*/
+#include "config.h"
 
-#ifndef TextEncodingRegistry_h
-#define TextEncodingRegistry_h
+#include "PlatformString.h"
 
-#include <memory>
-#include <wtf/unicode/Unicode.h>
+#include <QString>
 
-namespace OWBAL {
+namespace WebCore {
 
-    class TextCodec;
-    class TextEncoding;
-
-    // Only TextEncoding and TextDecoder should use this function directly.
-    // - Use TextDecoder::decode to decode, since it handles BOMs.
-    // - Use TextEncoding::decode to decode if you have all the data at once.
-    //   It's implemented by calling TextDecoder::decode so works just as well.
-    // - Use TextEncoding::encode to encode, since it takes care of normalization.
-    std::auto_ptr<TextCodec> newTextCodec(const TextEncoding&);
-
-    // Only TextEncoding should use this function directly.
-    const char* atomicCanonicalTextEncodingName(const char* alias);
-    const char* atomicCanonicalTextEncodingName(const UChar* aliasCharacters, size_t aliasLength);
-
-    // Only TextEncoding should use this function directly.
-    bool noExtendedTextEncodingNameUsed();
-
-    //+daw ca 24/07 static and global management
-    void releaseBaseTextCodecMaps();
+// String conversions
+String::String(const QString& qstr)
+{
+    if (qstr.isNull())
+        return;
+    m_impl = StringImpl::create(reinterpret_cast<const UChar*>(qstr.constData()), qstr.length());
 }
 
-#endif // TextEncodingRegistry_h
+String::String(const QStringRef& ref)
+{
+    if (!ref.string()) 
+        return;
+    m_impl = StringImpl::create(reinterpret_cast<const UChar*>(ref.unicode()), ref.length());
+}
+
+String::operator QString() const
+{
+    return QString(reinterpret_cast<const QChar*>(characters()), length());
+}
+
+}
+
+// vim: ts=4 sw=4 et

@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright ?2009
 */
 
 #include "config.h"
@@ -111,6 +111,10 @@ CString TextEncoding::encode(const UChar* characters, size_t length, Unencodable
     return newTextCodec(*this)->encode(reinterpret_cast<const UChar *>(str.utf16()), str.length(), handling);
 #elif USE(ICU_UNICODE) && USE(BALI18N)
     //FIXME
+    //return newTextCodec(*this)->encode(characters, length, handling);
+#elif USE(CASQT_UNICODE)
+	// added by achellies
+    //OwnPtr<TextCodec> textCodec = newTextCodec(*this);
     return newTextCodec(*this)->encode(characters, length, handling);
 #endif
 }

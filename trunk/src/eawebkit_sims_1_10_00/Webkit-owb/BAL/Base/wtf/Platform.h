@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright ?2009
 */
 
 #ifndef WTF_Platform_h
@@ -240,7 +240,9 @@
 #elif PLATFORM(GTK)
 /* The GTK+ Unicode backend is configurable */
 #else
+#if !USE(CASQT_UNICODE)
 #define WTF_USE_ICU_UNICODE 1
+#endif
 #endif
 
 #if PLATFORM(MAC)

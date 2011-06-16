@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright ?2009
 */
 
 #include "config.h"
@@ -34,13 +34,21 @@
 #include "TextCodecLatin1.h"
 #include "TextCodecUserDefined.h"
 #include "TextCodecUTF16.h"
+#include "TextCodecUTF8.h"
 #include <wtf/ASCIICType.h>
 #include <wtf/Assertions.h>
 #include <wtf/HashMap.h>
 
+#if USE(CASQT_UNICODE)
+// added by achellies
+#include "../../BAL/OWBAL/Concretizations/Internationalization/casqt/TextCodecCasQt.h"
+QT_USE_NAMESPACE
+#else
 #if USE(ICU_UNICODE)
 #include "TextCodecICU.h"
 #endif
+#endif
+
 #if PLATFORM(MAC)
 #include "TextCodecMac.h"
 #endif
@@ -171,11 +179,20 @@ static void buildBaseTextCodecMaps()
     TextCodecLatin1::registerEncodingNames(addToTextEncodingNameMap);
     TextCodecLatin1::registerCodecs(addToTextCodecMap);
 
+    TextCodecUTF8::registerEncodingNames(addToTextEncodingNameMap);
+    TextCodecUTF8::registerCodecs(addToTextCodecMap);
+
     TextCodecUTF16::registerEncodingNames(addToTextEncodingNameMap);
     TextCodecUTF16::registerCodecs(addToTextCodecMap);
 
     TextCodecUserDefined::registerEncodingNames(addToTextEncodingNameMap);
     TextCodecUserDefined::registerCodecs(addToTextCodecMap);
+
+#if USE(CASQT_UNICODE)
+	// added by achellies
+    TextCodecCasQt::registerEncodingNames(addToTextEncodingNameMap);
+    TextCodecCasQt::registerCodecs(addToTextCodecMap);
+#endif
 
 #if USE(ICU_UNICODE)
     TextCodecICU::registerBaseEncodingNames(addToTextEncodingNameMap);
