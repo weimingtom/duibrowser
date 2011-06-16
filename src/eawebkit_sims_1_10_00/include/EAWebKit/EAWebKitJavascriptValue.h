@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -36,7 +36,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef EAWEBKIT_EAWEBKITJAVASCRIPTVALUE_H
 #define EAWEBKIT_EAWEBKITJAVASCRIPTVALUE_H
 
-
+#include <EAWebKit/EAWebkitSTLWrapper.h>
 
 namespace EA
 {
@@ -76,13 +76,14 @@ namespace EA
 				// empty
 			}
 
-			explicit	JavascriptValue(const char16_t* value)
+// CSidhall 3/24/10 - Removed now for would only work now for internal EAWebKit calls because of the added fixed string = operator
+/*
+			explicit	JavascriptValue(const EASTLFixedString16Wrapper& value)
 			:	mType(JavascriptValueType_String)
-			,	mStringValue(value)
 			{
-				// empty
+				mStringValue =value;
 			}	
-
+*/
 			explicit	JavascriptValue(bool value)
 			:	mType(JavascriptValueType_Boolean)
 			,	mBooleanValue(value)
@@ -111,11 +112,13 @@ namespace EA
 				mNumberValue = value;
 			}
 
-			void SetStringValue(const char16_t* value)
+            // Note for setting a string: For setting the string value, this needs now 2 steps (in no particular order):
+            // 1) The fixed mStringValue needs to be set with SetCharacters() after getting it with GetStringValue() 
+            // 2) The String type needs to be set with SetStringType 
+            void SetStringType()
 			{
 				mType = JavascriptValueType_String;
-				mStringValue = value;
-			}
+            }
 
 			void SetBooleanValue(bool value)
 			{
@@ -130,7 +133,8 @@ namespace EA
 				return mNumberValue;
 			}
 
-			const char16_t* GetStringValue() const
+            // Note: To convert the fixed string, you will need to use the GetCharacters() API 
+			EASTLFixedString16Wrapper& GetStringValue()
 			{
 				return mStringValue;
 			}
@@ -144,11 +148,12 @@ namespace EA
 			JavascriptValueType		mType;
 			union 
 			{
-				const char16_t*			mStringValue;
 				double					mNumberValue;
 				bool					mBooleanValue;
-			};
-
+            };
+            EASTLFixedString16Wrapper mStringValue;  // CSidhall 3/24/10 - changed from a pointer to fixed 
+                                                     // string wrapper to fix problem with mutliple strings 
+                                                     // set in a same callback and getting stomped.
 		};
     } // namespace WebKit
 

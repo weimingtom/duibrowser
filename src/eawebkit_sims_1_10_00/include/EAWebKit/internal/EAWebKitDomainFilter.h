@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -27,54 +27,76 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 ///////////////////////////////////////////////////////////////////////////////
-// EAWebKitNodeListContainer.h
+// EAWebKitDomainFilter.h
 //
 // By Arpit Baldeva 
 ///////////////////////////////////////////////////////////////////////////////
 
 
-#ifndef EAWEBKIT_EAWEBKITNODELISTCONTAINER_H
-#define EAWEBKIT_EAWEBKITNODELISTCONTAINER_H
-
-
-///////////////////////////////////////////////////////////////////////
-// The purpose of this file is to contain the nodelist so that it does not expand in the main app.
-// This is required for LGPL compliance.
-///////////////////////////////////////////////////////////////////////
+#ifndef EAWEBKIT_EAWEBKITDOMAINFILTER_H
+#define EAWEBKIT_EAWEBKITDOMAINFILTER_H
 
 #include <EABase/eabase.h>
 #include <wtf/FastAllocBase.h>
-#include <EAWebKit/EAWebKitView.h>
-#include <EASTL/list.h>
-#include <EAWebKit/EAWebkitAllocator.h> //For EASTLAllocator
+#include <EAWebKit/internal/EAWebkitEASTLHelpers.h>
+#include <EASTL/vector.h>
 
 #if EAWEBKIT_THROW_BUILD_ERROR
 #error This file should be included only in a dll build
 #endif
 
-namespace WebCore
+namespace OWBAL
 {
-	class Node;
+	class KURL;
 }
 
 namespace EA
 {
     namespace WebKit
     {
-		typedef eastl::list<WebCore::Node*,EASTLAllocator> WebCoreNodeList;
-		typedef eastl::list<WebCore::Node*,EASTLAllocator>::iterator WebCoreNodeListIterator;
-
-		class NodeListContainer
+		struct DomainInfo
 		{
-			friend class View;
-			friend class DocumentNavigator;
+			EA::WebKit::FixedString8_128 mAllowedDomain;
+			EA::WebKit::FixedString8_128 mExcludedPaths;
+
+			DomainInfo(const char8_t* domain, const char8_t* excludedPaths)
+				: mAllowedDomain(domain)
+			{
+				if(excludedPaths)
+					mExcludedPaths.assign(excludedPaths);
+				else
+					mExcludedPaths.clear();//Just to be safe
+			}
+		};
+		
+		class EAWebKitDomainFilter
+		{
+		public:
+			static EAWebKitDomainFilter& GetInstance()
+			{
+				static EAWebKitDomainFilter instance;
+				return instance;
+			}
+			void Shutdown();
+
+			void AddAllowedDomainInfo(const char8_t* allowedDomain, const char8_t* excludedPaths);
+			bool CanNavigateToURL(const char8_t* pURL) const;
+			bool CanNavigateToURL(const OWBAL::KURL& kurl) const;
 		private:
-			WebCoreNodeList			mFoundNodes;
-			WebCoreNodeList			mRejectedByAngleNodes;
-			WebCoreNodeList			mRejectedByRadiusNodes;
-			WebCoreNodeList 		mRejectedWouldBeTrappedNodes;
+			EAWebKitDomainFilter();
+			EAWebKitDomainFilter(const EAWebKitDomainFilter& instance);
+			EAWebKitDomainFilter& operator = (const EAWebKitDomainFilter& instance);
+
+			bool IsKnownProtocol(const FixedString16_32& protocol) const;
+			bool URLAllowed(const char8_t* pURL, const DomainInfo& domainInfo) const;
+			bool DomainAllowed(const FixedString8_128& host, const FixedString8_128& allowedDomain) const;
+			bool PathAllowed(const FixedString8_128& path, const FixedString8_128& excludedPaths) const;
+			//We are storing by value but we do not expect to have more than 2-5 instances so we are good.
+			typedef eastl::vector<DomainInfo> DomainInfoCollection;
+			DomainInfoCollection mDomainInfoCollection;
+
 		};
     }
 }
 
-#endif // Header include guard
+#endif // EAWEBKIT_EAWEBKITDOMAINFILTER_H

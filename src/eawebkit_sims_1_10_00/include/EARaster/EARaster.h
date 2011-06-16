@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -125,7 +125,6 @@ namespace EA
             int      mnDWidth;
             int      mnDHeight;
             int      mnDSkip;
-            bool     mDoAdditiveBlend; // If true, will do additive alpha blending instead of normal alpha blending
         };
 
         typedef void (*BlitFunctionType)(const BlitInfo& blitInfo);
@@ -401,12 +400,12 @@ namespace EA
         // pDestClipRect is not quite the same as pRectDest, as it's sometimes 
         // useful to blit a source rect to a dest rect but have it clip to another rect.
         // Returns 0 if OK or a negative error code.
-        EARASTER_API int Blit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pDestClipRect = NULL, const bool additiveBlend = false);
+        EARASTER_API int Blit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pDestClipRect = NULL);
 
         // Does a 1:1 blit from pSource to pDest with the assumption that pRectSource and 
         // pRectDest are already clipped to pSource and pDest, respectively.
         // Returns 0 if OK or a negative error code.
-        EARASTER_API int BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const bool additiveBlend = false);
+        EARASTER_API int BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest);
 
         //////////////////////////////////////////////////////////////////////////
         /// Blit a repeating pattern.
@@ -606,12 +605,12 @@ namespace EA
 			// pDestClipRect is not quite the same as pRectDest, as it's sometimes 
 			// useful to blit a source rect to a dest rect but have it clip to another rect.
 			// Returns 0 if OK or a negative error code.
-			virtual int Blit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pDestClipRect = NULL, const bool additiveBlend = false) = 0;
+			virtual int Blit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pDestClipRect = NULL) = 0;
 
 			// Does a 1:1 blit from pSource to pDest with the assumption that pRectSource and 
 			// pRectDest are already clipped to pSource and pDest, respectively.
 			// Returns 0 if OK or a negative error code.
-			virtual int BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDestz, const bool additiveBlend = false) = 0;
+			virtual int BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDestz) = 0;
 
 			//////////////////////////////////////////////////////////////////////////
 			/// Blit a repeating pattern.
@@ -779,8 +778,8 @@ namespace EA
 			virtual Surface* RotateSurface90Degrees(Surface* pSurface, int nClockwiseTurns);
 			virtual Surface* CreateTransparentSurface(Surface* pSource, int surfaceAlpha);
 			virtual bool ClipForBlit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, Rect& rectSourceResult, Rect& rectDestResult);
-			virtual int Blit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pDestClipRect = NULL, const bool additiveBlend = false);
-			virtual int BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const bool additiveBlend = false);
+			virtual int Blit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pDestClipRect = NULL);
+			virtual int BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest);
 			virtual int BlitTiled(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, int offsetX, int offsetY);
 			virtual int BlitEdgeTiled(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pRectSourceCenter);
 			virtual bool SetupBlitFunction(Surface* pSource, Surface* pDest);
