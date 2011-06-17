@@ -46,7 +46,15 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         #include <sys/stat.h>
         #pragma warning(pop)
 
-    #elif defined(EA_PLATFORM_UNIX) 
+    #elif defined(EA_PLATFORM_XENON)
+        #pragma warning(push, 1)
+        #include <comdecl.h>
+        #include <direct.h>
+        #include <sys/stat.h>
+        #include <sys/utime.h>
+        #pragma warning(pop)
+ 
+    #elif defined(EA_PLATFORM_UNIX) || defined(EA_PLATFORM_PS3)
 		#include <stdio.h>
 		#include <errno.h>
 		#include <fcntl.h>
@@ -85,7 +93,8 @@ namespace WebKit
 
 EAWEBKIT_API void SetFileSystem(FileSystem* pFileSystem)
 {
-    gpFileSystem = pFileSystem;
+    if(pFileSystem) //If 0 is passed, use the default file system.
+		gpFileSystem = pFileSystem;
 }
 
 
@@ -300,7 +309,12 @@ bool FileSystemDefault::FileExists(const char* path)
 		const DWORD dwAttributes = ::GetFileAttributesA(path);
 		return ((dwAttributes != INVALID_FILE_ATTRIBUTES) && ((dwAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0));
 
-#elif defined(EA_PLATFORM_UNIX) 
+#elif defined(EA_PLATFORM_XENON)
+
+		const DWORD dwAttributes = ::GetFileAttributesA(path);
+		return ((dwAttributes != 0xFFFFFFFF) && ((dwAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0));
+
+#elif defined(EA_PLATFORM_UNIX) || defined(EA_PLATFORM_PS3)
 
 		struct stat tempStat;
 		const int result = stat(path, &tempStat);
@@ -325,7 +339,12 @@ bool FileSystemDefault::DirectoryExists(const char* path)
 			const DWORD dwAttributes = ::GetFileAttributesA(path);
 		    return ((dwAttributes != INVALID_FILE_ATTRIBUTES) && ((dwAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0));
 	
-		#elif defined(EA_PLATFORM_UNIX) 
+		#elif defined(EA_PLATFORM_XENON)
+	        
+			const DWORD dwAttributes = ::GetFileAttributesA(path); // GetFileAttributesA accepts a directory with a trailing path separator.
+		    return ((dwAttributes != 0xFFFFFFFF) && ((dwAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0));
+
+		#elif defined(EA_PLATFORM_UNIX) || defined(EA_PLATFORM_PS3)
 			
 			struct stat tempStat;
 			const int result = stat(path, &tempStat);
@@ -343,12 +362,12 @@ bool FileSystemDefault::RemoveFile(const char* path)
     // The following is copied from the EAIO package.
 	if(path && *path)
 	{
-    #if defined(EA_PLATFORM_WINDOWS) 
+    #if defined(EA_PLATFORM_WINDOWS) || defined(EA_PLATFORM_XENON)
 
         const BOOL bResult = ::DeleteFileA(path);
         return (bResult != 0);
 
-    #elif defined(EA_PLATFORM_UNIX) 
+    #elif defined(EA_PLATFORM_UNIX) || defined(EA_PLATFORM_PS3)
 
 		const int result = unlink(path);
 		return (result == 0);
@@ -373,9 +392,9 @@ bool FileSystemDefault::DeleteDirectory(const char* path)
 
 		if((path[nStrlen - 1] != '/') && (path[nStrlen - 1] != '\\'))
 		{
-			#if defined(EA_PLATFORM_WINDOWS) 
+			#if defined(EA_PLATFORM_WINDOWS) || defined(EA_PLATFORM_XENON)
 				return (RemoveDirectoryA(path) != 0);
-			#elif defined(EA_PLATFORM_UNIX) 
+			#elif defined(EA_PLATFORM_UNIX) || defined(EA_PLATFORM_PS3)
 				return (rmdir(path) == 0);
 			#endif
 		}
@@ -397,7 +416,7 @@ bool FileSystemDefault::GetFileSize(const char* path, int64_t& size)
     // The following is copied from the EAIO package.
 	if(path && *path)
 	{
-		#if defined(EA_PLATFORM_WINDOWS) 
+		#if defined(EA_PLATFORM_WINDOWS) || defined(EA_PLATFORM_XENON)
 
 			WIN32_FIND_DATAA win32FindDataA;
 			HANDLE hFindFile = FindFirstFileA(path, &win32FindDataA);
@@ -411,7 +430,7 @@ bool FileSystemDefault::GetFileSize(const char* path, int64_t& size)
 
 			return false;
 
-	  #elif defined(EA_PLATFORM_UNIX) 
+	  #elif defined(EA_PLATFORM_UNIX) || defined(EA_PLATFORM_PS3)
 
 			struct stat tempStat;
 			const int result = stat(path, &tempStat);
@@ -436,17 +455,22 @@ bool FileSystemDefault::GetFileModificationTime(const char* path, time_t& result
     // The following is copied from the EAIO package.
 	if(path && *path) 
 	{
-		#if defined(EA_PLATFORM_WINDOWS) 
+		#if defined(EA_PLATFORM_WINDOWS) || defined(EA_PLATFORM_XENON)
 
-			struct _stat tempStat;
-			const int r = _stat(path, &tempStat);
+			#if defined(EA_PLATFORM_WINDOWS)
+				struct _stat tempStat;
+				const int r = _stat(path, &tempStat);
+			#else
+				struct stat tempStat;
+				const int r = stat(path, &tempStat);
+			#endif
 	    
 			if(r == 0)
 				return tempStat.st_mtime;
 
 			return 0;
 
-		#elif defined(EA_PLATFORM_UNIX) 
+		#elif defined(EA_PLATFORM_UNIX) || defined(EA_PLATFORM_PS3)
 
 			struct stat tempStat;
 			const int r = stat(path, &tempStat);
@@ -474,12 +498,12 @@ bool FileSystemDefault::MakeDirectory(const char* path)
 
 		if((path[nStrlen - 1] != '/') && (path[nStrlen - 1] != '\\'))
 		{
-			#if defined(EA_PLATFORM_WINDOWS) 
+			#if defined(EA_PLATFORM_WINDOWS) || defined(EA_PLATFORM_XENON)
 
 				const BOOL bResult = CreateDirectoryA(path, NULL);
 				return bResult || (GetLastError() == ERROR_ALREADY_EXISTS);
 
-			#elif defined(EA_PLATFORM_UNIX)
+			#elif defined(EA_PLATFORM_UNIX)|| defined(EA_PLATFORM_PS3)
 
 				const int result = mkdir(path, 0777);
 				return ((result == 0) || (errno == EEXIST));
@@ -507,6 +531,17 @@ bool FileSystemDefault::GetDataDirectory(char* path)
 			// See EAIO::GetSpecialDirectory for a correct way to get the user data directory.
 			// And we probably need to have an EAWebKit-size SetDataDirectory function.
 			strcpy(path, ".\\");
+			return true;
+
+		#elif defined(EA_PLATFORM_XENON)
+			strcpy(path, "D:\\");
+			return true;
+
+		#elif defined(EA_PLATFORM_PS3)
+
+			// See the EAPlatform package GameDataPS3.h/cpp. The following is not correct,
+			// And we probably need to solve it by having an EAWebKit-size SetDataDirectory function.
+			strcpy(path, "./");
 			return true;
 
 		#elif defined(EA_PLATFORM_UNIX)

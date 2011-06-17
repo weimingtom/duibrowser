@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2007,2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2007,2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -640,13 +640,16 @@ void FileChangeNotification::ThreadFunctionFFCN(uint32_t dwNotifyFilter, const c
 #include <EAIO/EAFileDirectory.h>
 #include <EAIO/EAFileUtil.h>
 
-
-#if defined(EA_PLATFORM_WINDOWS)
+#if defined(EA_PLATFORM_XENON)
+    #pragma warning(push, 1)
+    #include <comdecl.h>
+    #pragma warning(pop)
+#elif defined(EA_PLATFORM_WINDOWS)
     #ifndef WIN32_LEAN_AND_MEAN
         #define WIN32_LEAN_AND_MEAN
     #endif
     #include <windows.h>
-#elif defined(EA_PLATFORM_UNIX)
+#elif defined(EA_PLATFORM_PS3) || defined(EA_PLATFORM_UNIX)
     #include <time.h>
 #endif
 
@@ -663,9 +666,9 @@ void FileChangeNotification::ThreadFunctionFFCN(uint32_t dwNotifyFilter, const c
 /// 
 static int GetCurrentFCNTime()
 {
-    #if defined(EA_PLATFORM_WINDOWS) 
+    #if defined(EA_PLATFORM_WINDOWS) || defined(EA_PLATFORM_XENON)
         return (int)GetTickCount();
-    #elif defined(EA_PLATFORM_UNIX)
+    #elif defined(EA_PLATFORM_PS3) || defined(EA_PLATFORM_UNIX)
         return (int)(clock() * INT64_C(1000) / CLOCKS_PER_SEC);
     #else
         return 0; // Fill in others here as needed.

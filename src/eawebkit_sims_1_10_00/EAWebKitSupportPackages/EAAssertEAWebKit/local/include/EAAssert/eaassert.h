@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -97,7 +97,15 @@ namespace Assert {
 #endif
 
 #if ! defined EA_DEBUG_BREAK && ! defined EA_DEBUG_BREAK_DEFINED
-    #if defined EA_PLATFORM_WINDOWS
+    #ifdef EA_PLATFORM_PS3
+      #if defined(__SN_VER__)
+		#define EA_DEBUG_BREAK() *(int*)(0) = 0
+      #else
+        #define EA_DEBUG_BREAK() __asm__ volatile ("tw 31,1,1")
+      #endif
+    #elif defined EA_PLATFORM_XENON
+        #define EA_DEBUG_BREAK() __debugbreak()
+    #elif defined EA_PLATFORM_WINDOWS
         #define EA_DEBUG_BREAK() __debugbreak()
     #else
         #define EA_DEBUG_BREAK() *(int*)(0) = 0
@@ -129,7 +137,10 @@ namespace EA {
 namespace Assert { 
 namespace Detail 
 {
-          // I'm not happy about this, but it seems the least-ugly way to pass the formatted msg
+    #ifdef EA_PLATFORM_PS3_SPU
+        // Not needed on the SPU
+    #else
+        // I'm not happy about this, but it seems the least-ugly way to pass the formatted msg
         // to the user-supplied callback. Too bad it can't take a ... (ellipsis) instead of a va_list though. I would
         // love to see a less complicated design here, and am open for suggestions.
         struct Forwarder
@@ -148,6 +159,7 @@ namespace Detail
                 return ret;
             }
         };
+    #endif
 }}}
 #endif
 
@@ -165,6 +177,7 @@ namespace Detail
 
 #ifdef EA_ASSERT_ENABLED    
     #ifdef __cplusplus
+        #ifndef EA_PLATFORM_PS3_SPU
             #ifndef EA_ASSERT
 				#define EA_ASSERT(expr)                if (!(expr) && EA::Assert::Detail::Forwarder(#expr,     __FILE__, __LINE__, EA_CURRENT_FUNCTION).Call("none"))   EA_DEBUG_BREAK(); else ((void)0)
             #endif
@@ -183,6 +196,9 @@ namespace Detail
             #ifndef EA_FAIL_FORMATTED
                 #define EA_FAIL_FORMATTED(fmt)         if (           EA::Assert::Detail::Forwarder("EA_FAIL", __FILE__, __LINE__, EA_CURRENT_FUNCTION).Call fmt)       EA_DEBUG_BREAK(); else ((void)0)
             #endif
+        #else
+          
+        #endif
     #else
             #ifndef EA_ASSERT
                 #define EA_ASSERT(expr)                if (!(expr)) { printf("\nEA_ASSERT(%s) failed in %s(%d)\n", #expr, __FILE__, __LINE__); EA_DEBUG_BREAK(); } else ((void)0)

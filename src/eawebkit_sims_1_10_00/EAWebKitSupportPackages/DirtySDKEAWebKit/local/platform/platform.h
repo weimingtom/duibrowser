@@ -51,6 +51,18 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef DIRTYCODE_PLATFORM
 #elif defined (_WIN32)
 #define DIRTYCODE_PLATFORM DIRTYCODE_PC
+#elif defined (_XBOX)
+#define DIRTYCODE_PLATFORM DIRTYCODE_XBOX
+#elif defined (_XENON)
+#define DIRTYCODE_PLATFORM DIRTYCODE_XENON
+#elif defined (__CELLOS_LV2__)
+#define DIRTYCODE_PLATFORM DIRTYCODE_PS3
+#elif defined (__R4000__)
+#define DIRTYCODE_PLATFORM DIRTYCODE_PSP
+#elif defined(__MWERKS__) && defined(__arm)
+#define DIRTYCODE_PLATFORM DIRTYCODE_DS
+#elif defined(__MWERKS__) && defined(RVL_SDK)
+#define DIRTYCODE_PLATFORM DIRTYCODE_REVOLUTION
 #elif defined(__linux__)
 #define DIRTYCODE_PLATFORM DIRTYCODE_LINUX
 #else
@@ -59,7 +71,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdarg.h>
 
-#if (DIRTYCODE_PLATFORM == DIRTYCODE_PC) 
+#if ((DIRTYCODE_PLATFORM == DIRTYCODE_PC) || \
+    (DIRTYCODE_PLATFORM == DIRTYCODE_XENON))
     #ifndef __int8_t_defined
         typedef signed char             int8_t;
         typedef signed short            int16_t;

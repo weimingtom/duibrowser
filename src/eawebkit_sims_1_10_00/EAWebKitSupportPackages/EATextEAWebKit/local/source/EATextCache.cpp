@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2004,2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2004,2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -903,8 +903,10 @@ void GlyphCache::WriteTextureArea(void* pDest, uint32_t nDestPositionX, uint32_t
                         // so we need to write first a byte for source 1 and 0, then a byte for source 3 and 2.
                         if(nSourceFormat == kTextureFormatARGB)
                         {
-                           
-                            #if defined(EA_SYSTEM_BIG_ENDIAN)
+                            #if defined(EA_PLATFORM_PS3)
+                                pRowAlpha[0] = (uint8_t)(((pSourceTemp[1] >> 24) & 0xf0) | (pSourceTemp[0] >> 28));
+                                pRowAlpha[1] = (uint8_t)(((pSourceTemp[3] >> 24) & 0xf0) | (pSourceTemp[2] >> 28));
+                            #elif defined(EA_SYSTEM_BIG_ENDIAN)
                                 pRowAlpha[0] = (uint8_t)(((pSourceTemp[3] >> 24) & 0xf0) | (pSourceTemp[2] >> 28));
                                 pRowAlpha[1] = (uint8_t)(((pSourceTemp[1] >> 24) & 0xf0) | (pSourceTemp[0] >> 28));
                             #else
@@ -914,8 +916,10 @@ void GlyphCache::WriteTextureArea(void* pDest, uint32_t nDestPositionX, uint32_t
                         }
                         else  // else RGBA
                         {
-                            
-                            #if defined(EA_SYSTEM_BIG_ENDIAN)
+                            #if defined(EA_PLATFORM_PS3)
+                                pRowAlpha[0] = (uint8_t)(((pSourceTemp[1] >> 0) & 0xf0) | ((pSourceTemp[0] >> 4) & 0x0f));
+                                pRowAlpha[1] = (uint8_t)(((pSourceTemp[3] >> 0) & 0xf0) | ((pSourceTemp[2] >> 4) & 0x0f));
+                            #elif defined(EA_SYSTEM_BIG_ENDIAN)
                                 pRowAlpha[0] = (uint8_t)(((pSourceTemp[3] >> 0) & 0xf0) | ((pSourceTemp[2] >> 4) & 0x0f));
                                 pRowAlpha[1] = (uint8_t)(((pSourceTemp[1] >> 0) & 0xf0) | ((pSourceTemp[0] >> 4) & 0x0f));
                             #else
@@ -974,7 +978,12 @@ void GlyphCache::WriteTextureArea(void* pDest, uint32_t nDestPositionX, uint32_t
                             nSourceMask = 0x80;
                         }
 
-                       *dst = (uint16_t)alphaMask;
+                        #ifdef EA_PLATFORM_PS3
+                            // We swap the high and low bytes of 'alphaMask'
+                            *dst = ((uint16_t)alphaMask >> 8) | ((uint16_t)alphaMask << 8);
+                        #else
+                            *dst = (uint16_t)alphaMask;
+                        #endif
 
                         dst += 8;
                     }
@@ -990,8 +999,13 @@ void GlyphCache::WriteTextureArea(void* pDest, uint32_t nDestPositionX, uint32_t
                                               ((uint32_t)src2[1] & 0xf0) + 
                                               ((uint32_t)src2[0] >> 4);
                         src2 += 4;
- 
-                        *dst = (uint16_t)alphaMask;
+
+                        #ifdef EA_PLATFORM_PS3
+                            // We swap the high and low bytes of 'alphaMask'
+                            *dst = (uint16_t)alphaMask >> 8 | (uint16_t)alphaMask << 8;
+                        #else
+                            *dst = (uint16_t)alphaMask;
+                        #endif
 
                         dst += 8;
                     }
@@ -1016,8 +1030,11 @@ void GlyphCache::WriteTextureArea(void* pDest, uint32_t nDestPositionX, uint32_t
                             alphaMask = (alphaMask << 4) + (src2[x2] >> 4);
                     }
 
-
-                   *dst = (uint16_t)alphaMask;
+                    #ifdef EA_PLATFORM_PS3 // We swap the high and low bytes of 'alphaMask'
+                        *dst = ((uint16_t)alphaMask >> 8) | ((uint16_t)alphaMask << 8);
+                    #else
+                        *dst = (uint16_t)alphaMask;
+                    #endif
                 }
 
                 // Check if we're crossing a tile boundary vertically.
@@ -1050,7 +1067,11 @@ void GlyphCache::WriteTextureArea(void* pDest, uint32_t nDestPositionX, uint32_t
                 {
                     while(pSource8Row < pSource8RowEnd)
                     {
-                       *pDest32Row = (uint32_t)(0x00ffffff + (*pSource8Row << 24));
+                        #if EATEXT_PS3_RGBA_COMPAT  // Treat ARGB as RGBA. This is for backward compatibility for before we had kTextureFormatRGBA 
+                           *pDest32Row = (uint32_t)(0xffffff00 + (*pSource8Row << 0));
+                        #else
+                           *pDest32Row = (uint32_t)(0x00ffffff + (*pSource8Row << 24));
+                        #endif
                         pSource8Row++;
                         pDest32Row++;
                     }
@@ -1088,7 +1109,11 @@ void GlyphCache::WriteTextureArea(void* pDest, uint32_t nDestPositionX, uint32_t
                         *pDest32Row = 0xffffffff;
                     else
                     {
-                        *pDest32Row = 0x00ffffff;
+                        #if EATEXT_PS3_RGBA_COMPAT  // If RGBA instead of ARGB...
+                            *pDest32Row = 0xffffff00;
+                        #else
+                            *pDest32Row = 0x00ffffff;
+                        #endif
                     }
 
                     nSourceMask >>= 1;
@@ -1118,8 +1143,20 @@ void GlyphCache::WriteTextureArea(void* pDest, uint32_t nDestPositionX, uint32_t
 
             while(pSource32Begin < pSource32End)  // For each row...
             {
- 
-                memcpy(pDest32Begin, pSource32Begin, nSourceSizeX * sizeof(uint32_t)); // Copy ARGB to ARGB
+                #if EATEXT_PS3_RGBA_COMPAT  // If RGBA instead of ARGB...
+                    // Copy ARGB to RGBA
+                    const uint32_t* pSource32       = pSource32Begin;
+                    const uint32_t* pSource32RowEnd = pSource32Begin + nSourceSizeX; 
+                    uint32_t*       pDest32         = pDest32Begin;
+
+                    while(pSource32 < pSource32RowEnd)
+                    {
+                        const uint32_t color = *pSource32++;
+                        *pDest32++ = ((color & 0x00ff0000) << 8) | ((color & 0x0000ff00) << 8) | ((color & 0x000000ff) << 8) | ((color & 0xff000000) >> 24);
+                    }
+                #else
+                    memcpy(pDest32Begin, pSource32Begin, nSourceSizeX * sizeof(uint32_t)); // Copy ARGB to ARGB
+                #endif
 
                 pSource32Begin = pSource32Begin + (nSourceStride / sizeof(uint32_t));
                 pDest32Begin   = pDest32Begin   + (nDestStride   / sizeof(uint32_t));

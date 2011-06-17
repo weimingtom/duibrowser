@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -149,9 +149,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // As of this writing (5/2005), type_traits here requires a well-conforming 
 // C++ compiler with respect to template metaprogramming. To use this library
 // you need to have at least one of the following:
-//     MSVC++ 7.1       (includes Win32, Win64, and WinCE platforms)
-//     GCC 3.2          (includes Linux platforms)
-//     Metrowerks 8.0   (includes Windows, and other platforms)
+//     MSVC++ 7.1       (includes Win32, XBox 360, Win64, and WinCE platforms)
+//     GCC 3.2          (includes Playstation 3, and Linux platforms)
+//     Metrowerks 8.0   (incluees Playstation 3, Windows, and other platforms)
 //     SN Systems       (not the GCC 2.95-based compilers)
 //     EDG              (includes any compiler with EDG as a back-end, such as the Intel compiler)
 //     Comeau           (this is a C++ to C generator)

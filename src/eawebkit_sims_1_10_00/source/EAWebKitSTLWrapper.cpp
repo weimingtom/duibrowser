@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -44,18 +44,19 @@ namespace EA
 		EASTLFixedString8Wrapper::EASTLFixedString8Wrapper()
 			: mString8(0)
 		{
-			mString8 = WTF::fastNew<FixedString8>();
+			mString8 = EAWEBKIT_NEW("fixedstring8_128") FixedString8_128();
 		}
 
 		EASTLFixedString8Wrapper::EASTLFixedString8Wrapper(const char8_t* str)
 			: mString8(0)
 		{
-			mString8 = WTF::fastNew<FixedString8 , const char8_t*>(str);
+			mString8 = EAWEBKIT_NEW("fixedstring8_128") FixedString8_128(str);
 		}
 
 		EASTLFixedString8Wrapper::EASTLFixedString8Wrapper(const EASTLFixedString8Wrapper& rhs)
 		{
-			*(reinterpret_cast<FixedString8*>(mString8)) = *(reinterpret_cast<FixedString8*> ((rhs).GetImpl()));
+			mString8 = EAWEBKIT_NEW("fixedstring8_128") FixedString8_128();
+            *(reinterpret_cast<FixedString8_128*>(mString8)) = *(reinterpret_cast<FixedString8_128*> ((rhs).GetImpl()));
 		}
 
 		EASTLFixedString8Wrapper& EASTLFixedString8Wrapper::operator =(const EASTLFixedString8Wrapper& rhs)
@@ -63,7 +64,9 @@ namespace EA
 			if(this == &rhs)
 				return *this;
 
-			*(reinterpret_cast<FixedString8*>(mString8)) = *(reinterpret_cast<FixedString8*> ((rhs).GetImpl()));
+			EAWEBKIT_DELETE reinterpret_cast<FixedString8_128*>(mString8);
+			mString8 = EAWEBKIT_NEW("fixedstring8_128") FixedString8_128();
+			*(reinterpret_cast<FixedString8_128*>(mString8)) = *(reinterpret_cast<FixedString8_128*> ((rhs).GetImpl()));
 			
 			return *this;
 		}
@@ -71,32 +74,38 @@ namespace EA
 		EASTLFixedString8Wrapper::~EASTLFixedString8Wrapper()
 		{
 			//Need to reinterpre_cast here otherwise the destructor won't execute
-			FixedString8* stringPtr = reinterpret_cast<FixedString8*>(mString8);
-			WTF::fastDelete<FixedString8>(stringPtr);
+			FixedString8_128* stringPtr = reinterpret_cast<FixedString8_128*>(mString8);
+			EAWEBKIT_DELETE stringPtr;
 			mString8 = NULL;
 		}
 
+		void* EASTLFixedString8Wrapper::GetImpl() const
+		{
+			return mString8;
+		}
+/*
 		const char8_t* EASTLFixedString8Wrapper::c_str() const
 		{
-			return reinterpret_cast<FixedString8*>(mString8)->c_str();
+			return reinterpret_cast<FixedString8_128*>(mString8)->c_str();
 		}
-
+*/
 		/******************************************EASTLFixedString16Wrapper******************************/
 		EASTLFixedString16Wrapper::EASTLFixedString16Wrapper()
 			: mString16(0)
 		{
-			mString16 = WTF::fastNew<FixedString16>();
+			mString16 = EAWEBKIT_NEW("fixedstring16_128") FixedString16_128();
 		}
 
 		EASTLFixedString16Wrapper::EASTLFixedString16Wrapper(const char16_t* str)
 			: mString16(0)
 		{
-			mString16 = WTF::fastNew<FixedString16 , const char16_t*>(str);
+			mString16 = EAWEBKIT_NEW("fixedstring16_128") FixedString16_128(str);
 		}
 
 		EASTLFixedString16Wrapper::EASTLFixedString16Wrapper(const EASTLFixedString16Wrapper& rhs)
 		{
-			*(reinterpret_cast<FixedString16*>(mString16)) = *(reinterpret_cast<FixedString16*> ((rhs).GetImpl()));
+			mString16 = EAWEBKIT_NEW("fixedstring16_128") FixedString16_128();
+            *(reinterpret_cast<FixedString16_128*>(mString16)) = *(reinterpret_cast<FixedString16_128*> ((rhs).GetImpl()));
 		}
 
 		EASTLFixedString16Wrapper& EASTLFixedString16Wrapper::operator =(const EASTLFixedString16Wrapper& rhs)
@@ -104,21 +113,29 @@ namespace EA
 			if(this == &rhs)
 				return *this;
 
-			*(reinterpret_cast<FixedString16*>(mString16)) = *(reinterpret_cast<FixedString16*> ((rhs).GetImpl()));
+			EAWEBKIT_DELETE reinterpret_cast<FixedString16_128*>(mString16);
+			mString16 = EAWEBKIT_NEW("fixedstring16_128") FixedString16_128();
+			*(reinterpret_cast<FixedString16_128*>(mString16)) = *(reinterpret_cast<FixedString16_128*> ((rhs).GetImpl()));
 
 			return *this;
 		}
-
-		const char16_t* EASTLFixedString16Wrapper::c_str() const
+		
+		void* EASTLFixedString16Wrapper::GetImpl() const
 		{
-			return reinterpret_cast<FixedString16*>(mString16)->c_str();
+			return mString16;
 		}
 
+/*
+		const char16_t* EASTLFixedString16Wrapper::c_str() const
+		{
+			return reinterpret_cast<FixedString16_128*>(mString16)->c_str();
+		}
+*/
 		EASTLFixedString16Wrapper::~EASTLFixedString16Wrapper()
 		{
 			//Need to reinterpre_cast here otherwise the destructor won't execute
-			FixedString16* stringPtr = reinterpret_cast<FixedString16*>(mString16);
-			WTF::fastDelete<FixedString16>(stringPtr);
+			FixedString16_128* stringPtr = reinterpret_cast<FixedString16_128*>(mString16);
+			EAWEBKIT_DELETE stringPtr;
 			mString16 = NULL;
 		}
 
@@ -126,19 +143,12 @@ namespace EA
 		EASTLHeaderMapWrapper::EASTLHeaderMapWrapper()
 			: mHeaderMap(0)
 		{
-			mHeaderMap = WTF::fastNew<HeaderMap>();
-		}
-
-		EASTLHeaderMapWrapper::~EASTLHeaderMapWrapper()
-		{
-			//Need to reinterpre_cast here otherwise the destructor won't execute
-			HeaderMap* headerMapPtr = reinterpret_cast<HeaderMap*>(mHeaderMap);
-			WTF::fastDelete<HeaderMap>(headerMapPtr);
-			mHeaderMap = NULL;
+			mHeaderMap = EAWEBKIT_NEW("HeaderMap") HeaderMap();
 		}
 
 		EASTLHeaderMapWrapper::EASTLHeaderMapWrapper(const EASTLHeaderMapWrapper& rhs)
 		{
+			mHeaderMap = EAWEBKIT_NEW("HeaderMap") HeaderMap();
 			*(reinterpret_cast<HeaderMap*>(mHeaderMap)) = *(reinterpret_cast<HeaderMap*> ((rhs).GetImpl()));
 		}
 
@@ -147,11 +157,25 @@ namespace EA
 			if(this == &rhs)
 				return *this;
 
+			EAWEBKIT_DELETE reinterpret_cast<HeaderMap*>(mHeaderMap);
+			mHeaderMap = EAWEBKIT_NEW("HeaderMap") HeaderMap();
 			*(reinterpret_cast<HeaderMap*>(mHeaderMap)) = *(reinterpret_cast<HeaderMap*> ((rhs).GetImpl()));
 
 			return *this;
 		}
+
+		EASTLHeaderMapWrapper::~EASTLHeaderMapWrapper()
+		{
+			//Need to reinterpre_cast here otherwise the destructor won't execute
+			HeaderMap* headerMapPtr = reinterpret_cast<HeaderMap*>(mHeaderMap);
+			EAWEBKIT_DELETE headerMapPtr;
+			mHeaderMap = NULL;
+		}
 		
+		void* EASTLHeaderMapWrapper::GetImpl() const
+		{
+			return mHeaderMap;
+		}
 		
 	} // namespace WebKit
 } // namespace EA

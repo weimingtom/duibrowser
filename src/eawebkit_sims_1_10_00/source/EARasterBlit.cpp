@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -54,6 +54,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "EARaster.h" 
+#include "EARaster/internal/EARasterUtils.h"
 #include <EAWebKit/internal/EAWebKitAssert.h>
 #include <math.h>
 #include <stdlib.h>
@@ -328,18 +329,24 @@ do {                                                \
 
 
 // Additive blend the RGB values of two pixels based on a source alpha value.
-#define ADDITIVE_ALPHA_BLEND(sR, sG, sB, A, dR, dG, dB)     \
+#define ADDITIVE_ALPHA_BLEND_RGB(sR, sG, sB, A, dR, dG, dB)     \
 do {                                                        \
     unsigned tA;                                            \
     tA = 255 - A;                                           \
-    dR = sR + ((dR * tA) >> 8);                             \
-    dG = sG + ((dG * tA) >> 8);                             \
-    dB = sB + ((dB * tA) >> 8);                             \
-    if(dR > 255) dR = 255;                                  \
-    if(dG > 255) dG = 255;                                  \
-    if(dB > 255) dB = 255;                                  \
+    dR = sR + DivideBy255Rounded(dR * tA);                  \
+    dG = sG + DivideBy255Rounded(dG * tA);                  \
+    dB = sB + DivideBy255Rounded(dB * tA);                  \
 } while(0)
 
+#define ADDITIVE_ALPHA_BLEND_ARGB(sR, sG, sB, sA, dR, dG, dB, dA)\
+    do {                                                    \
+    unsigned tA;                                            \
+    tA = 255 - sA;                                          \
+    dA = sA + DivideBy255Rounded(dA * tA);                  \
+    dR = sR + DivideBy255Rounded(dR * tA);                  \
+    dG = sG + DivideBy255Rounded(dG * tA);                  \
+    dB = sB + DivideBy255Rounded(dB * tA);                  \
+    } while(0)
 
 
 // Blend the RGB values of two Pixels based on a source alpha value.
@@ -703,7 +710,7 @@ EARASTER_API int BlitEdgeTiled(Surface* pSource, const Rect* pRectSource, Surfac
 }
 
 
-EARASTER_API int Blit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pDestClipRect, const bool additive)
+EARASTER_API int Blit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pDestClipRect)
 {
     EAW_ASSERT(pSource && pDest);
 
@@ -769,14 +776,14 @@ EARASTER_API int Blit(Surface* pSource, const Rect* pRectSource, Surface* pDest,
         if(rectDestResult.w <= 0 || rectDestResult.h <= 0)
             return 0;
 
-        return BlitNoClip(pSource, &rectSourceResult, pDest, &rectDestResult, additive);
+        return BlitNoClip(pSource, &rectSourceResult, pDest, &rectDestResult);
     }
 
     return 0;
 }
 
 
-EARASTER_API int BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const bool additive)
+EARASTER_API int BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest)
 {
     Rect rectSource; // Used if pRectSource is NULL.
     Rect rectDest;   // Used if pRectDest is NULL.
@@ -835,7 +842,6 @@ EARASTER_API int BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* 
     blitInfo.mnDWidth  = pRectDest->w;
     blitInfo.mnDHeight = pRectDest->h;
     blitInfo.mnDSkip   = pDest->mStride - (blitInfo.mnDWidth * pDest->mPixelFormat.mBytesPerPixel);
-    blitInfo.mDoAdditiveBlend = additive;
     pSource->mpBlitFunction(blitInfo);
 
 	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeDrawRaster, EA::WebKit::kVProcessStatusEnded);
@@ -1195,103 +1201,24 @@ static void BlitRGBtoRGBSurfaceAlpha(const BlitInfo& info)
     int             dstskip = info.mnDSkip >> 2;
     uint32_t        s;
     uint32_t        d;
-    uint32_t        s1;
-    uint32_t        d1;
-    
 
-    if(info.mDoAdditiveBlend)  
-    { 
-        const uint32_t sInvA = (255 - alpha);    
-        const uint32_t dAlpha = 0xff000000;
-        
-        while(height--)
-        {
-            // This can certainly be more optimized if needed...        
-            DUFFS_LOOP4({
-                s = *pSrc;
-                d = *pDst;
-                uint32_t sR = (s >> 16) & 0xff;
-                uint32_t sG = (s >> 8)  & 0xff;
-                uint32_t sB = s & 0xff;
-
-                uint32_t dR = (d >> 16) & 0xff;
-                uint32_t dG = (d >> 8)  & 0xff;
-                uint32_t dB = d & 0xff;
-
-                // Blend the fill color with the blend color 
-                uint32_t r = sR + ( (dR * sInvA) >> 8);
-                uint32_t g = sG + ( (dG * sInvA) >> 8);
-                uint32_t b = sB + ( (dB * sInvA) >> 8);
-                
-                // Overflow checking
-                if(r > 255)
-                    r = 255;
-                if(g > 255)
-                    g = 255;
-                if(b > 255)
-                    b = 255;
-              
-                // Store the blended color
-                *pDst = (dAlpha | (r << 16) | (g << 8) | b);
-
-                ++pSrc;
-                ++pDst;
-            }, width);
-
-            pSrc += srcskip;
-            pDst += dstskip;
-        }
-    }
-    else
+    while(height--)
     {
-       while(height--)
-        {
-            DUFFS_LOOP_DOUBLE2({
-                // One pixel Blend
-                s = *pSrc;
-                d = *pDst;
-                s1 = s & 0x00ff00ff;
-                d1 = d & 0x00ff00ff;
-                d1 = (d1 + ((s1 - d1) * alpha >> 8)) & 0x00ff00ff;
-                s &= 0x0000ff00;
-                d &= 0x0000ff00;
-                d = (d + ((s - d) * alpha >> 8)) & 0x0000ff00;
-                *pDst = d1 | d | 0xff000000;
-                ++pSrc;
-                ++pDst;
-            },{
-                // Two Pixels Blend
-                s = *pSrc;
-                d = *pDst;
-                s1 = s & 0x00ff00ff;
-                d1 = d & 0x00ff00ff;
-                d1 += (s1 - d1) * alpha >> 8;
-                d1 &= 0x00ff00ff;
-                     
-                s = ((s & 0x0000ff00) >> 8) | ((pSrc[1] & 0x0000ff00) << 8);
-                d = ((d & 0x0000ff00) >> 8) | ((pDst[1] & 0x0000ff00) << 8);
-                d += (s - d) * alpha >> 8;
-                d &= 0x00ff00ff;
-                
-                *pDst++ = d1 | ((d << 8) & 0x0000ff00) | 0xff000000;
-                ++pSrc;
-                
-                s1 = *pSrc;
-                d1 = *pDst;
-                s1 &= 0x00ff00ff;
-                d1 &= 0x00ff00ff;
-                d1 += (s1 - d1) * alpha >> 8;
-                d1 &= 0x00ff00ff;
-                
-                *pDst = d1 | ((d >> 8) & 0x0000ff00) | 0xff000000;
+        // This can certainly be more optimized if needed...        
+        DUFFS_LOOP4({
+            s = *pSrc;
+            d = *pDst;
 
-                ++pSrc;
-                ++pDst;
-            }, width);
+            s = s | (alpha << 24);
+            s = PremultiplyColor(s);
+            *pDst = BlendARGB32Premultiplied(s, d);
 
-            pSrc += srcskip;
-            pDst += dstskip;
-        }
+            ++pSrc;
+            ++pDst;
+        }, width);
+
+        pSrc += srcskip;
+        pDst += dstskip;
     }
 }
 
@@ -1306,116 +1233,32 @@ static void BlitRGBtoRGBPixelAlpha(const BlitInfo& info)
     uint32_t*       pDst    = (uint32_t*)info.mpDPixels;
     int             dstskip = info.mnDSkip >> 2;
 
-    if(info.mDoAdditiveBlend)  
-    { 
-        while(height--)
-        {
-            // This is a bit slower then the            
-            DUFFS_LOOP4({
-                uint32_t d = *pDst;
-                uint32_t s = *pSrc;
-                uint32_t dalpha =  d & 0xff000000;
-                uint32_t alpha = (s >> 24);
-                // Note: Here we special-case opaque alpha since the
-                // compositioning used (>>8 instead of /255) doesn't handle
-                // it correctly. Also special-case alpha = 0 for speed?
+    while(height--)
+    {
+        // This is a bit slower then the            
+        DUFFS_LOOP4({
+            uint32_t d = *pDst;
+            uint32_t s = *pSrc;
+            uint32_t dalpha =  (d >> 24);
+            uint32_t alpha = (s >> 24);
 
-                if(!alpha)
-                {   
-                    // do nothing
-                }                
-                else if(!dalpha)
+            if (alpha)
+            {
+                if (!dalpha || alpha == 255)
                 {
                     *pDst = s;
                 }
-                else if(alpha == 255)
-                {
-                         *pDst = (s & 0x00ffffff) | dalpha;
-                }
                 else
                 {
-                    uint32_t sInvA = (255- alpha);    
-
-                    uint32_t sR = (s >> 16) & 0xff;
-                    uint32_t sG = (s >> 8)  & 0xff;
-                    uint32_t sB = s & 0xff;
-
-                    uint32_t dR = (d >> 16) & 0xff;
-                    uint32_t dG = (d >> 8)  & 0xff;
-                    uint32_t dB = d & 0xff;
-
-                    // Blend the fill color with the blend color 
-                    uint32_t r = sR + ( (dR * sInvA) >> 8);
-                    uint32_t g = sG + ( (dG * sInvA) >> 8);
-                    uint32_t b = sB + ( (dB * sInvA) >> 8);
-                    
-                    // Overflow checking
-                    if(r > 255)
-                        r = 255;
-                    if(g > 255)
-                        g = 255;
-                    if(b > 255)
-                        b = 255;
-                  
-                    // Store the blended color
-                    *pDst = (dalpha | (r << 16) | (g << 8) | b);
+                    *pDst = BlendARGB32Premultiplied(s, d);
                 }
-                ++pSrc;
-                ++pDst;
-            }, width);
+            }
+            ++pSrc;
+            ++pDst;
+        }, width);
 
-            pSrc += srcskip;
-            pDst += dstskip;
-        }
-    }
-    else
-    {
-        while(height--)
-        {
-            DUFFS_LOOP4({
-                uint32_t s1;
-                uint32_t d1;
-                uint32_t d = *pDst;;
-                uint32_t s = *pSrc;
-
-                uint32_t dalpha =  d & 0xff000000;;
-                uint32_t alpha = (s >> 24);
-                // Note: Here we special-case opaque alpha since the
-                // compositioning used (>>8 instead of /255) doesn't handle
-                // it correctly. Also special-case alpha = 0 for speed?
-
-                if(alpha)
-                {   
-                    // 7/24/09 CSidhall - added extra check for 0 alpha dest case
-                    if(!dalpha)
-                        *pDst = s;
-                    else if(alpha == 255)
-                         *pDst = (s & 0x00ffffff) | dalpha;
-                    else
-                    {
-                        // Take out the middle component (green), and process
-                        // the other two in parallel. One multiply less.
-                    
-                        // dalpha = d & 0xff000000;
-                        s1     = s & 0x00ff00ff;
-                        d1     = d & 0x00ff00ff;
-                        d1     = (d1 + ((s1 - d1) * alpha >> 8)) & 0x00ff00ff;
-                        s     &= 0x0000ff00;
-                        d     &= 0x0000ff00;
-                        d      = (d + ((s - d) * alpha >> 8)) & 0x0000ff00;
-
-                        *pDst = d1 | d | dalpha;
-        
-                    }
-                }
-
-                ++pSrc;
-                ++pDst;
-            }, width);
-
-            pSrc += srcskip;
-            pDst += dstskip;
-        }
+        pSrc += srcskip;
+        pDst += dstskip;
     }
 }
 
@@ -1438,63 +1281,31 @@ static void BlitNtoNSurfaceAlpha(const BlitInfo& info)
 
     if (sA)
     {
-        if(info.mDoAdditiveBlend)  
-        { 
-            // Additive alpha blend        
-            while (height--)
+        // Pre-multiplied alpha blend        
+        while (height--)
+        {
+            DUFFS_LOOP4(
             {
-                DUFFS_LOOP4(
-                {
-                    uint32_t pixel;
-                    unsigned sR;
-                    unsigned sG;
-                    unsigned sB;
-                    unsigned dR;
-                    unsigned dG;
-                    unsigned dB;
+                uint32_t pixel;
+                unsigned sR;
+                unsigned sG;
+                unsigned sB;
+                unsigned dR;
+                unsigned dG;
+                unsigned dB;
 
-                    DISEMBLE_RGB(pSource, srcbpp, srcfmt, pixel, sR, sG, sB);
-                    DISEMBLE_RGB(pDest,   dstbpp, dstfmt, pixel, dR, dG, dB);
-                    ADDITIVE_ALPHA_BLEND(sR, sG, sB, sA, dR, dG, dB);
-                    ASSEMBLE_RGBA(pDest, dstbpp, dstfmt, dR, dG, dB, dA);
+                DISEMBLE_RGB(pSource, srcbpp, srcfmt, pixel, sR, sG, sB);
+                DISEMBLE_RGB(pDest,   dstbpp, dstfmt, pixel, dR, dG, dB);
+                ADDITIVE_ALPHA_BLEND_RGB(sR, sG, sB, sA, dR, dG, dB);
+                ASSEMBLE_RGBA(pDest, dstbpp, dstfmt, dR, dG, dB, dA);
 
-                    pSource += srcbpp;
-                    pDest   += dstbpp;
-                }, width);
+                pSource += srcbpp;
+                pDest   += dstbpp;
+            }, width);
 
-                pSource += srcskip;
-                pDest   += dstskip;
-            }
-        }
-        else
-        {         
-            // Standard alpha blend
-            while (height--)
-            {
-                DUFFS_LOOP4(
-                {
-                    uint32_t pixel;
-                    unsigned sR;
-                    unsigned sG;
-                    unsigned sB;
-                    unsigned dR;
-                    unsigned dG;
-                    unsigned dB;
-
-                    DISEMBLE_RGB(pSource, srcbpp, srcfmt, pixel, sR, sG, sB);
-                    DISEMBLE_RGB(pDest,   dstbpp, dstfmt, pixel, dR, dG, dB);
-                    ALPHA_BLEND(sR, sG, sB, sA, dR, dG, dB);
-                    ASSEMBLE_RGBA(pDest, dstbpp, dstfmt, dR, dG, dB, dA);
-
-                    pSource += srcbpp;
-                    pDest   += dstbpp;
-                }, width);
-
-                pSource += srcskip;
-                pDest   += dstskip;
-            }
-       }
-    
+            pSource += srcskip;
+            pDest   += dstskip;
+        }    
     }
 }
 
@@ -1518,88 +1329,44 @@ static void BlitNtoNPixelAlpha(const BlitInfo& info)
     // It is unclear whether there is a good general solution that doesn't
     // need a branch (or a divide).
 
-    if(info.mDoAdditiveBlend)  
-    { 
-        // Additive alpha blend version
-        while (height--)
-        {
-            DUFFS_LOOP4(
-            {
-                uint32_t pixel;
-                unsigned sR;
-                unsigned sG;
-                unsigned sB;
-                unsigned dR;
-                unsigned dG;
-                unsigned dB;
-                unsigned sA;
-                unsigned dA;
-
-                DISEMBLE_RGBA(pSource, srcbpp, srcfmt, pixel, sR, sG, sB, sA);
-
-                if(sA)
-                {
-                    DISEMBLE_RGBA(pDest, dstbpp, dstfmt, pixel, dR, dG, dB, dA);
-                    if(!dA)
-                    { 
-                        // 0 alpha background support               
-                        ASSEMBLE_RGBA(pDest, dstbpp, dstfmt, sR, sG, sB, sA);
-                    }
-                    else
-                    {
-                        ADDITIVE_ALPHA_BLEND(sR, sG, sB, sA, dR, dG, dB);
-                        ASSEMBLE_RGBA(pDest, dstbpp, dstfmt, dR, dG, dB, dA);
-                    }
-                }
-
-                pSource += srcbpp;
-                pDest   += dstbpp;
-            }, width);
-
-            pSource += srcskip;
-            pDest   += dstskip;
-        }
-    }
-    else
+    // Pre-multiplied alpha blend
+    while (height--)
     {
-        while (height--)
+        DUFFS_LOOP4(
         {
-            DUFFS_LOOP4(
+            uint32_t pixel;
+            unsigned sR;
+            unsigned sG;
+            unsigned sB;
+            unsigned dR;
+            unsigned dG;
+            unsigned dB;
+            unsigned sA;
+            unsigned dA;
+
+            DISEMBLE_RGBA(pSource, srcbpp, srcfmt, pixel, sR, sG, sB, sA);
+
+            if(sA)
             {
-                uint32_t pixel;
-                unsigned sR;
-                unsigned sG;
-                unsigned sB;
-                unsigned dR;
-                unsigned dG;
-                unsigned dB;
-                unsigned sA;
-                unsigned dA;
-
-                DISEMBLE_RGBA(pSource, srcbpp, srcfmt, pixel, sR, sG, sB, sA);
-
-                if(sA)
-                {
-                    DISEMBLE_RGBA(pDest, dstbpp, dstfmt, pixel, dR, dG, dB, dA);
-                    if(!dA)
-                    { 
-                        // 0 alpha background support               
-                        ASSEMBLE_RGBA(pDest, dstbpp, dstfmt, sR, sG, sB, sA);
-                    }
-                    else
-                    {
-                        ALPHA_BLEND(sR, sG, sB, sA, dR, dG, dB);
-                        ASSEMBLE_RGBA(pDest, dstbpp, dstfmt, dR, dG, dB, dA);
-                    }
+                DISEMBLE_RGBA(pDest, dstbpp, dstfmt, pixel, dR, dG, dB, dA);
+                if(!dA)
+                { 
+                    // 0 alpha background support               
+                    ASSEMBLE_RGBA(pDest, dstbpp, dstfmt, sR, sG, sB, sA);
                 }
+                else
+                {
+                    ADDITIVE_ALPHA_BLEND_ARGB(sR, sG, sB, sA, dR, dG, dB, dA);
+                    ASSEMBLE_RGBA(pDest, dstbpp, dstfmt, dR, dG, dB, dA);
+                }
+            }
 
-                pSource += srcbpp;
-                pDest   += dstbpp;
-            }, width);
+            pSource += srcbpp;
+            pDest   += dstbpp;
+        }, width);
 
-            pSource += srcskip;
-            pDest   += dstskip;
-        }
+        pSource += srcskip;
+        pDest   += dstskip;
     }
 }
 
@@ -1612,7 +1379,7 @@ static void BlitRGBtoRGBSurfaceAlphaMMX(const BlitInfo& info)
 {
     const PixelFormat&  df       = info.mpDest->mPixelFormat;
     const uint32_t      chanmask = df.mRMask | df.mGMask | df.mBMask;
-    const uint32_t      dalpha   = df.mAMask;
+    const uint32_t      amask    = df.mAMask;
     const unsigned      alpha    = info.mpSource->mPixelFormat.mSurfaceAlpha;
     const int           width    = info.mnDWidth;
     int                 height   = info.mnDHeight;
@@ -1620,146 +1387,79 @@ static void BlitRGBtoRGBSurfaceAlphaMMX(const BlitInfo& info)
     const int           srcskip  = info.mnSSkip >> 2;
     uint32_t*           pDst     = (uint32_t*)info.mpDPixels;
     const int           dstskip  = info.mnDSkip >> 2;
-    uint32_t            amult;
+    uint32_t            amult, invAmult;
    
-    if(info.mDoAdditiveBlend)    
-    {
-        __m64  src1, dst1, mm_alpha, mm_zero, dsta, mm_overflow;
-        
-        mm_zero  = _mm_setzero_si64();          // 0 -> mm_zero
-          
-        // So the alpha stay fixed in this version...
-        unsigned invAlpha = 255 - alpha;    // Inverse alpha
-        amult    = invAlpha | (invAlpha << 8);
-        amult    = amult | (amult << 16);
-        mm_alpha = _mm_set_pi32(0, amult & chanmask);   // 0000AAAA -> mm_alpha, minus 1 chan
-        mm_alpha = _mm_unpacklo_pi8(mm_alpha, mm_zero); // 0A0A0A0A -> mm_alpha, minus 1 chan
+    __m64  src1, dst1, mm_alpha, mm_alphaMask255, mm_chanMask, mm_invAlpha, mm_zero, mm_shiftedBy8;
+    
+    mm_zero  = _mm_setzero_si64();          // 0 -> mm_zero
 
-        // At this point mm_alpha can be 000A0A0A or 0A0A0A00 or another combo
-        dsta = _mm_set_pi32(0x00, dalpha); // pDest alpha mask -> dsta
-        
-        
-        int filter = ~(dalpha);
-        mm_overflow = _mm_set_pi32(0, filter);                  // 0000AAAA 
-        mm_overflow = _mm_unpacklo_pi8(mm_overflow, mm_zero);   // 0A0A0A0A 
+    __m64 mm_255, mm_128;
+    mm_255 = _mm_set1_pi16(0xff);   // 0x00FF 00FF 00FF 00FF
+    mm_128 = _mm_set1_pi16(0x80);   // 0x0080 0080 0080 0080
       
-        while (height--)
-        {
-            int n = width;
-            while(n--)
-            {
-                // Extract the colors
-                dst1 = _mm_cvtsi32_si64(*pDst);                     // pDest(ARGB) -> dst1 (0000ARGB)
-                src1 = _mm_cvtsi32_si64(*pSrc);                     // pSource(ARGB) -> src1 (0000ARGB)
-                src1 = _mm_unpacklo_pi8(src1, mm_zero);             // 000R0G0B -> src1  
-                dst1 = _mm_unpacklo_pi8(dst1, mm_zero);             // 0A0R0G0B -> dst1
+    // So the alpha stay fixed in this version...
 
-                // Blend the destination color with the inverse alpha         
-                dst1 = _mm_mullo_pi16(dst1, mm_alpha);              // dst1 * invAlpha 
-                dst1 = _mm_srli_pi16(dst1, 8);                      // src1 >> 8 -> src1(000R0G0B) = /256 (technically should be 255 but this is faster)
-                
-                // Additive color
-                dst1 = _mm_add_pi16(src1, dst1);                    // src1 + dst1 (additive)
+    // alpha
+    amult       = alpha | (alpha << 8);
+    amult       = amult | (amult << 16);
+    mm_alpha    = _mm_set_pi32(0, amult);                           // 0000AAAA -> mm_alpha
+    mm_alpha    = _mm_unpacklo_pi8(mm_alpha, mm_zero);              // 0A0A0A0A -> mm_alpha
 
-                // Check for color saturation beyond 0xff
-                src1 =_mm_cmpgt_pi16 (dst1, mm_overflow);           // Compare against 0x00ff00ff00ff00ff
-                dst1 =_mm_andnot_si64(src1, dst1);                  // Filter our dst1 resutls that overflow
-                dst1 = _mm_or_si64 (dst1, src1);                    // Add in 0xffff to the colors that overflowed
-                          
-                // Pack down to byte format
-                dst1 = _mm_and_si64(dst1, mm_overflow);             // Clean out the high bytes for the packing and the alpha channel
-                dst1 = _mm_packs_pu16(dst1, mm_zero);               // 0000ARGB -> dst1
-            
-                // Add in the source alpha
-                dst1 = _mm_or_si64 (dst1, dsta);               
-                *pDst = _mm_cvtsi64_si32(dst1);                     // dst1 -> pixel
-            
-                ++pSrc;
-                ++pDst;            
-            }
+    // alpha mask for the alpha component (multiplied by 255)
+    mm_alphaMask255 = _mm_set_pi32(0, amult & amask);               // 0000A000 -> mm_alphaMask, with A in the correct channel
+    mm_alphaMask255 = _mm_unpacklo_pi8(mm_alphaMask255, mm_zero);   // 0A000000 -> mm_alphaMask, with A in the correct channel
+    mm_alphaMask255 = _mm_mullo_pi16(mm_alphaMask255, mm_255);      // AA000000 -> mm_alphaMask, with A multiplied by 255
 
-            pSrc += srcskip;
-            pDst += dstskip;
-        }
-    }
-    else
+    // channel mask for the non-alpha component
+    mm_chanMask = _mm_set_pi32(0, chanmask);                        // 00000111 -> mm_chanMask, minus alpha chan
+    mm_chanMask = _mm_unpacklo_pi8(mm_chanMask, mm_chanMask);       // 00111111 -> mm_chanMask, minus alpha chan
+    
+    // invAlpha
+    unsigned invAlpha = 255 - alpha;    // Inverse alpha
+    invAmult    = invAlpha | (invAlpha << 8);
+    invAmult    = invAmult | (invAmult << 16);
+    mm_invAlpha = _mm_set_pi32(0, invAmult);                        // 0000AAAA -> mm_invAlpha
+    mm_invAlpha = _mm_unpacklo_pi8(mm_invAlpha, mm_zero);           // 0A0A0A0A -> mm_invAlpha
+    
+    while (height--)
     {
-         __m64               src1, src2, dst1, dst2, mm_alpha, mm_zero, dsta;
-
-        mm_zero = _mm_setzero_si64(); // 0 -> mm_zero
-
-        // Form the alpha mult.
-        amult    = alpha | (alpha << 8);
-        amult    = amult | (amult << 16);
-        mm_alpha = _mm_set_pi32(0, amult & chanmask);   // 0000AAAA -> mm_alpha, minus 1 chan
-        mm_alpha = _mm_unpacklo_pi8(mm_alpha, mm_zero); // 0A0A0A0A -> mm_alpha, minus 1 chan
-
-        // At this point mm_alpha can be 000A0A0A or 0A0A0A00 or another combo
-        dsta = _mm_set_pi32(dalpha, dalpha); // pDest alpha mask -> dsta
-        
-        while (height--)
+        int n = width;
+        while(n--)
         {
-            int n = width;
+            // Extract the colors
+            dst1 = _mm_cvtsi32_si64(*pDst);                     // pDest(ARGB) -> dst1 (0000ARGB)
+            src1 = _mm_cvtsi32_si64(*pSrc);                     // pSource(ARGB) -> src1 (0000ARGB)
+            src1 = _mm_unpacklo_pi8(src1, mm_zero);             // 000R0G0B -> src1  
+            dst1 = _mm_unpacklo_pi8(dst1, mm_zero);             // 0A0R0G0B -> dst1
 
-            if (n & 1)
-            {
-                // One pixel Blend
-                src2 = _mm_cvtsi32_si64(*pSrc);         // pSource(ARGB) -> src2 (0000ARGB)
-                src2 = _mm_unpacklo_pi8(src2, mm_zero); // 0A0R0G0B -> src2
+            // Premultiply the color with the surface alpha
+            src1 = _mm_mullo_pi16(src1, mm_alpha);              // src1 * alpha -> src1
 
-                dst1 = _mm_cvtsi32_si64(*pDst);         // pDest(ARGB) -> dst1 (0000ARGB)
-                dst1 = _mm_unpacklo_pi8(dst1, mm_zero); // 0A0R0G0B -> dst1
+            // add the alpha to the src1 color
+            src1 = _mm_and_si64(src1, mm_chanMask);             // 00RRGGBB -> src1 (clear the alpha channel in src1 first)
+            src1 = _mm_or_si64(src1, mm_alphaMask255);          // AARRGGBB -> src1
 
-                src2 = _mm_sub_pi16(src2, dst1);        // src2 - dst2 -> src2
-                src2 = _mm_mullo_pi16(src2, mm_alpha);  // src2 * alpha -> src2
-                src2 = _mm_srli_pi16(src2, 8);          // src2 >> 8 -> src2
-                dst1 = _mm_add_pi8(src2, dst1);         // src2 + dst1 -> dst1
-                
-                dst1 = _mm_packs_pu16(dst1, mm_zero);   // 0000ARGB -> dst1
-                dst1 = _mm_or_si64(dst1, dsta);         // dsta | dst1 -> dst1
-                *pDst = _mm_cvtsi64_si32(dst1);         // dst1 -> pixel
+            // Blend the colors (premultiplied): dst1 = ( src1 + (dst1 * invAlpha) ) / 255
+            dst1 = _mm_mullo_pi16(dst1, mm_invAlpha);           // dst1 * invAlpha 
 
-                ++pSrc;
-                ++pDst;
-                
-                n--;
-            }
+            dst1 = _mm_add_pi16(src1, dst1);                    // src1 + dst1
 
-            for (n >>= 1; n > 0; --n)
-            {
-                // Two Pixels Blend
-                src1 = *(__m64*)pSrc;                   // 2 x pSource -> src1(ARGBARGB)
-                src2 = src1;                            // 2 x pSource -> src2(ARGBARGB)
-                src1 = _mm_unpacklo_pi8(src1, mm_zero); // low - 0A0R0G0B -> src1
-                src2 = _mm_unpackhi_pi8(src2, mm_zero); // high - 0A0R0G0B -> src2
-
-                dst1 = *(__m64*)pDst;                   // 2 x pDest -> dst1(ARGBARGB)
-                dst2 = dst1;                            // 2 x pDest -> dst2(ARGBARGB)
-                dst1 = _mm_unpacklo_pi8(dst1, mm_zero); // low - 0A0R0G0B -> dst1
-                dst2 = _mm_unpackhi_pi8(dst2, mm_zero); // high - 0A0R0G0B -> dst2
-
-                src1 = _mm_sub_pi16(src1, dst1);        // src1 - dst1 -> src1
-                src1 = _mm_mullo_pi16(src1, mm_alpha);  // src1 * alpha -> src1
-                src1 = _mm_srli_pi16(src1, 8);          // src1 >> 8 -> src1
-                dst1 = _mm_add_pi8(src1, dst1);         // src1 + dst1(dst1) -> dst1
-
-                src2 = _mm_sub_pi16(src2, dst2);        // src2 - dst2 -> src2
-                src2 = _mm_mullo_pi16(src2, mm_alpha);  // src2 * alpha -> src2
-                src2 = _mm_srli_pi16(src2, 8);          // src2 >> 8 -> src2
-                dst2 = _mm_add_pi8(src2, dst2);         // src2 + dst2(dst2) -> dst2
-                
-                dst1 = _mm_packs_pu16(dst1, dst2);      // 0A0R0G0B(res1), 0A0R0G0B(res2) -> dst1(ARGBARGB)
-                dst1 = _mm_or_si64(dst1, dsta);         // dsta | dst1 -> dst1
-
-                *(__m64*)pDst = dst1;                   // dst1 -> 2 x pixel
-
-                pSrc += 2;
-                pDst += 2;
-            }
-
-            pSrc += srcskip;
-            pDst += dstskip;
+            // dst1 / 255 (see DivideBy255Rounded)
+            dst1 = _mm_add_pi16(dst1, mm_128);                  // dst1 + 128
+            mm_shiftedBy8 = _mm_srli_pi16(dst1, 8);             // dst1 >> 8
+            dst1 = _mm_add_pi16(dst1, mm_shiftedBy8);           // dst1 + (dst1 >> 8)
+            dst1 = _mm_srli_pi16(dst1, 8);                      // dst1 >> 8
+                      
+            // Pack down to byte format
+            dst1 = _mm_packs_pu16(dst1, mm_zero);               // 0000ARGB -> dst1
+            *pDst = _mm_cvtsi64_si32(dst1);                     // dst1 -> pixel
+        
+            ++pSrc;
+            ++pDst;            
         }
+
+        pSrc += srcskip;
+        pDst += dstskip;
     }
     _mm_empty();
 }
@@ -1778,39 +1478,26 @@ static void BlitRGBtoRGBPixelAlphaMMX(const BlitInfo& info)
     const uint32_t      chanmask = sf.mRMask | sf.mGMask | sf.mBMask;
     const uint32_t      amask    = sf.mAMask;
     const uint32_t      ashift   = sf.mAShift;
-    uint64_t            multmask;
-    __m64               src1, dst1, mm_alpha, mm_zero, dmask;
+    __m64               src1, dst1, mm_alpha, mm_zero, mm_shiftedBy8;
 
     mm_zero  = _mm_setzero_si64();          // 0 -> mm_zero
-    multmask = ~(0x000000000000FFFFi64 << (ashift * 2));
-    dmask    = *(__m64*)&multmask;          // pDest alpha mask -> dmask
 
-    if(info.mDoAdditiveBlend)    
+    __m64 mm_255, mm_128;
+    mm_255 = _mm_set1_pi16(0xff);   // 0x00FF 00FF 00FF 00FF
+    mm_128 = _mm_set1_pi16(0x80);   // 0x0080 0080 0080 0080
+
+    while(height--)
     {
-        // This is doing an additive alpha blend: source + dest * inv alpha 
-        __m64 mm_overflow,mm_dst_alpha;
-        mm_overflow = _mm_set_pi16(0xff,0xff,0xff,0xff);
-        mm_overflow =  _mm_and_si64(mm_overflow, dmask);    // Keep alpha channel 0x0 so can be used to clean it too    
-
-        while(height--)
-        {
-            DUFFS_LOOP4({
-                uint32_t alpha = *pSrc & amask;
-                uint32_t destApha = *pDst & amask;
-                
-                if (alpha == 0)
-                {
-                    // do nothing
-                }
-                else if(!destApha)
+        DUFFS_LOOP4({
+            uint32_t alpha = *pSrc & amask;
+            uint32_t destAlpha = *pDst & amask;
+            
+            if (alpha)
+            {
+                if (!destAlpha || alpha == amask)
                 {
                     // 7/23/09 CSidhall - Added 0 alpha case for destination for the MMX blend bellow will fail with a 0 dest alpha
-                    *pDst = *pSrc;         
-                }
-                else if (alpha == amask)
-                {
-                    // opaque alpha -- copy RGB, keep pDest alpha
-                    *pDst = (*pSrc & chanmask) | (*pDst & ~chanmask);
+                    *pDst = *pSrc;
                 }
                 else
                 {
@@ -1818,100 +1505,39 @@ static void BlitRGBtoRGBPixelAlphaMMX(const BlitInfo& info)
                     src1 = _mm_cvtsi32_si64(*pSrc);                     // pSource(ARGB) -> src1 (0000ARGB)
                     dst1 = _mm_cvtsi32_si64(*pDst);                     // pDest(ARGB) -> dst1 (0000ARGB)
                     mm_alpha = _mm_srli_si64(src1, ashift);             // Grab the alpha: mm_alpha >> ashift -> mm_alpha(0000000A) 
-                    src1 = _mm_unpacklo_pi8(src1, mm_zero);             // 000R0G0B -> src1  
+                    src1 = _mm_unpacklo_pi8(src1, mm_zero);             // 0A0R0G0B -> src1  
                     dst1 = _mm_unpacklo_pi8(dst1, mm_zero);             // 0A0R0G0B -> dst1
-                    mm_dst_alpha =_mm_andnot_si64( dmask, dst1);        // Grab the destination alpha
 
                     // Build the inverse alpha and broadcast it to all the color channels 
                     // We don't care if it goes into the alpha channel as this will be cleaned later
-                    mm_alpha =_mm_sub_pi8(mm_overflow, mm_alpha);       // inverse alpha: 255 - alpha - we ignore the upper words
+                    mm_alpha =_mm_sub_pi8(mm_255, mm_alpha);            // inverse alpha: 255 - alpha - we ignore the upper words
                     mm_alpha = _mm_unpacklo_pi16(mm_alpha, mm_alpha);   // 00000A0A -> mm_alpha
                     mm_alpha = _mm_unpacklo_pi32(mm_alpha, mm_alpha);   // 0A0A0A0A -> mm_alpha
 
-                    // Blend the destination color with the inverse alpha         
-                    dst1 = _mm_mullo_pi16(dst1, mm_alpha);              // dst1 * invAlpha 
-                    dst1 = _mm_srli_pi16(dst1, 8);                      // src1 >> 8 -> src1(000R0G0B) = /256 (technically should be 255 but this is faster)
-                    
-                    // Additive color
-                    dst1 = _mm_add_pi16(src1, dst1);                    // src1 + dst1 (additive)
+                    // Blend the colors (premultiplied): dst = src + (dst * invAlpha) / 255
+                    dst1 = _mm_mullo_pi16(dst1, mm_alpha);              // dst1 * invAlpha
 
-                    // Check for color saturation
-                    src1 =_mm_cmpgt_pi16 (dst1, mm_overflow);           // Compare against 0x00ff00ff00ff00ff
-                    dst1 =_mm_andnot_si64(src1, dst1);                  // Filter our dst1 resutls that overflow
-                    dst1 = _mm_or_si64 (dst1, src1);                    // Add in 0xffff to the colors that overflowed
-                
-                    // Add in the source alpha
-                    dst1 = _mm_and_si64(dst1, mm_overflow);             // Clean out the high bytes for the packing and alpha channel
-                    dst1 = _mm_or_si64 (dst1, mm_dst_alpha);
+                    // dst / 255 (see DivideBy255Rounded)
+                    dst1 = _mm_add_pi16(dst1, mm_128);                  // dst + 128
+                    mm_shiftedBy8 = _mm_srli_pi16(dst1, 8);             // dst >> 8
+                    dst1 = _mm_add_pi16(dst1, mm_shiftedBy8);           // dst + (dst >> 8)
+                    dst1 = _mm_srli_pi16(dst1, 8);                      // dst >> 8
+
+                    dst1 = _mm_add_pi16(src1, dst1);                    // src1 + dst1
 
                     // Pack down to byte format
                     dst1 = _mm_packs_pu16(dst1, mm_zero);               // 0000ARGB -> dst1
                     *pDst = _mm_cvtsi64_si32(dst1);                     // dst1 -> pixel
                 }
+            }
 
-                ++pSrc;
-                ++pDst;
-            }, width);
+            ++pSrc;
+            ++pDst;
+        }, width);
 
-            pSrc += srcskip;
-            pDst += dstskip;
-        }
-    }   
-    else
-    {
-        // This is a normal alpha blend: source * alpha + dest * inv alpha
-        while(height--)
-        {
-            DUFFS_LOOP4({
-                uint32_t alpha = *pSrc & amask;
-                uint32_t destApha = *pDst & amask;
-                
-                if (alpha == 0)
-                {
-                    // do nothing
-                }
-                else if(!destApha)
-                {
-                    // 7/23/09 CSidhall - Added 0 alpha case for destination for the MMX blend bellow will fail with a 0 dest alpha
-                    *pDst = *pSrc;         
-                }
-                else if (alpha == amask)
-                {
-                    // opaque alpha -- copy RGB, keep pDest alpha
-                    *pDst = (*pSrc & chanmask) | (*pDst & ~chanmask);
-                }
-                else
-                {
-                    src1 = _mm_cvtsi32_si64(*pSrc);             // pSource(ARGB) -> src1 (0000ARGB)
-                    src1 = _mm_unpacklo_pi8(src1, mm_zero);     // 0A0R0G0B -> src1
-
-                    dst1 = _mm_cvtsi32_si64(*pDst);             // pDest(ARGB) -> dst1 (0000ARGB)
-                    dst1 = _mm_unpacklo_pi8(dst1, mm_zero);     // 0A0R0G0B -> dst1
-
-                    mm_alpha = _mm_cvtsi32_si64(alpha);                 // alpha -> mm_alpha (0000000A)
-                    mm_alpha = _mm_srli_si64(mm_alpha, ashift);         // mm_alpha >> ashift -> mm_alpha(0000000A)
-                    mm_alpha = _mm_unpacklo_pi16(mm_alpha, mm_alpha);   // 00000A0A -> mm_alpha
-                    mm_alpha = _mm_unpacklo_pi32(mm_alpha, mm_alpha);   // 0A0A0A0A -> mm_alpha
-                    mm_alpha = _mm_and_si64(mm_alpha, dmask);           // 000A0A0A -> mm_alpha, preserve pDest alpha on add
-
-                    // blend          
-                    src1 = _mm_sub_pi16(src1, dst1);            // src1 - dst1 -> src1
-                    src1 = _mm_mullo_pi16(src1, mm_alpha);      // (src1 - dst1) * alpha -> src1
-                    src1 = _mm_srli_pi16(src1, 8);              // src1 >> 8 -> src1(000R0G0B)
-                    dst1 = _mm_add_pi8(src1, dst1);             // src1 + dst1 -> dst1(0A0R0G0B)
-                    dst1 = _mm_packs_pu16(dst1, mm_zero);       // 0000ARGB -> dst1
-                    
-                    *pDst = _mm_cvtsi64_si32(dst1);             // dst1 -> pixel
-                }
-
-                ++pSrc;
-                ++pDst;
-            }, width);
-
-            pSrc += srcskip;
-            pDst += dstskip;
-        }
-    }   
+        pSrc += srcskip;
+        pDst += dstskip;
+    }
    _mm_empty();
 }
 
@@ -1929,46 +1555,33 @@ static void BlitRGBtoRGBPixelAlphaMMX3DNOW(const BlitInfo& info)
     const uint32_t      chanmask = sf.mRMask | sf.mGMask | sf.mBMask;
     const uint32_t      amask    = sf.mAMask;
     const uint32_t      ashift   = sf.mAShift;
-    uint64_t            multmask;
-    __m64               src1, dst1, mm_alpha, mm_zero, dmask;
+    __m64               src1, dst1, mm_alpha, mm_zero, mm_shiftedBy8;
 
     mm_zero  = _mm_setzero_si64();          // 0 -> mm_zero
-    multmask = ~(0x000000000000FFFFi64 << (ashift * 2));
-    dmask    = *(__m64*)&multmask;          // pDest alpha mask -> dmask
 
-    if(info.mDoAdditiveBlend)    
+    __m64 mm_255, mm_128;
+    mm_255 = _mm_set1_pi16(0xff);   // 0x00FF 00FF 00FF 00FF
+    mm_128 = _mm_set1_pi16(0x80);   // 0x0080 0080 0080 0080
+
+    while(height--)
     {
-        // This is doing an additive alpha blend: source + dest * inv alpha 
-        __m64 mm_overflow,mm_dst_alpha;
-        mm_overflow = _mm_set_pi16(0xff,0xff,0xff,0xff);
-        mm_overflow =  _mm_and_si64(mm_overflow, dmask);    // Keep alpha channel 0x0 so can be used to clean it too    
+        DUFFS_LOOP4({
+            uint32_t alpha;
+            uint32_t destAlpha;
 
-        while(height--)
-        {
-            DUFFS_LOOP4({
-                uint32_t alpha;
-                uint32_t destApha;
+            // 3D Now 
+            _m_prefetch((uint32_t*)pSrc + 16);
+            _m_prefetch((uint32_t*)pDst + 16);
 
-                // 3D Now 
-                _m_prefetch((uint32_t*)pSrc + 16);
-                _m_prefetch((uint32_t*)pDst + 16);
+            alpha = *pSrc & amask;
+            destAlpha = *pDst & amask;
 
-                alpha = *pSrc & amask;
-                destApha = *pDst & amask;
-                
-                if (alpha == 0)
-                {
-                    // do nothing
-                }
-                else if(!destApha)
+            if (alpha)
+            {
+                if (!destAlpha || alpha == amask)
                 {
                     // 7/23/09 CSidhall - Added 0 alpha case for destination for the MMX blend bellow will fail with a 0 dest alpha
-                    *pDst = *pSrc;         
-                }
-                else if (alpha == amask)
-                {
-                    // opaque alpha -- copy RGB, keep pDest alpha
-                    *pDst = (*pSrc & chanmask) | (*pDst & ~chanmask);
+                    *pDst = *pSrc;
                 }
                 else
                 {
@@ -1976,120 +1589,45 @@ static void BlitRGBtoRGBPixelAlphaMMX3DNOW(const BlitInfo& info)
                     src1 = _mm_cvtsi32_si64(*pSrc);                     // pSource(ARGB) -> src1 (0000ARGB)
                     dst1 = _mm_cvtsi32_si64(*pDst);                     // pDest(ARGB) -> dst1 (0000ARGB)
                     mm_alpha = _mm_srli_si64(src1, ashift);             // Grab the alpha: mm_alpha >> ashift -> mm_alpha(0000000A) 
-                    src1 = _mm_unpacklo_pi8(src1, mm_zero);             // 000R0G0B -> src1  
+                    src1 = _mm_unpacklo_pi8(src1, mm_zero);             // 0A0R0G0B -> src1  
                     dst1 = _mm_unpacklo_pi8(dst1, mm_zero);             // 0A0R0G0B -> dst1
-                    mm_dst_alpha =_mm_andnot_si64( dmask, dst1);        // Grab the destination alpha
 
                     // Build the inverse alpha and broadcast it to all the color channels 
                     // We don't care if it goes into the alpha channel as this will be cleaned later
-                    mm_alpha =_mm_sub_pi8(mm_overflow, mm_alpha);       // inverse alpha: 255 - alpha - we ignore the upper words
+                    mm_alpha =_mm_sub_pi8(mm_255, mm_alpha);            // inverse alpha: 255 - alpha - we ignore the upper words
                     mm_alpha = _mm_unpacklo_pi16(mm_alpha, mm_alpha);   // 00000A0A -> mm_alpha
                     mm_alpha = _mm_unpacklo_pi32(mm_alpha, mm_alpha);   // 0A0A0A0A -> mm_alpha
 
-                    // Blend the destination color with the inverse alpha         
-                    dst1 = _mm_mullo_pi16(dst1, mm_alpha);              // dst1 * invAlpha 
-                    dst1 = _mm_srli_pi16(dst1, 8);                      // src1 >> 8 -> src1(000R0G0B) = /256 (technically should be 255 but this is faster)
-                    
-                    // Additive color
-                    dst1 = _mm_add_pi16(src1, dst1);                    // src1 + dst1 (additive)
+                    // Blend the colors (premultiplied): dst = src + (dst * invAlpha) / 255
+                    dst1 = _mm_mullo_pi16(dst1, mm_alpha);              // dst1 * invAlpha
 
-                    // Check for color saturation
-                    src1 =_mm_cmpgt_pi16 (dst1, mm_overflow);           // Compare against 0x00ff00ff00ff00ff
-                    dst1 =_mm_andnot_si64(src1, dst1);                  // Filter our dst1 resutls that overflow
-                    dst1 = _mm_or_si64 (dst1, src1);                    // Add in 0xffff to the colors that overflowed
-                
-                    // Add in the source alpha
-                    dst1 = _mm_and_si64(dst1, mm_overflow);             // Clean out the high bytes for the packing
-                    dst1 = _mm_or_si64 (dst1, mm_dst_alpha);
+                    // dst / 255 (see DivideBy255Rounded)
+                    dst1 = _mm_add_pi16(dst1, mm_128);                  // dst + 128
+                    mm_shiftedBy8 = _mm_srli_pi16(dst1, 8);             // dst >> 8
+                    dst1 = _mm_add_pi16(dst1, mm_shiftedBy8);           // dst + (dst >> 8)
+                    dst1 = _mm_srli_pi16(dst1, 8);                      // dst >> 8
+
+                    dst1 = _mm_add_pi16(src1, dst1);                    // src1 + dst1
 
                     // Pack down to byte format
                     dst1 = _mm_packs_pu16(dst1, mm_zero);               // 0000ARGB -> dst1
                     *pDst = _mm_cvtsi64_si32(dst1);                     // dst1 -> pixel
                 }
+            }
 
-                ++pSrc;
-                ++pDst;
-            }, width);
-            
-            pSrc += srcskip;
-            pDst += dstskip;
-        }
-        _mm_empty();
-    
-    }   
-    else
-    {
-        // This is a normal alpha blend: source * alpha + dest * inv alpha
-        while(height--)
-        {
-            DUFFS_LOOP4({
-                uint32_t alpha;
-                uint32_t destApha;
+            ++pSrc;
+            ++pDst;
+        }, width);
 
-                // 3D Now 
-                _m_prefetch((uint32_t*)pSrc + 16);
-                _m_prefetch((uint32_t*)pDst + 16);
-
-                alpha = *pSrc & amask;
-                destApha = *pDst & amask;
-                
-                if (alpha == 0)
-                {
-                    // do nothing
-                }
-                else if(!destApha)
-                {
-                    // 7/23/09 CSidhall - Added 0 alpha case for destination for the MMX blend bellow will fail with a 0 dest alpha
-                    *pDst = *pSrc;         
-                }
-                else if (alpha == amask)
-                {
-                    // opaque alpha -- copy RGB, keep pDest alpha
-                    *pDst = (*pSrc & chanmask) | (*pDst & ~chanmask);
-                }
-                else
-                {
-                    src1 = _mm_cvtsi32_si64(*pSrc);             // pSource(ARGB) -> src1 (0000ARGB)
-                    src1 = _mm_unpacklo_pi8(src1, mm_zero);     // 0A0R0G0B -> src1
-
-                    dst1 = _mm_cvtsi32_si64(*pDst);             // pDest(ARGB) -> dst1 (0000ARGB)
-                    dst1 = _mm_unpacklo_pi8(dst1, mm_zero);     // 0A0R0G0B -> dst1
-
-                    mm_alpha = _mm_cvtsi32_si64(alpha);                 // alpha -> mm_alpha (0000000A)
-                    mm_alpha = _mm_srli_si64(mm_alpha, ashift);         // mm_alpha >> ashift -> mm_alpha(0000000A)
-                    mm_alpha = _mm_unpacklo_pi16(mm_alpha, mm_alpha);   // 00000A0A -> mm_alpha
-                    mm_alpha = _mm_unpacklo_pi32(mm_alpha, mm_alpha);   // 0A0A0A0A -> mm_alpha
-                    mm_alpha = _mm_and_si64(mm_alpha, dmask);           // 000A0A0A -> mm_alpha, preserve pDest alpha on add
-
-                    // blend          
-                    src1 = _mm_sub_pi16(src1, dst1);            // src1 - dst1 -> src1
-                    src1 = _mm_mullo_pi16(src1, mm_alpha);      // (src1 - dst1) * alpha -> src1
-                    src1 = _mm_srli_pi16(src1, 8);              // src1 >> 8 -> src1(000R0G0B)
-                    dst1 = _mm_add_pi8(src1, dst1);             // src1 + dst1 -> dst1(0A0R0G0B)
-                    dst1 = _mm_packs_pu16(dst1, mm_zero);       // 0000ARGB -> dst1
-                    
-                    *pDst = _mm_cvtsi64_si32(dst1);             // dst1 -> pixel
-                }
-
-                ++pSrc;
-                ++pDst;
-            }, width);
-
-            pSrc += srcskip;
-            pDst += dstskip;
-        }
-        _mm_empty();
-    }   
+        pSrc += srcskip;
+        pDst += dstskip;
+    }
+    _mm_empty();
 }
-
-
-
 #endif // MSVC_ASMBLIT
 
 
-
 #if ALTIVEC_BLIT  // The matching #endif is way below.
-
 
 #if (defined(__MACOSX__) && (__GNUC__ < 4))
     #define VECUINT8_LITERAL(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p) (vector unsigned char) ( a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p )
@@ -2116,6 +1654,9 @@ do { \
 //      0x08, 0x18, 0x0A, 0x1A,
 //      0x0C, 0x1C, 0x0E, 0x1E );
 
+
+
+#define VEC_128()            ((vector unsigned short) vec_sl((vector unsigned short)vec_splat_u16(1), (vector unsigned short) vec_splat_u16(7)))
 #define VEC_MERGE_PERMUTE()  (vec_add(vec_lvsl(0, (int*)NULL), (vector unsigned char)vec_splat_u16(0x0F)))
 #define VEC_U32_24()         (vec_add(vec_splat_u32(12), vec_splat_u32(12)))
 #define VEC_ALPHA_MASK()     ((vector unsigned char)vec_sl((vector unsigned int)vec_splat_s8(-1), VEC_U32_24()))
@@ -2150,95 +1691,99 @@ do { \
 
 
 // 12/17/09 Chris Sidhall - Added Altivec support for additive blending
+// 3/2/10 - Updated based on work by YChin to the PC/360 blend side (higher divide precision by 255 instead of 256, src and dest alpha blend from translucent 
+// backgrounds and removing overflow checks since now everything is premultiplied).  
+
 // So the permute vector here is expecting 0x0110310 for
 // we the additive alpha, we don't use the upper 8 bits of the shorts,
 // these are mostly used for checking for overflow so that we can clamp the values back to 255 thanks to the 
 // vec_min instruction. 
-#define VEC_MULTIPLY_ADDITIVE_ALPHA(vs, vd, valpha, mergePermute, v1_8, v8_16)  \
+#define VEC_MULTIPLY_ADDITIVE_ALPHA(vs, vd, valpha, mergePermute, v1_8, v8_16, v128_16)  \
 do {                                                                            \
-    /* Move source into shorts that match dest format */                        \
-    vector unsigned short vtemp1 = vec_mule(vs, v1_8);                          \
-    /* vtemp2 contains source RRBBRRBBRRBBRRBB */                               \
-    vector unsigned short vtemp2 = vec_mulo(vs, v1_8);                          \
-     /* valpha2 is 255-alpha */                                                 \
+    /* valpha2 is 255-alpha */                                                  \
     vector unsigned char invAlpha = vec_nor(valpha, valpha);                    \
-    /* Destination blend */                                                     \
-    /* vtemp3 contains dest AAGGAAGGAAGGAAGG */                                 \
-    vector unsigned short vtemp3 = vec_mule(vd, invAlpha);                      \
-    /* vtemp4 contains dest RRBBRRBBRRBBRRBB */                                 \
-    vector unsigned short vtemp4 = vec_mulo(vd, invAlpha);                      \
-    /* Shift down (dest * invAlpha) >> 8   */                                   \
-    vtemp3 = vec_sr(vtemp3, v8_16);                                             \
-    vtemp4 = vec_sr(vtemp4, v8_16);                                             \
-    /* Add source + detination */                                               \
+    /* Additive destination blend */                                            \
+    /* vtemp1 contains dest AAGGAAGGAAGGAAGG */                                 \
+    vector unsigned short vtemp1 = vec_mule(vd, invAlpha);                      \
+    /* vtemp2 contains dest RRBBRRBBRRBBRRBB */                                 \
+    vector unsigned short vtemp2 = vec_mulo(vd, invAlpha);                      \
+    /* Use rounded system instead of >> 8 shift: dst / 255 */                   \
+    /* Step 1: dst + 128 */                                                     \
+    vtemp1 = vec_add(vtemp1, v128_16);                                          \
+    vtemp2 = vec_add(vtemp2, v128_16);                                          \
+    /* Step2: dst >> 8 */                                                       \
+    vector unsigned short vtemp3 = vec_sr(vtemp1, v8_16);                       \
+    vector unsigned short vtemp4 = vec_sr(vtemp2, v8_16);                       \
+    /* Step 3: dst + (dst >> 8) */                                              \
     vtemp1 = vec_add(vtemp1, vtemp3);                                           \
     vtemp2 = vec_add(vtemp2, vtemp4);                                           \
-    /* Filter out possible overflow beyond 255 */                               \
-    vector unsigned short  v_255= vec_splat_u16(-1);                            \
-    v_255 = vec_sr(v_255, v8_16);                                               \
-    vtemp1 = vec_min (vtemp1, v_255);                                           \
-    vtemp2 = vec_min(vtemp2, v_255);                                            \
+    /* Step 4: dst >> 8 */                                                      \
+    vtemp1 = vec_sr(vtemp1, v8_16);                                             \
+    vtemp2 = vec_sr(vtemp2, v8_16);                                             \
+    /* Merge back lower bytes to destination */                                 \
     vd = (vector unsigned char)vec_perm(vtemp1, vtemp2, mergePermute);          \
-} while (0)
+    /* Add source + detination */                                               \
+    vd = vec_add(vd, vs);                                                       \
+} while (0)                                                                     
 
 
 // Function version of VEC_MULTIPLY_ADDITIVE_ALPHA for debugging
 /*
 static vector unsigned char VEC_MULTIPLY_ADDITIVE_ALPHA(vector unsigned char vs, vector unsigned char vd, 
                                         vector unsigned char valpha, vector unsigned char mergePermute, 
-                                        vector unsigned char  v1_8, vector unsigned short v8_16) 
+                                        vector unsigned char  v1_8, vector unsigned short v8_16, vector unsigned short v128_16) 
 {
-    //VECPRINT("vs", vs); 
-    //VECPRINT("vd", vd); 
-    //VECPRINT("Alpha", valpha);  
-    
-    // Source. into shorts 
-    // vtemp1 contains source AAGGAAGGAAGGAAGG 
-    vector unsigned short vtemp1 = vec_mule(vs, v1_8); 
-    // vtemp2 contains source RRBBRRBBRRBBRRBB 
-    vector unsigned short vtemp2 = vec_mulo(vs, v1_8); 
-   
+//    VECPRINT("vs", vs); 
+//    VECPRINT("vd", vd); 
+//    VECPRINT("Alpha", valpha);  
+//    VECPRINT("128", v128_16);  
+
     // valpha2 is 255-alpha 
     vector unsigned char invAlpha = vec_nor(valpha, valpha); 
-    //VECPRINT("InvAlpha", invAlpha);  
+//    VECPRINT("InvAlpha", invAlpha);  
 
     // Destination blend
     // vtemp3 contains dest AAGGAAGGAAGGAAGG 
-    vector unsigned short vtemp3 = vec_mule(vd, invAlpha);
+    vector unsigned short vtemp1 = vec_mule(vd, invAlpha);
     // vtemp4 contains dest RRBBRRBBRRBBRRBB 
-    vector unsigned short vtemp4 = vec_mulo(vd, invAlpha); 
+    vector unsigned short vtemp2 = vec_mulo(vd, invAlpha); 
 
-    // Shift down (dest * invAlpha) >> 8   
-    vtemp3 = vec_sr(vtemp3, v8_16); 
-    vtemp4 = vec_sr(vtemp4, v8_16); 
+    // Use rounded system instead of >> 8 shift: dst / 255 (see DivideBy255Rounded)
+    // Step 1: dst + 128
+    vtemp1 = vec_add(vtemp1, v128_16); 
+    vtemp2 = vec_add(vtemp2, v128_16); 
+    
+//    VECPRINT("Temp1", vtemp1);  
+//    VECPRINT("Temp2", vtemp2);  
 
-    //VECPRINT("Temp1", vtemp1);  
-    //VECPRINT("Temp2", vtemp2);  
-    //VECPRINT("Temp3", vtemp3);  
-    //VECPRINT("Temp4", vtemp4);  
+    // Step2: dst >> 8
+    vector unsigned short vtemp3 = vec_sr(vtemp1, v8_16); 
+    vector unsigned short vtemp4 = vec_sr(vtemp2, v8_16); 
 
-    // Add source + detination
-    vtemp1 = vec_add(vtemp1, vtemp3); 
-    vtemp2 = vec_add(vtemp2, vtemp4); 
+//    VECPRINT("Temp3", vtemp3);  
+//    VECPRINT("Temp4", vtemp4);  
 
-    // Filter out possible overflow beyond 255
-    vector unsigned short  v_255= vec_splat_u16(-1);
-    v_255 = vec_sr(v_255, v8_16); 
+    // Step 3: dst + (dst >> 8)
+     vtemp1 = vec_add(vtemp1, vtemp3); 
+     vtemp2 = vec_add(vtemp2, vtemp4); 
 
-    //VECPRINT("before min 1", vtemp1); 
-    //VECPRINT("before min 2", vtemp2); 
+//    VECPRINT("Temp1", vtemp1);  
+//    VECPRINT("Temp2", vtemp2);  
 
-    vtemp1 = vec_min (vtemp1, v_255);
-    vtemp2 = vec_min(vtemp2, v_255);
+    // Step 4: dst >> 8
+    vtemp1 = vec_sr(vtemp1, v8_16); 
+    vtemp2 = vec_sr(vtemp2, v8_16); 
 
-    //VECPRINT("after min 1 ", vtemp1); 
-    //VECPRINT("after min 2 ", vtemp2); 
-    //VECPRINT("permute ", mergePermute); 
+//    VECPRINT("Temp1", vtemp1);  
+//    VECPRINT("Temp2", vtemp2);  
 
     vd = (vector unsigned char)vec_perm(vtemp1, vtemp2, mergePermute); 
+//    VECPRINT("vd blend", vd); 
 
-    //VECPRINT("vd", vd); 
-    return vd;
+    // Add source + detination
+    vd = vec_add(vd, vs); 
+//    VECPRINT("vd+vs", vd); 
+    return vd;                  
 }
 */
 
@@ -2314,7 +1859,9 @@ static void Blit32to32PixelAlphaAltivec(const BlitInfo& info)
     vector unsigned char  vpixelmask;
     vector unsigned char  v0;
     vector unsigned short v8;
+    vector unsigned short v128;
 
+    v128 = VEC_128();
     v0 = vec_splat_u8(0);
     v8 = vec_splat_u16(8);
 
@@ -2327,175 +1874,80 @@ static void Blit32to32PixelAlphaAltivec(const BlitInfo& info)
     vsdstPermute  = calc_swizzle32(&dstfmt, NULL);
 
 
-   if(info.mDoAdditiveBlend)    
+    // This is doing an additive alpha blend: source + dest * inv alpha 
+    vector unsigned char v1 = vec_splat_u8(1);
+
+    // For the additive blend we use a different permute index (+1 basically)
+    // so that we can index lower 8 bits of each short
+    mergePermute = vec_add(mergePermute, v1);
+  
+    while ( height-- )
     {
-        // This is doing an additive alpha blend: source + dest * inv alpha 
+        width = info.mnDWidth;
 
-        vector unsigned char v1 = vec_splat_u8(1);
-
-        // For the additive blend we use a different permute index (+1 basically)
-        // so that we can index lower 8 bits of each short
-        mergePermute = vec_add(mergePermute, v1);
-      
-        while ( height-- )
-        {
-            width = info.mnDWidth;
-
-            #define ONE_PIXEL_BLEND(condition, widthvar) \
-            while ((condition)) { \
-                uint32_t pixel; \
-                unsigned sR, sG, sB, dR, dG, dB, sA, dA; \
-                DISEMBLE_RGBA((uint8_t*)pSrc, 4, srcfmt, pixel, sR, sG, sB, sA); \
-                if(sA) { \
-                    DISEMBLE_RGBA((uint8_t*)pDst, 4, dstfmt, pixel, dR, dG, dB, dA); \
-                    ADDITIVE_ALPHA_BLEND(sR, sG, sB, sA, dR, dG, dB); \
-                    ASSEMBLE_RGBA((uint8_t*)pDst, 4, dstfmt, dR, dG, dB, dA); \
-                } \
-                ++pSrc; \
-                ++pDst; \
-                widthvar--; \
-            }
-
-            ONE_PIXEL_BLEND((UNALIGNED_PTR(pDst)) && (width), width);
-
-            if (width > 0)
-            {
-                // vsrcPermute
-                // vdstPermute
-                int extrawidth = (width % 4);
-                vector unsigned char valigner = VEC_ALIGNER(pSrc);
-                vector unsigned char vs = (vector unsigned char)vec_ld(0, pSrc);
-                width -= extrawidth;
-
-                while (width)
-                {
-                    vector unsigned char voverflow;
-                    vector unsigned char vd;
-                    vector unsigned char valpha;
-                    vector unsigned char vdstalpha;
-
-                    // s = *pSrc
-                    voverflow = (vector unsigned char)vec_ld(15, pSrc);
-                    vs = vec_perm(vs, voverflow, valigner);
-                    vs = vec_perm(vs, v0, vsrcPermute);
-
-                    valpha = vec_perm(vs, v0, valphaPermute);
-                    
-                    // d = *pDst
-                    vd = (vector unsigned char)vec_ld(0, pDst);
-                    vd = vec_perm(vd, v0, vsdstPermute);
-                    vdstalpha = vec_and(vd, valphamask);
-
-                    VEC_MULTIPLY_ADDITIVE_ALPHA(vs, vd, valpha, mergePermute, v1, v8);
-
-                    // set the alpha to the dest alpha
-                    // What if the dest alpha is 0?
-
-                    vd = vec_and(vd, vpixelmask);
-               
-                    vd = vec_or(vd, vdstalpha);
-                    vd = vec_perm(vd, v0, vdstPermute);
-
-                    // *pDst = res
-                    vec_st((vector unsigned int)vd, 0, pDst);
-                    
-                    pSrc += 4;
-                    pDst += 4;
-                    width -= 4;
-                    vs = voverflow; 
-
-                }
-                ONE_PIXEL_BLEND((extrawidth), extrawidth);
-            }
-
-            pSrc += srcskip;
-            pDst += dstskip;
-
-            #undef ONE_PIXEL_BLEND
+        #define ONE_PIXEL_BLEND(condition, widthvar) \
+        while ((condition)) { \
+            uint32_t pixel; \
+            unsigned sR, sG, sB, dR, dG, dB, sA, dA; \
+            DISEMBLE_RGBA((uint8_t*)pSrc, 4, srcfmt, pixel, sR, sG, sB, sA); \
+            if(sA) { \
+                DISEMBLE_RGBA((uint8_t*)pDst, 4, dstfmt, pixel, dR, dG, dB, dA); \
+                ADDITIVE_ALPHA_BLEND_ARGB(sR, sG, sB, sA, dR, dG, dB, dA); \
+                ASSEMBLE_RGBA((uint8_t*)pDst, 4, dstfmt, dR, dG, dB, dA); \
+            } \
+            ++pSrc; \
+            ++pDst; \
+            widthvar--; \
         }
 
-   }
-   else
-   {
-        // This is doing a normal alpha blend: source * alpha + dest * inv alpha
-        vector unsigned short v1 = vec_splat_u16(1);
-      
-        while ( height-- )
+        ONE_PIXEL_BLEND((UNALIGNED_PTR(pDst)) && (width), width);
+
+        if (width > 0)
         {
-            width = info.mnDWidth;
+            // vsrcPermute
+            // vdstPermute
+            int extrawidth = (width % 4);
+            vector unsigned char valigner = VEC_ALIGNER(pSrc);
+            vector unsigned char vs = (vector unsigned char)vec_ld(0, pSrc);
+            width -= extrawidth;
 
-            #define ONE_PIXEL_BLEND(condition, widthvar) \
-            while ((condition)) { \
-                uint32_t pixel; \
-                unsigned sR, sG, sB, dR, dG, dB, sA, dA; \
-                DISEMBLE_RGBA((uint8_t*)pSrc, 4, srcfmt, pixel, sR, sG, sB, sA); \
-                if(sA) { \
-                    DISEMBLE_RGBA((uint8_t*)pDst, 4, dstfmt, pixel, dR, dG, dB, dA); \
-                    ACCURATE_ALPHA_BLEND(sR, sG, sB, sA, dR, dG, dB); \
-                    ASSEMBLE_RGBA((uint8_t*)pDst, 4, dstfmt, dR, dG, dB, dA); \
-                } \
-                ++pSrc; \
-                ++pDst; \
-                widthvar--; \
-            }
-
-            ONE_PIXEL_BLEND((UNALIGNED_PTR(pDst)) && (width), width);
-
-            if (width > 0)
+            while (width)
             {
-                // vsrcPermute
-                // vdstPermute
-                int extrawidth = (width % 4);
-                vector unsigned char valigner = VEC_ALIGNER(pSrc);
-                vector unsigned char vs = (vector unsigned char)vec_ld(0, pSrc);
-                width -= extrawidth;
+                vector unsigned char voverflow;
+                vector unsigned char vd;
+                vector unsigned char valpha;
+             
+                // s = *pSrc
+                voverflow = (vector unsigned char)vec_ld(15, pSrc);
+                vs = vec_perm(vs, voverflow, valigner);
+                vs = vec_perm(vs, v0, vsrcPermute);
 
-                while (width)
-                {
-                    vector unsigned char voverflow;
-                    vector unsigned char vd;
-                    vector unsigned char valpha;
-                    vector unsigned char vdstalpha;
+                valpha = vec_perm(vs, v0, valphaPermute);
+                
+                // d = *pDst
+                vd = (vector unsigned char)vec_ld(0, pDst);
+                vd = vec_perm(vd, v0, vsdstPermute);
+     
+                VEC_MULTIPLY_ADDITIVE_ALPHA(vs, vd, valpha, mergePermute, v1, v8, v128);
 
-                    // s = *pSrc
-                    voverflow = (vector unsigned char)vec_ld(15, pSrc);
-                    vs = vec_perm(vs, voverflow, valigner);
-                    vs = vec_perm(vs, v0, vsrcPermute);
+                 // *pDst = res
+                vec_st((vector unsigned int)vd, 0, pDst);
+                
+                pSrc += 4;
+                pDst += 4;
+                width -= 4;
+                vs = voverflow; 
 
-                    valpha = vec_perm(vs, v0, valphaPermute);
-                    
-                    // d = *pDst
-                    vd = (vector unsigned char)vec_ld(0, pDst);
-                    vd = vec_perm(vd, v0, vsdstPermute);
-                    vdstalpha = vec_and(vd, valphamask);
-
-                    VEC_MULTIPLY_ALPHA(vs, vd, valpha, mergePermute, v1, v8);
-
-                    // set the alpha to the dest alpha
-                    vd = vec_and(vd, vpixelmask);
-                    vd = vec_or(vd, vdstalpha);
-                    vd = vec_perm(vd, v0, vdstPermute);
-
-                    // *pDst = res
-                    vec_st((vector unsigned int)vd, 0, pDst);
-                    
-                    pSrc += 4;
-                    pDst += 4;
-                    width -= 4;
-                    vs = voverflow;
-
-                }
-                ONE_PIXEL_BLEND((extrawidth), extrawidth);
             }
-
-            pSrc += srcskip;
-            pDst += dstskip;
-
-            #undef ONE_PIXEL_BLEND
+            ONE_PIXEL_BLEND((extrawidth), extrawidth);
         }
-   }
+
+        pSrc += srcskip;
+        pDst += dstskip;
+
+        #undef ONE_PIXEL_BLEND
+    }
 }
-
 
 // Fast ARGB888->(A)RGB888 blending with pixel alpha
 static void BlitRGBtoRGBPixelAlphaAltivec(const BlitInfo& info)
@@ -2513,10 +1965,11 @@ static void BlitRGBtoRGBPixelAlphaAltivec(const BlitInfo& info)
     vector unsigned char vpixelmask;
     vector unsigned char v0;
     vector unsigned short v8;
+    vector unsigned short v128;
 
-
-    v0 = vec_splat_u8(0);
+    v128 = VEC_128();
     v8 = vec_splat_u16(8);
+    v0 = vec_splat_u8(0);
 
     mergePermute  = VEC_MERGE_PERMUTE();
     valphamask    = VEC_ALPHA_MASK();
@@ -2525,198 +1978,84 @@ static void BlitRGBtoRGBPixelAlphaAltivec(const BlitInfo& info)
     vpixelmask = vec_nor(valphamask, v0);
 
 
-    if(info.mDoAdditiveBlend)    
+    // This is doing an additive alpha blend: source + dest * inv alpha 
+    vector unsigned char v1 = vec_splat_u8(1);
+
+    // For the additive blend we use a different permute index (+1 basically)
+    // so that we can index lower 8 bits of each short
+    mergePermute = vec_add(mergePermute, v1);
+    
+    PixelFormat& srcfmt  = info.mpSource->mPixelFormat;
+    PixelFormat& dstfmt  = info.mpDest->mPixelFormat;
+
+    while(height--)
     {
-        // This is doing an additive alpha blend: source + dest * inv alpha 
-        vector unsigned char v1 = vec_splat_u8(1);
+        width = info.mnDWidth;
 
-        // For the additive blend we use a different permute index (+1 basically)
-        // so that we can index lower 8 bits of each short
-        mergePermute = vec_add(mergePermute, v1);
-        
-        PixelFormat& srcfmt  = info.mpSource->mPixelFormat;
-        PixelFormat& dstfmt  = info.mpDest->mPixelFormat;
 
-        while(height--)
+       #define ONE_PIXEL_BLEND(condition, widthvar) \
+        while ((condition)) { \
+            uint32_t pixel; \
+            unsigned sR, sG, sB, dR, dG, dB, sA, dA; \
+            DISEMBLE_RGBA((uint8_t*)pSrc, 4, srcfmt, pixel, sR, sG, sB, sA); \
+            if(sA) { \
+                DISEMBLE_RGBA((uint8_t*)pDst, 4, dstfmt, pixel, dR, dG, dB, dA); \
+                /* zero alpha support */ \
+                /* if(dA == 0) */ \
+                /*    *pDst = *pSrc;  */ \
+                /* else */ \
+                ADDITIVE_ALPHA_BLEND_ARGB(sR, sG, sB, sA, dR, dG, dB, dA); \
+                ASSEMBLE_RGBA((uint8_t*)pDst, 4, dstfmt, dR, dG, dB, dA); \
+            } \
+            ++pSrc; \
+            ++pDst; \
+            widthvar--; \
+        }
+ 
+        ONE_PIXEL_BLEND((UNALIGNED_PTR(pDst)) && (width), width);
+
+        if (width > 0)
         {
-            width = info.mnDWidth;
+            int extrawidth = (width % 4);
+            vector unsigned char valigner = VEC_ALIGNER(pSrc);
+            vector unsigned char vs = (vector unsigned char)vec_ld(0, pSrc);
+            width -= extrawidth;
 
-
-           #define ONE_PIXEL_BLEND(condition, widthvar) \
-            while ((condition)) { \
-                uint32_t pixel; \
-                unsigned sR, sG, sB, dR, dG, dB, sA, dA; \
-                DISEMBLE_RGBA((uint8_t*)pSrc, 4, srcfmt, pixel, sR, sG, sB, sA); \
-                if(sA) { \
-                    DISEMBLE_RGBA((uint8_t*)pDst, 4, dstfmt, pixel, dR, dG, dB, dA); \
-                    /* zero alpha support */ \
-                    /* if(dA == 0) */ \
-                    /*    *pDst = *pSrc;  */ \
-                    /* else */ \
-                    ADDITIVE_ALPHA_BLEND(sR, sG, sB, sA, dR, dG, dB); \
-                    ASSEMBLE_RGBA((uint8_t*)pDst, 4, dstfmt, dR, dG, dB, dA); \
-                } \
-                ++pSrc; \
-                ++pDst; \
-                widthvar--; \
-            }
-
-
-
-            ONE_PIXEL_BLEND((UNALIGNED_PTR(pDst)) && (width), width);
-
-            if (width > 0)
+            while (width)
             {
-                int extrawidth = (width % 4);
-                vector unsigned char valigner = VEC_ALIGNER(pSrc);
-                vector unsigned char vs = (vector unsigned char)vec_ld(0, pSrc);
-                width -= extrawidth;
+                vector unsigned char voverflow;
+                vector unsigned char vd;
+                vector unsigned char valpha;
 
-                while (width)
-                {
-                    vector unsigned char voverflow;
-                    vector unsigned char vd;
-                    vector unsigned char valpha;
-                    vector unsigned char vdstalpha;
+                // s = *pSrc
+                voverflow = (vector unsigned char)vec_ld(15, pSrc);
+                vs = vec_perm(vs, voverflow, valigner);
 
-                    // s = *pSrc
-                    voverflow = (vector unsigned char)vec_ld(15, pSrc);
-                    vs = vec_perm(vs, voverflow, valigner);
+                valpha = vec_perm(vs, v0, valphaPermute);
 
-                    valpha = vec_perm(vs, v0, valphaPermute);
-                    
+                // d = *pDst
+                vd = (vector unsigned char)vec_ld(0, pDst);
 
-                    // d = *pDst
-                    vd = (vector unsigned char)vec_ld(0, pDst);
-                    vdstalpha = vec_and(vd, valphamask);
+                VEC_MULTIPLY_ADDITIVE_ALPHA(vs, vd, valpha, mergePermute,v1, v8, v128);
 
-                    VEC_MULTIPLY_ADDITIVE_ALPHA(vs, vd, valpha, mergePermute,v1, v8);
-
-                    // set the alpha to the dest alpha
-                    vd = vec_and(vd, vpixelmask);
-
-                    // 12/17/09 CS - Zero background alpha - Commented out for now unless requested as it adds some cycles...
-                    /*
-                    // Still needs to be tested.  If the destination alpha is zero, we want to use the source alpha instead.
-                    vector unsigned char filter = vec_min(vdstalpha,v1);    
-                    // Convert filter 0 and 1 to ff and 00 
-                    filter = vec_sub(filter, v1);
-                    // Clean out filter to only the alpha part
-                    filter = vec_and(filter, valphamask);
-                    // Get the source alpha and add it
-                    filter = vec_and(vs, filter);
-                    // Add in to the dest. Since it should only add to the once that have zero dst alpha, we can just or it in.
-                    vd = vec_or(vd, filter);
-                    */
-
-                    vd = vec_or(vd, vdstalpha);
-
-                    // *pDst = res
-                    vec_st((vector unsigned int)vd, 0, pDst);
-                    
-                    pSrc += 4;
-                    pDst += 4;
-                    width -= 4;
-                    vs = voverflow;
-                }
-
-                ONE_PIXEL_BLEND((extrawidth), extrawidth);
+                // *pDst = res
+                vec_st((vector unsigned int)vd, 0, pDst);
+                
+                pSrc += 4;
+                pDst += 4;
+                width -= 4;
+                vs = voverflow;
             }
 
-            pSrc += srcskip;
-            pDst += dstskip;
+            ONE_PIXEL_BLEND((extrawidth), extrawidth);
         }
 
-        #undef ONE_PIXEL_BLEND
-    }
-    else
-    {
-        // This is doing a normal alpha blend: source * alpha + dest * inv alpha
-        vector unsigned short v1 = vec_splat_u16(1);
+        pSrc += srcskip;
+        pDst += dstskip;
+ 
+  }
 
-        while(height--)
-        {
-            width = info.mnDWidth;
-
-            #define ONE_PIXEL_BLEND(condition, widthvar) \
-            while ((condition)) { \
-                uint32_t dalpha; \
-                uint32_t d; \
-                uint32_t s1; \
-                uint32_t d1; \
-                uint32_t s = *pSrc; \
-                uint32_t alpha = s >> 24; \
-                if(alpha) { \
-                  if(alpha == 255) { \
-                    *pDst = (s & 0x00ffffff) | (*pDst & 0xff000000); \
-                  } else { \
-                    d = *pDst; \
-                    dalpha = d & 0xff000000; \
-                    s1 = s & 0xff00ff; \
-                    d1 = d & 0xff00ff; \
-                    d1 = (d1 + ((s1 - d1) * alpha >> 8)) & 0xff00ff; \
-                    s &= 0xff00; \
-                    d &= 0xff00; \
-                    d = (d + ((s - d) * alpha >> 8)) & 0xff00; \
-                    *pDst = d1 | d | dalpha; \
-                  } \
-                } \
-                ++pSrc; \
-                ++pDst; \
-                widthvar--; \
-            }
-
-            ONE_PIXEL_BLEND((UNALIGNED_PTR(pDst)) && (width), width);
-
-            if (width > 0)
-            {
-                int extrawidth = (width % 4);
-                vector unsigned char valigner = VEC_ALIGNER(pSrc);
-                vector unsigned char vs = (vector unsigned char)vec_ld(0, pSrc);
-                width -= extrawidth;
-
-                while (width)
-                {
-                    vector unsigned char voverflow;
-                    vector unsigned char vd;
-                    vector unsigned char valpha;
-                    vector unsigned char vdstalpha;
-
-                    // s = *pSrc
-                    voverflow = (vector unsigned char)vec_ld(15, pSrc);
-                    vs = vec_perm(vs, voverflow, valigner);
-
-                    valpha = vec_perm(vs, v0, valphaPermute);
-                    
-                    // d = *pDst
-                    vd = (vector unsigned char)vec_ld(0, pDst);
-                    vdstalpha = vec_and(vd, valphamask);
-
-                    VEC_MULTIPLY_ALPHA(vs, vd, valpha, mergePermute, v1, v8);
-
-                    // set the alpha to the dest alpha
-                    vd = vec_and(vd, vpixelmask);
-                    vd = vec_or(vd, vdstalpha);
-
-                    // *pDst = res
-                    vec_st((vector unsigned int)vd, 0, pDst);
-                    
-                    pSrc += 4;
-                    pDst += 4;
-                    width -= 4;
-                    vs = voverflow;
-                }
-
-                ONE_PIXEL_BLEND((extrawidth), extrawidth);
-            }
-
-            pSrc += srcskip;
-            pDst += dstskip;
-        }
-
-        #undef ONE_PIXEL_BLEND
-
-    }
+    #undef ONE_PIXEL_BLEND
 }
 
 
@@ -2732,8 +2071,6 @@ static void Blit32to32SurfaceAlphaAltivec(const BlitInfo& info)
     int          dstskip = info.mnDSkip >> 2;
     PixelFormat& srcfmt  = info.mpSource->mPixelFormat;
     PixelFormat& dstfmt  = info.mpDest->mPixelFormat;
-    unsigned     sA      = srcfmt.mSurfaceAlpha;
-    unsigned     dA      = dstfmt.mAMask ? 255 : 0;
 
     vector unsigned char mergePermute;
     vector unsigned char vsrcPermute;
@@ -2743,9 +2080,12 @@ static void Blit32to32SurfaceAlphaAltivec(const BlitInfo& info)
     vector unsigned char valphamask;
     vector unsigned char vbits;
     vector unsigned short v8;
+    vector unsigned short v128;
 
-    mergePermute = VEC_MERGE_PERMUTE();
+
     v8 = vec_splat_u16(8);
+    v128 = VEC_128();
+    mergePermute = VEC_MERGE_PERMUTE();
 
     // set the alpha to 255 on the destination surf
     valphamask = VEC_ALPHA_MASK();
@@ -2760,155 +2100,77 @@ static void Blit32to32SurfaceAlphaAltivec(const BlitInfo& info)
     vbits = (vector unsigned char)vec_splat_s8(-1);
 
 
+    // This is doing an additive alpha blend: source + dest * inv alpha 
 
-   if(info.mDoAdditiveBlend)    
+    vector unsigned char v1 = vec_splat_u8(1);
+
+    // For the additive blend we use a different permute index (+1 basically)
+    // so that we can index lower 8 bits of each short
+    mergePermute = vec_add(mergePermute, v1);
+
+
+    while(height--)
     {
-        // This is doing an additive alpha blend: source + dest * inv alpha 
+        int width = info.mnDWidth;
 
-        vector unsigned char v1 = vec_splat_u8(1);
-
-        // For the additive blend we use a different permute index (+1 basically)
-        // so that we can index lower 8 bits of each short
-        mergePermute = vec_add(mergePermute, v1);
-
-
-        while(height--)
-        {
-            int width = info.mnDWidth;
-
-         #define ONE_PIXEL_BLEND(condition, widthvar) \
-            while ((condition)) { \
-                uint32_t pixel; \
-                unsigned sR, sG, sB, dR, dG, dB, sA, dA; \
-                DISEMBLE_RGBA((uint8_t*)pSrc, 4, srcfmt, pixel, sR, sG, sB, sA); \
-                if(sA) { \
-                    DISEMBLE_RGBA((uint8_t*)pDst, 4, dstfmt, pixel, dR, dG, dB, dA); \
-                    ADDITIVE_ALPHA_BLEND(sR, sG, sB, sA, dR, dG, dB); \
-                    ASSEMBLE_RGBA((uint8_t*)pDst, 4, dstfmt, dR, dG, dB, dA); \
-                } \
-                ++pSrc; \
-                ++pDst; \
-                widthvar--; \
-            }
-
-            ONE_PIXEL_BLEND((UNALIGNED_PTR(pDst)) && (width), width);
-
-            if (width > 0)
-            {
-                int extrawidth = (width % 4);
-                vector unsigned char valigner = VEC_ALIGNER(pSrc);
-                vector unsigned char vs = (vector unsigned char)vec_ld(0, pSrc);
-                width -= extrawidth;
-
-                while (width)
-                {
-                    vector unsigned char voverflow;
-                    vector unsigned char vd;
-
-                    // s = *pSrc
-                    voverflow = (vector unsigned char)vec_ld(15, pSrc);
-                    vs = vec_perm(vs, voverflow, valigner);
-                    vs = vec_perm(vs, valpha, vsrcPermute);
-                    
-                    // d = *pDst
-                    vd = (vector unsigned char)vec_ld(0, pDst);
-                    vd = vec_perm(vd, vd, vsdstPermute);
-
-                    VEC_MULTIPLY_ADDITIVE_ALPHA(vs, vd, valpha, mergePermute, v1, v8);
-
-                    // set the alpha channel to full on
-                    vd = vec_or(vd, valphamask);
-                    vd = vec_perm(vd, vbits, vdstPermute);
-
-                    // *pDst = res
-                    vec_st((vector unsigned int)vd, 0, pDst);
-                    
-                    pSrc += 4;
-                    pDst += 4;
-                    width -= 4;
-                    vs = voverflow;
-                }
-
-                ONE_PIXEL_BLEND((extrawidth), extrawidth);
-            }
-
-            #undef ONE_PIXEL_BLEND
-     
-            pSrc += srcskip;
-            pDst += dstskip;
+     #define ONE_PIXEL_BLEND(condition, widthvar) \
+        while ((condition)) { \
+            uint32_t pixel; \
+            unsigned sR, sG, sB, dR, dG, dB, sA, dA; \
+            DISEMBLE_RGBA((uint8_t*)pSrc, 4, srcfmt, pixel, sR, sG, sB, sA); \
+            if(sA) { \
+                DISEMBLE_RGBA((uint8_t*)pDst, 4, dstfmt, pixel, dR, dG, dB, dA); \
+                ADDITIVE_ALPHA_BLEND_ARGB(sR, sG, sB, sA, dR, dG, dB, dA); \
+                ASSEMBLE_RGBA((uint8_t*)pDst, 4, dstfmt, dR, dG, dB, dA); \
+            } \
+            ++pSrc; \
+            ++pDst; \
+            widthvar--; \
         }
-   }
-   else
-   {
-        // This is doing a normal alpha blend: source * alpha + dest * inv alpha
-        vector unsigned short v1 = vec_splat_u16(1);
-       
-       while(height--)
+
+        ONE_PIXEL_BLEND((UNALIGNED_PTR(pDst)) && (width), width);
+
+        if (width > 0)
         {
-            int width = info.mnDWidth;
+            int extrawidth = (width % 4);
+            vector unsigned char valigner = VEC_ALIGNER(pSrc);
+            vector unsigned char vs = (vector unsigned char)vec_ld(0, pSrc);
+            width -= extrawidth;
 
-            #define ONE_PIXEL_BLEND(condition, widthvar) \
-            while ((condition)) { \
-                uint32_t pixel; \
-                unsigned sR, sG, sB, dR, dG, dB; \
-                DISEMBLE_RGB(((uint8_t*)pSrc), 4, srcfmt, pixel, sR, sG, sB); \
-                DISEMBLE_RGB(((uint8_t*)pDst), 4, dstfmt, pixel, dR, dG, dB); \
-                ACCURATE_ALPHA_BLEND(sR, sG, sB, sA, dR, dG, dB); \
-                ASSEMBLE_RGBA(((uint8_t*)pDst), 4, dstfmt, dR, dG, dB, dA); \
-                ++pSrc; \
-                ++pDst; \
-                widthvar--; \
-            }
-
-            ONE_PIXEL_BLEND((UNALIGNED_PTR(pDst)) && (width), width);
-
-            if (width > 0)
+            while (width)
             {
-                int extrawidth = (width % 4);
-                vector unsigned char valigner = VEC_ALIGNER(pSrc);
-                vector unsigned char vs = (vector unsigned char)vec_ld(0, pSrc);
-                width -= extrawidth;
+                vector unsigned char voverflow;
+                vector unsigned char vd;
 
-                while (width)
-                {
-                    vector unsigned char voverflow;
-                    vector unsigned char vd;
+                // s = *pSrc
+                voverflow = (vector unsigned char)vec_ld(15, pSrc);
+                vs = vec_perm(vs, voverflow, valigner);
+                vs = vec_perm(vs, valpha, vsrcPermute);
+                
+                // d = *pDst
+                vd = (vector unsigned char)vec_ld(0, pDst);
+                vd = vec_perm(vd, vd, vsdstPermute);
 
-                    // s = *pSrc
-                    voverflow = (vector unsigned char)vec_ld(15, pSrc);
-                    vs = vec_perm(vs, voverflow, valigner);
-                    vs = vec_perm(vs, valpha, vsrcPermute);
-                    
-                    // d = *pDst
-                    vd = (vector unsigned char)vec_ld(0, pDst);
-                    vd = vec_perm(vd, vd, vsdstPermute);
+                VEC_MULTIPLY_ADDITIVE_ALPHA(vs, vd, valpha, mergePermute, v1, v8, v128);
 
-                    VEC_MULTIPLY_ALPHA(vs, vd, valpha, mergePermute, v1, v8);
-
-                    // set the alpha channel to full on
-                    vd = vec_or(vd, valphamask);
-                    vd = vec_perm(vd, vbits, vdstPermute);
-
-                    // *pDst = res
-                    vec_st((vector unsigned int)vd, 0, pDst);
-                    
-                    pSrc += 4;
-                    pDst += 4;
-                    width -= 4;
-                    vs = voverflow;
-                }
-
-                ONE_PIXEL_BLEND((extrawidth), extrawidth);
+                 // *pDst = res
+                vec_st((vector unsigned int)vd, 0, pDst);
+                
+                pSrc += 4;
+                pDst += 4;
+                width -= 4;
+                vs = voverflow;
             }
 
-            #undef ONE_PIXEL_BLEND
-     
-            pSrc += srcskip;
-            pDst += dstskip;
+            ONE_PIXEL_BLEND((extrawidth), extrawidth);
         }
+
+        #undef ONE_PIXEL_BLEND
+ 
+        pSrc += srcskip;
+        pDst += dstskip;
     }
 }
-
 
 // Fast RGB888->(A)RGB888 blending
 static void BlitRGBtoRGBSurfaceAlphaAltivec(const BlitInfo& info)
@@ -2924,7 +2186,9 @@ static void BlitRGBtoRGBSurfaceAlphaAltivec(const BlitInfo& info)
     vector unsigned char valpha;
     vector unsigned char valphamask;
     vector unsigned short v8;
+    vector unsigned short v128;
 
+    v128         = VEC_128();
     mergePermute = VEC_MERGE_PERMUTE();
     v8           = vec_splat_u16(8);
 
@@ -2935,147 +2199,77 @@ static void BlitRGBtoRGBSurfaceAlphaAltivec(const BlitInfo& info)
     ((unsigned char *)&valpha)[0] = alpha;
     valpha = vec_splat(valpha, 0);
 
-  if(info.mDoAdditiveBlend)    
+
+    // This is doing an additive alpha blend: source + dest * inv alpha 
+
+    vector unsigned char v1 = vec_splat_u8(1);
+    
+    PixelFormat& srcfmt  = info.mpSource->mPixelFormat;
+    PixelFormat& dstfmt  = info.mpDest->mPixelFormat;
+
+    // For the additive blend we use a different permute index (+1 basically)
+    // so that we can index lower 8 bits of each short
+    mergePermute = vec_add(mergePermute, v1);
+
+    while(height--)
     {
-        // This is doing an additive alpha blend: source + dest * inv alpha 
-
-        vector unsigned char v1 = vec_splat_u8(1);
-        PixelFormat& srcfmt  = info.mpSource->mPixelFormat;
-        PixelFormat& dstfmt  = info.mpDest->mPixelFormat;
-
-        while(height--)
-        {
-            int width = info.mnDWidth;
+        int width = info.mnDWidth;
 
 
-         #define ONE_PIXEL_BLEND(condition, widthvar) \
-            while ((condition)) { \
-                uint32_t pixel; \
-                unsigned sR, sG, sB, dR, dG, dB, sA, dA; \
-                DISEMBLE_RGBA((uint8_t*)pSrc, 4, srcfmt, pixel, sR, sG, sB, sA); \
-                if(sA) { \
-                    DISEMBLE_RGBA((uint8_t*)pDst, 4, dstfmt, pixel, dR, dG, dB, dA); \
-                    ADDITIVE_ALPHA_BLEND(sR, sG, sB, sA, dR, dG, dB); \
-                    ASSEMBLE_RGBA((uint8_t*)pDst, 4, dstfmt, dR, dG, dB, dA); \
-                } \
-                ++pSrc; \
-                ++pDst; \
-                widthvar--; \
-            }
-
-            ONE_PIXEL_BLEND((UNALIGNED_PTR(pDst)) && (width), width);
-
-            if (width > 0)
-            {
-                int extrawidth = (width % 4);
-                vector unsigned char valigner = VEC_ALIGNER(pSrc);
-                vector unsigned char vs = (vector unsigned char)vec_ld(0, pSrc);
-                width -= extrawidth;
-
-                while (width)
-                {
-                    vector unsigned char voverflow;
-                    vector unsigned char vd;
-
-                    // s = *pSrc
-                    voverflow = (vector unsigned char)vec_ld(15, pSrc);
-                    vs = vec_perm(vs, voverflow, valigner);
-                    
-                    // d = *pDst
-                    vd = (vector unsigned char)vec_ld(0, pDst);
-
-                    VEC_MULTIPLY_ADDITIVE_ALPHA(vs, vd, valpha, mergePermute, v1, v8);
-
-                    // set the alpha channel to full on
-                    vd = vec_or(vd, valphamask);
-
-                    // *pDst = res
-                    vec_st((vector unsigned int)vd, 0, pDst);
-                    
-                    pSrc += 4;
-                    pDst += 4;
-                    width -= 4;
-                    vs = voverflow;
-                }
-
-                ONE_PIXEL_BLEND((extrawidth), extrawidth);
-            }
-
-            #undef ONE_PIXEL_BLEND
-     
-            pSrc += srcskip;
-            pDst += dstskip;
+     #define ONE_PIXEL_BLEND(condition, widthvar) \
+        while ((condition)) { \
+            uint32_t pixel; \
+            unsigned sR, sG, sB, dR, dG, dB, sA, dA; \
+            DISEMBLE_RGBA((uint8_t*)pSrc, 4, srcfmt, pixel, sR, sG, sB, sA); \
+            if(sA) { \
+                DISEMBLE_RGBA((uint8_t*)pDst, 4, dstfmt, pixel, dR, dG, dB, dA); \
+                ADDITIVE_ALPHA_BLEND_ARGB(sR, sG, sB, sA, dR, dG, dB,dA); \
+                ASSEMBLE_RGBA((uint8_t*)pDst, 4, dstfmt, dR, dG, dB, dA); \
+            } \
+            ++pSrc; \
+            ++pDst; \
+            widthvar--; \
         }
-    }
-    else
-    {
-        
-        // This is doing a normal alpha blend: source * alpha + dest * inv alpha
-        vector unsigned short v1 = vec_splat_u16(1);
-        
-        while(height--)
+
+        ONE_PIXEL_BLEND((UNALIGNED_PTR(pDst)) && (width), width);
+
+        if (width > 0)
         {
-            int width = info.mnDWidth;
+            int extrawidth = (width % 4);
+            vector unsigned char valigner = VEC_ALIGNER(pSrc);
+            vector unsigned char vs = (vector unsigned char)vec_ld(0, pSrc);
+            width -= extrawidth;
 
-            #define ONE_PIXEL_BLEND(condition, widthvar) \
-            while ((condition)) { \
-                uint32_t s = *pSrc; \
-                uint32_t d = *pDst; \
-                uint32_t s1 = s & 0xff00ff; \
-                uint32_t d1 = d & 0xff00ff; \
-                d1 = (d1 + ((s1 - d1) * alpha >> 8))  & 0xff00ff; \
-                s &= 0xff00; \
-                d &= 0xff00; \
-                d = (d + ((s - d) * alpha >> 8)) & 0xff00; \
-                *pDst = d1 | d | 0xff000000; \
-                ++pSrc; \
-                ++pDst; \
-                widthvar--; \
-            }
-
-            ONE_PIXEL_BLEND((UNALIGNED_PTR(pDst)) && (width), width);
-
-            if (width > 0)
+            while (width)
             {
-                int extrawidth = (width % 4);
-                vector unsigned char valigner = VEC_ALIGNER(pSrc);
-                vector unsigned char vs = (vector unsigned char)vec_ld(0, pSrc);
-                width -= extrawidth;
+                vector unsigned char voverflow;
+                vector unsigned char vd;
 
-                while (width)
-                {
-                    vector unsigned char voverflow;
-                    vector unsigned char vd;
+                // s = *pSrc
+                voverflow = (vector unsigned char)vec_ld(15, pSrc);
+                vs = vec_perm(vs, voverflow, valigner);
+                
+                // d = *pDst
+                vd = (vector unsigned char)vec_ld(0, pDst);
 
-                    // s = *pSrc
-                    voverflow = (vector unsigned char)vec_ld(15, pSrc);
-                    vs = vec_perm(vs, voverflow, valigner);
-                    
-                    // d = *pDst
-                    vd = (vector unsigned char)vec_ld(0, pDst);
+                VEC_MULTIPLY_ADDITIVE_ALPHA(vs, vd, valpha, mergePermute, v1, v8, v128);
 
-                    VEC_MULTIPLY_ALPHA(vs, vd, valpha, mergePermute, v1, v8);
-
-                    // set the alpha channel to full on
-                    vd = vec_or(vd, valphamask);
-
-                    // *pDst = res
-                    vec_st((vector unsigned int)vd, 0, pDst);
-                    
-                    pSrc += 4;
-                    pDst += 4;
-                    width -= 4;
-                    vs = voverflow;
-                }
-
-                ONE_PIXEL_BLEND((extrawidth), extrawidth);
+                // *pDst = res
+                vec_st((vector unsigned int)vd, 0, pDst);
+                
+                pSrc += 4;
+                pDst += 4;
+                width -= 4;
+                vs = voverflow;
             }
 
-            #undef ONE_PIXEL_BLEND
-     
-            pSrc += srcskip;
-            pDst += dstskip;
+            ONE_PIXEL_BLEND((extrawidth), extrawidth);
         }
+
+        #undef ONE_PIXEL_BLEND
+ 
+        pSrc += srcskip;
+        pDst += dstskip;
     }
 }
 

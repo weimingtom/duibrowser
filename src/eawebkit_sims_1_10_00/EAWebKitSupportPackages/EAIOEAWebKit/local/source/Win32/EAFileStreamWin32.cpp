@@ -33,7 +33,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Created by Paul Pedriana
 //
 // Provides a file stream for Microsoft-derived platforms. These include
-// Win32, Win64.
+// Win32, Win64, XBox, and XBox2.
 //
 /////////////////////////////////////////////////////////////////////////////
 
@@ -43,8 +43,11 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef EAIO_EAFILESTREAM_H
     #include <EAIO/EAFileStream.h>
 #endif
-
-#if defined(EA_PLATFORM_WINDOWS)
+#if defined(EA_PLATFORM_XBOX) || defined(EA_PLATFORM_XENON)
+    #pragma warning(push, 1)
+    #include <comdecl.h>
+    #pragma warning(pop)
+#elif defined(EA_PLATFORM_WINDOWS)
     #ifndef WIN32_LEAN_AND_MEAN
         #define WIN32_LEAN_AND_MEAN
     #endif
@@ -247,8 +250,14 @@ bool FileStream::Open(int nAccessFlags, int nCreationDisposition, int nSharing, 
         else if(nUsageHints & kUsageHintRandom)
             dwFlagsAndAttributes |= FILE_FLAG_RANDOM_ACCESS;
 
-        
-        mhFile = CreateFileW(mpPath16, nAccess, nShare, NULL, nCreate, dwFlagsAndAttributes, NULL);
+        #if defined(EA_PLATFORM_XBOX) || defined(EA_PLATFORM_XENON)
+            // There aren't any W file APIs for XBox and Xenon (XBox 360)
+            char pPath8[_MAX_PATH];
+            WideCharToMultiByte(CP_UTF8, 0, mpPath16, -1, pPath8, _MAX_PATH, 0, 0);
+            mhFile = CreateFile(pPath8, nAccess, nShare, NULL, nCreate, dwFlagsAndAttributes, NULL);
+        #else
+            mhFile = CreateFileW(mpPath16, nAccess, nShare, NULL, nCreate, dwFlagsAndAttributes, NULL);
+        #endif
 
         if(mhFile == INVALID_HANDLE_VALUE) // If it failed...
         {

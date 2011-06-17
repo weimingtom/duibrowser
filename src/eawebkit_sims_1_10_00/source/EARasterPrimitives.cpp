@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -56,6 +56,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "EARaster.h"
 #include "EARasterColor.h"
+#include "EARaster/internal/EARasterUtils.h"
 #include "Color.h"
 #include <EAWebKit/internal/EAWebKitAssert.h>
 #include <math.h>
@@ -111,7 +112,6 @@ static void memset4(void* pDest, uint32_t value, size_t count)
                 } while(--n);
     }
 }
-
 
 // VC++ does not have lrint, so provide a local inline version
 // We may be able to get away with a simpler implementation of 
@@ -482,24 +482,10 @@ EARASTER_API int SetPixelColorNoClip(Surface* pSurface, int x, int y, const Colo
                 *pPixel = color.rgb();
             else
             {
-                // This code is taken from UTFDraw2D::Multiply(color_t x, color_t y).
-                const uint32_t s = color.rgb();
-                const uint32_t d = *pPixel;
-
-                uint32_t a = ((s >> 24) * (d >> 24)) + 1;   // Multiply x alpha * y alpha
-                a = ((a + (a >> 8)) >> 8);                  // Divide by 255
-
-                // To consider: Check if a == 0 and if so then just set the pPixel to 0 here.
-                uint32_t r = (((s & 0x00ff0000) >> 16) * (d & 0x00ff0000)) + 0x00010000;
-                r = ((r + (r >> 8)) >> 8) & 0x00ff0000;
-
-                uint32_t g = (((s & 0x0000ff00) >> 8) * (d & 0x0000ff00)) + 0x00000100;
-                g = ((g + (g >> 8)) >> 8) & 0x0000ff00;
-
-                uint32_t b = (s & 0xff) * (d & 0xff) + 1;
-                b = ((b + (b >> 8)) >> 8);
-
-                *pPixel = (a << 24) | r | g | b;
+                uint32_t s = color.rgb();
+                uint32_t d = *pPixel;
+                s = PremultiplyColor(s);
+                *pPixel = BlendARGB32Premultiplied(s, d);
             }
 
             break;
@@ -657,7 +643,7 @@ EARASTER_API int FillRectColor(Surface* pSurface, const Rect* pRect, const Color
         case 4:
         {
             // const uint32_t c32 = ConvertColor(color, pSurface->mPixelFormat.mPixelFormatType); Uh, I don't think this is what we want to do, is it?
-            const uint32_t s = color.rgb();  // We are assuming that the color is 32 bit ARGB here.
+            uint32_t s = color.rgb();  // We are assuming that the color is 32 bit ARGB here.
 
             // 7/22/09 CS -Added faster loop for the most frequent case. Grabbed from FillRectSolidColor()     
             if(sA == 255)     
@@ -670,15 +656,8 @@ EARASTER_API int FillRectColor(Surface* pSurface, const Rect* pRect, const Color
             }
             else
             {
-
-#define ALPHA_FILL_BLEND_FIX    // 3/13/09 CSidhall Please see note below about this bug fix
-
-#ifdef ALPHA_FILL_BLEND_FIX 
-                // Precalculate the source color with the alpha value already in it
-                const int sR = color.red() * sA;
-                const int sG = color.green() * sA;
-                const int sB = color.blue() * sA;
-#endif
+                // We only support colors with premultiplied alpha
+                s = PremultiplyColor(s);
 
                 for(int y = pRect->h, w = pRect->w; y; --y)
                 {
@@ -686,63 +665,21 @@ EARASTER_API int FillRectColor(Surface* pSurface, const Rect* pRect, const Color
 
                     for(int x = w; x; --x, pPixel++)
                     {
-#ifndef ALPHA_FILL_BLEND_FIX                        
-                        // This code is taken from UTFDraw2D::Multiply(color_t x, color_t y).
-                        const uint32_t d = *pPixel;
-
-                        uint32_t a = ((s >> 24) * (d >> 24)) + 1;   // Multiply x alpha * y alpha
-                        a = ((a + (a >> 8)) >> 8);                  // Divide by 255
-
-                        // To consider: Check if a == 0 and if so then just set the pPixel to 0 here.
-                        uint32_t r = (((s & 0x00ff0000) >> 16) * (d & 0x00ff0000)) + 0x00010000;
-                        r = ((r + (r >> 8)) >> 8) & 0x00ff0000;
-
-                        uint32_t g = (((s & 0x0000ff00) >> 8) * (d & 0x0000ff00)) + 0x00000100;
-                        g = ((g + (g >> 8)) >> 8) & 0x0000ff00;
-
-                        uint32_t b = (s & 0xff) * (d & 0xff) + 1;
-                        b = ((b + (b >> 8)) >> 8);
-
-                        *pPixel = (a << 24) | r | g | b;
-
-#else
-                        // 3/13/09 CSidhall - Alpha blend fix
-                        // When we blend with a value like 0x88000000, the old code above here forced the destination color to be 
-                        // black regardless of the alpha value because it multiplied the 2 colors for the blend like with
-                        //  uint32_t b = (s & 0xff) * (d & 0xff) + 1; 
-                        // If s =0 then b will always be 0.
-                        // In order to fix that problem, we might want to blend each color individually:
-                        // Formula color = (Source Color * alpha) + (Dest Color * inverse Alpha)
-                        // Max size of the alpha is 255 and not a float so we can divide by 256 with an 8 shift 
-                        // color = (Source Color * alpha + Dest Color * inverse Alpha) >> 8 with a small loss of precision (255/256).
-                        
                         // Get the destination color
                         const uint32_t d = *pPixel;
 
-                        // Keep the destination blend since the new blend has been factored in already
                         uint32_t a = d & 0xff000000;   
 
                         // 7/22/09 CSidhall -Added case for not blending when no background is there
                         if(a)
                         {
-                            // Compute the inverse alpha of the source fill color
-                            
-                            const uint32_t invAlpha = 255 - sA;     
-                            
-                            // Blend the fill color with the blend color 
-                            uint32_t r = (sR + (((d >> 16) & 0xff) * invAlpha)) >> 8;
-                            uint32_t g = (sG + (((d >> 8)  & 0xff) * invAlpha)) >> 8;
-                            uint32_t b = (sB + ((d & 0xff) * invAlpha)) >> 8;
-                            
-                            // Store the blended color
-                            *pPixel = (a | (r << 16) | (g << 8) | b);
+                            *pPixel = BlendARGB32Premultiplied(s, d);
                         }
                         else
                         {
                             // There is nothing in the background so we can copy directly without blending                       
                             *pPixel = s;        
                         }
-#endif
                     }
                     pRow += pSurface->mStride;
                 }
@@ -1335,7 +1272,7 @@ static int SetPixelColorWeightedNoClip(Surface* pSurface, int x, int y, const Co
 {
     // The Color class doesn't have the ability to set just the alpha channel, so we manually handle it.
     const uint32_t c32 = color.rgb();
-    const int      a   = (color.alpha() * alpha) >> 8;
+    const int      a   = DivideBy255Rounded(color.alpha() * alpha);
     const Color    colorTemp((c32 & 0x00ffffff) | (a << 24));
 
     return SetPixelColorNoClip(pSurface, x, y, colorTemp);
@@ -1346,7 +1283,7 @@ static int SetPixelColorWeighted(Surface* pSurface, int x, int y, const Color& c
 {
     // The Color class doesn't have the ability to set just the alpha channel, so we manually handle it.
     const uint32_t c32 = color.rgb();
-    const int      a   = (color.alpha() * alpha) >> 8;
+    const int      a   = DivideBy255Rounded(color.alpha() * alpha);
     const Color    colorTemp((c32 & 0x00ffffff) | (a << 24));
 
     return SetPixelColor(pSurface, x, y, colorTemp);
@@ -3143,7 +3080,7 @@ static int PieColorInternal(Surface* pSurface, int x, int y, int radius, int sta
     //#endif
     // Use alloca()
 
-    vx = WTF::fastNewArray<int>(2 * numpoints);
+    vx = EAWEBKIT_NEW("PieColor Points") int[2 * numpoints]; //WTF::fastNewArray<int>(2 * numpoints);
     if(vx == NULL)
         return -1;
 
@@ -3172,7 +3109,7 @@ static int PieColorInternal(Surface* pSurface, int x, int y, int radius, int sta
         result = PolygonColor(pSurface, vx, vy, numpoints, color);
 
     // Free vertex array
-    WTF::fastDeleteArray<int> (vx);
+    EAWEBKIT_DELETE[] vx;//WTF::fastDeleteArray<int> (vx);
 
     return result;
 }
@@ -3729,16 +3666,16 @@ static int ZoomSurfaceRGBA(Surface* pSource, Surface* pDest, bool bFlipX, bool b
    
     // Allocate memory for pRow increments.
     // To do: Remove usage of the heap here for all but pathological cases.
-    sax = WTF::fastNewArray<int>(pDest->mWidth + 1);
+    sax = EAWEBKIT_NEW("ZoomSurface RGBA") int[pDest->mWidth + 1];// WTF::fastNewArray<int>(pDest->mWidth + 1);
 
     if(sax == NULL)
         return -1;
 
-    say = WTF::fastNewArray<int> (pDest->mHeight + 1);
+    say = EAWEBKIT_NEW("ZoomSurface RGBA") int[pDest->mHeight + 1];//WTF::fastNewArray<int> (pDest->mHeight + 1);
 
     if(say == NULL)
     {
-        WTF::fastDeleteArray<int> (sax);
+        EAWEBKIT_DELETE[] sax;//WTF::fastDeleteArray<int> (sax);
         return -1;
     }
 
@@ -3879,8 +3816,8 @@ static int ZoomSurfaceRGBA(Surface* pSource, Surface* pDest, bool bFlipX, bool b
     }
 
     // Remove temp arrays. 
-    WTF::fastDeleteArray<int> (sax);
-    WTF::fastDeleteArray<int> (say);
+    EAWEBKIT_DELETE[] sax;//WTF::fastDeleteArray<int> (sax);
+    EAWEBKIT_DELETE[] say;//WTF::fastDeleteArray<int> (say);
 
 
     return 0;
@@ -4070,9 +4007,7 @@ EARASTER_API Surface* CreateTransparentSurface(Surface* pSource, int surfaceAlph
         {
             for (int x = 0; x < xEnd; ++x, ++pPixels)
             {
-                const uint32_t alpha = ((*pPixels >> 24) * surfaceAlpha) >> 8;
-
-                *pPixels = (*pPixels & 0x00ffffff) | (alpha << 24);
+                *pPixels = MultiplyColorAlpha(*pPixels, surfaceAlpha);
             }
         }
     }

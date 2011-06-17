@@ -43,6 +43,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     #pragma warning(push, 0)
     #include <windows.h>
     #pragma warning(pop)
+#elif defined(EA_PLATFORM_XENON)
+    #pragma warning(push, 0)
+    #include <comdecl.h>
+    #pragma warning(pop)
+#elif defined(EA_PLATFORM_PS3)
+     #include <sys/synchronization.h>
 #elif defined(EA_PLATFORM_UNIX)
     #include <unistd.h>      // sbrk(), getpagesize(), mmap, munmap, etc.
     #include <sys/mman.h>    // mmap, etc.
@@ -59,12 +65,12 @@ namespace EA
     namespace Internal
     {
 
-        #if defined(_MSC_VER) || defined(EA_PLATFORM_WINDOWS) 
+        #if defined(_MSC_VER) || defined(EA_PLATFORM_WINDOWS) || defined(EA_PLATFORM_XENON)
             #define mpCS ((CRITICAL_SECTION*)mpMutexData)
 
             Mutex::Mutex()
             {
-                #if !defined(_WIN32_WINNT) || (_WIN32_WINNT < 0x0403)
+                #if defined(EA_PLATFORM_XENON) || !defined(_WIN32_WINNT) || (_WIN32_WINNT < 0x0403)
                     InitializeCriticalSection(mpCS);
                 #else
                     InitializeCriticalSectionAndSpinCount(mpCS, 10);
@@ -87,6 +93,40 @@ namespace EA
             }
 
             #undef mCS
+
+        #elif defined(EA_PLATFORM_PS3)
+            #define mpMutex ((sys_lwmutex_t*)mpMutexData)
+
+            Mutex::Mutex()
+            {
+                sys_lwmutex_attribute_t lwattr;
+                sys_lwmutex_attribute_initialize(lwattr);
+                lwattr.attr_recursive = SYS_SYNC_RECURSIVE;
+
+                sys_lwmutex_create(mpMutex, &lwattr);
+
+                #ifdef EA_DEBUG
+                    sys_lwmutex_lock(mpMutex, 0);
+                    sys_lwmutex_unlock(mpMutex);
+                #endif
+            }
+
+            Mutex::~Mutex()
+            {
+                sys_lwmutex_destroy(mpMutex);
+            }
+
+            void Mutex::Lock()
+            {
+                sys_lwmutex_lock(mpMutex, 0);
+            }
+
+            void Mutex::Unlock()
+            {
+                sys_lwmutex_unlock(mpMutex);
+            }
+
+            #undef mpMutex
 
           #elif defined(EA_PLATFORM_UNIX)
             #define mpMutex ((pthread_mutex_t*)mpMutexData)

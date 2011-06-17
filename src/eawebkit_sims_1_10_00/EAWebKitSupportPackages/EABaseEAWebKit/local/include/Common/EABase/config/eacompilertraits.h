@@ -105,7 +105,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         #include <stddef.h>
     #endif
 
-    #if defined(__SNC__) 
+    #if defined(__SNC__) || defined(EA_PLATFORM_PS3)      
         #ifndef __STDC_LIMIT_MACROS
             #define __STDC_LIMIT_MACROS
         #endif
@@ -246,7 +246,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     // Microsoft supports prefix alignment via __declspec, but the alignment value must be a literal number, not just a constant expression.
     // Contrary to VC7.x and earlier documentation, __declspec(align) works on stack variables. VC8+ (VS2005+) documents correctly.
     // Microsoft does not support packed alignment attributes; you must use #pramga pack.
-    #elif defined(EA_COMPILER_INTEL) || (defined(EA_COMPILER_MSVC) && (EA_COMPILER_VERSION >= 1300)) // Verified by Paul Pedriana for VC6, VC7.0, and VC7.1.
+    #elif defined(EA_COMPILER_INTEL) || defined(EA_PLATFORM_XBOX) || (defined(EA_COMPILER_MSVC) && (EA_COMPILER_VERSION >= 1300)) // Verified by Paul Pedriana for VC6, VC7.0, and VC7.1.
         #define EA_ALIGN_OF(type) ((size_t)__alignof(type))
         #define EA_PREFIX_ALIGN(n) __declspec(align(n))
         #define EA_POSTFIX_ALIGN(n)
@@ -377,7 +377,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     //    }
     //
     #ifndef EA_ASSUME
-        #if defined(_MSC_VER) && (_MSC_VER >= 1300) // If VC7.0 and later ...
+        #if defined(_MSC_VER) && (_MSC_VER >= 1300) // If VC7.0 and later (including XBox, and XBox 360)...
             #define EA_ASSUME(x) __assume(x)
         #else
             #define EA_ASSUME(x)
@@ -469,7 +469,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             #else
                 #define EA_WCHAR_SIZE 4
             #endif
-        #elif defined(EA_PLATFORM_UNIX) 
+        #elif defined(EA_PLATFORM_UNIX) || defined(EA_PLATFORM_PS3) || defined(EA_PLATFORM_PS3_SPU)
             // It is standard on Unix to have wchar_t be int32_t or uint32_t.
             // All versions of GNUC default to a 32 bit wchar_t, but has been used 
             // with the -fshort-wchar GCC command line option to force it to 16 bit.

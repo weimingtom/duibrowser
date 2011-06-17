@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -378,7 +378,12 @@ static void WriteColourBlock(int c0, int c1, uint8_t* pIndexes, void* pBlock)
     uint8_t* const pBlock8 = (uint8_t*)pBlock;
 
     // Write the two colors.
-     #if defined(EA_SYSTEM_BIG_ENDIAN)
+    #if defined(EA_PLATFORM_PS3)
+        pBlock8[0] = (uint8_t)(c0  & 0xff);
+        pBlock8[1] = (uint8_t)(c0 >>    8);
+        pBlock8[2] = (uint8_t)(c1  & 0xff);
+        pBlock8[3] = (uint8_t)(c1 >>    8);
+    #elif defined(EA_SYSTEM_BIG_ENDIAN)
         pBlock8[0] = (uint8_t)(c0 >>    8);
         pBlock8[1] = (uint8_t)(c0  & 0xff);
         pBlock8[2] = (uint8_t)(c1 >>    8);
@@ -393,7 +398,16 @@ static void WriteColourBlock(int c0, int c1, uint8_t* pIndexes, void* pBlock)
     // Write the color indexes.
     // The DXT format specifies that the indexes are two uint16_t successive 
     // uint16_t values. So we need to deal with the endian-ness of these values.
-    #if defined(EA_SYSTEM_BIG_ENDIAN)
+    #if defined(EA_PLATFORM_PS3)
+        const uint8_t* pI  = pIndexes;
+        uint16_t*      p16 = (uint16_t*)pBlock + 2;
+
+        *p16++ = (pI[0]  << 8) | (pI[1]  << 10) | (pI[2]  << 12) | (pI[3]  << 14) | 
+                 (pI[4]  << 0) | (pI[5]  <<  2) | (pI[6]  <<  4) | (pI[7]  <<  6);
+
+        *p16   = (pI[8]  << 8) | (pI[9]  << 10) | (pI[10] << 12) | (pI[11] << 14) | 
+                 (pI[12] << 0) | (pI[13] <<  2) | (pI[14] <<  4) | (pI[15] <<  6);
+    #elif defined(EA_SYSTEM_BIG_ENDIAN)
         const uint8_t* pI  = pIndexes;
         uint16_t*      p16 = (uint16_t*)pBlock + 2;
 

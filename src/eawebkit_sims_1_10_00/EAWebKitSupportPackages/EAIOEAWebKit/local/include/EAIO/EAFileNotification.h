@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2007, 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2007, 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -235,7 +235,8 @@ namespace EA
             /// including calling operating system services. 
             ///
             /// Returns true if the Initialization was successful. On some platforms, the 
-            /// initialization is guaranteed to always be successful. 
+            /// initialization is guaranteed to always be successful. These platforms currenly
+            /// include Windows, XBox 360, PS3.
             ///
             bool Init();
 

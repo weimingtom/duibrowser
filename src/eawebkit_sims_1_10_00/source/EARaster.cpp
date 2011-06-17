@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -250,7 +250,7 @@ bool Surface::Resize(int width, int height, bool bCopyData)
 
     if(bCopyData && mpData)
     {
-        void* pData = WTF::fastNewArray<char>(kNewMemorySize);
+		void* pData = EAWEBKIT_NEW("Surface Resize") char[kNewMemorySize];//WTF::fastNewArray<char>(kNewMemorySize);
 
         #ifdef EA_DEBUG
             memset(mpData, 0, kNewMemorySize);
@@ -266,7 +266,7 @@ bool Surface::Resize(int width, int height, bool bCopyData)
         // We have a separate pathway for this case because it uses less total memory than above.
         FreeData();
 
-        mpData = WTF::fastNewArray<char> (kNewMemorySize);
+        mpData = EAWEBKIT_NEW("Surface Resize") char[kNewMemorySize];//WTF::fastNewArray<char> (kNewMemorySize);
 
         #ifdef EA_DEBUG
         if(mpData)    
@@ -289,7 +289,7 @@ void Surface::FreeData()
 {
     if((mSurfaceFlags & kFlagOtherOwner) == 0)  // If we own the pointer...
     {
-        WTF::fastDeleteArray<char> ((char*)mpData);
+        EAWEBKIT_DELETE[] ((char*)mpData);//WTF::fastDeleteArray<char> ((char*)mpData);
         mpData = NULL;
     }
 
@@ -315,7 +315,7 @@ void Surface::SetClipRect(const Rect* pRect)
 Surface* CreateSurface()
 {
     
-    Surface* pSurface = WTF::fastNew<Surface>();
+	Surface* pSurface = EAWEBKIT_NEW("Surface") Surface();//WTF::fastNew<Surface>();
    
     if(pSurface)
         pSurface->AddRef();
@@ -382,7 +382,7 @@ Surface* CreateSurface(void* pData, int width, int height, int stride, PixelForm
 
 void DestroySurface(Surface* pSurface)
 {
-    WTF::fastDelete<Surface>(pSurface);
+    EAWEBKIT_DELETE pSurface;//WTF::fastDelete<Surface>(pSurface);
 
 }
 
@@ -861,14 +861,14 @@ namespace EA
 		 {
 			 return EA::Raster::ClipForBlit(pSource, pRectSource, pDest, pRectDest, rectSourceResult, rectDestResult);
 		 }
-		 int EARasterConcrete::Blit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pDestClipRect, const bool additiveBlend)
+		 int EARasterConcrete::Blit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pDestClipRect)
 		 {
-			 return EA::Raster::Blit(pSource, pRectSource, pDest, pRectDest, pDestClipRect, additiveBlend);
+			 return EA::Raster::Blit(pSource, pRectSource, pDest, pRectDest, pDestClipRect);
 		 }
 
-		 int EARasterConcrete::BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const bool additiveBlend)
+		 int EARasterConcrete::BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest)
 		 {
-			 return EA::Raster::BlitNoClip(pSource, pRectSource, pDest, pRectDest, additiveBlend);
+			 return EA::Raster::BlitNoClip(pSource, pRectSource, pDest, pRectDest);
 		 }
 
 		 int EARasterConcrete::BlitTiled(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, int offsetX, int offsetY)

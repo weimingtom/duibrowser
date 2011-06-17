@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -361,14 +361,14 @@ const char * XmlReaderProxy::GetAttributeValue( int nIndex ) const
 
 EA::Internal::XML::IXmlReader* CreateXMLReaderWrapperInterface()
 {
-    EA::XMLWrapper::XmlReaderProxy* pProxy = WTF::fastNew<EA::XMLWrapper::XmlReaderProxy>(); 
+	EA::XMLWrapper::XmlReaderProxy* pProxy = EAWEBKIT_NEW("XmlReaderProxy")EA::XMLWrapper::XmlReaderProxy();// WTF::fastNew<EA::XMLWrapper::XmlReaderProxy>(); 
     EAW_ASSERT(pProxy);
     return (EA::Internal::XML::IXmlReader*) pProxy;
 }
 
 void DestroyXMLReaderWrapperInterface(EA::Internal::XML::IXmlReader* pXMLInterface)
 {
-    WTF::fastDelete<EA::XMLWrapper::XmlReaderProxy>((EA::XMLWrapper::XmlReaderProxy*) pXMLInterface);
+    EAWEBKIT_DELETE ((EA::XMLWrapper::XmlReaderProxy*) pXMLInterface);//WTF::fastDelete<EA::XMLWrapper::XmlReaderProxy>((EA::XMLWrapper::XmlReaderProxy*) pXMLInterface);
 }
 
    } // Namespace XMLWrapper

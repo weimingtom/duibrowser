@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2003,2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2003,2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -164,17 +164,19 @@ namespace EA
             kFileSystemUnix,       /// Unix family of file systems. Various flavors, most of which support UTF8 Unicode path names.
             kFileSystemWindows,    /// Windows family of file systems, starting with Windows NT and later.
             kFileSystemFAT,        /// File Allocation Table. Used by small storage devices on multiple platforms.
-            kFileSystemFATX,       /// File Allocation Table. Used by small storage devices on multiple platforms.
+            kFileSystemFATX,       /// File Allocation Table for XBox. Used by small storage devices on multiple platforms.
             kFileSystemFAT32,      /// 32 bit extentsion of FAT. Single byte and UCS2 Unicode path names.
             kFileSystemNTFS,       /// Windows NT File System. UCS2 Unicode path names.
             kFileSystemISO9660,    /// Basic CD file system, 31 character single byte path component names. See http://www.ecma-international.org/publications/files/ecma-st/Ecma-119.pdf
             kFileSystemJoliet,     /// An extension of ISO9660 which supports UCS2 Unicode in path component names. 
             kFileSystemUDF,        /// Universal Disk Format, used by modern CD and DVD systems. Specs are defined by http://www.osta.org/specs/
-            kFileSystemUDFX,       /// Universal Disk Format used by modern CD and DVD systems. Specs are defined by http://www.osta.org/specs/
+            kFileSystemUDFX,       /// Universal Disk Format for XBox, used by modern CD and DVD systems. Specs are defined by http://www.osta.org/specs/
 
             #if defined(EA_PLATFORM_WINDOWS)
                 kFileSystemDefault = kFileSystemFAT32  /// Used to refer to whatever the default least-common demoninator file system for the platform is.
-            #elif defined(EA_PLATFORM_UNIX) 
+            #elif defined(EA_PLATFORM_XBOX) || defined(EA_PLATFORM_XENON)
+                kFileSystemDefault = kFileSystemUDFX   /// Used to refer to whatever the default least-common demoninator file system for the platform is.
+            #elif defined(EA_PLATFORM_UNIX) || defined(EA_PLATFORM_PS3)
                 kFileSystemDefault = kFileSystemUnix   /// Used to refer to whatever the default least-common demoninator file system for the platform is.
             #else
                 kFileSystemDefault = kFileSystemFAT32  /// Used to refer to whatever the default least-common demoninator file system for the platform is.
@@ -281,7 +283,7 @@ namespace EA
         // Functions which recognize current and parent directories use them as defined here.
         // Functions which return current and parent directories return them as defined here.
 
-        #if defined(_MSC_VER) || defined(EA_PLATFORM_WINDOWS) 
+        #if defined(_MSC_VER) || defined(EA_PLATFORM_WINDOWS) || defined(EA_PLATFORM_XBOX) || defined(EA_PLATFORM_XENON)
             #define EA_DIRECTORY_CURRENT_8    ".\\"
             #define EA_DIRECTORY_CURRENT_16  L".\\"
 
@@ -335,7 +337,7 @@ namespace EA
         ///
         /// Defines if the file system is case sensitive or case insensitive.
         ///
-        #if defined(EA_PLATFORM_UNIX) 
+        #if defined(EA_PLATFORM_UNIX) || defined(EA_PLATFORM_PS3)
             const bool kFileSystemCaseSensitive = true;
 
             #ifndef EA_FILE_SYSTEM_CASE_SENSITIVE
@@ -371,7 +373,7 @@ namespace EA
         // to work with directories and makes the specification of what a directory 
         // path is be more concise.
         //
-        #if defined(_MSC_VER) || defined(EA_PLATFORM_WINDOWS) 
+        #if defined(_MSC_VER) || defined(EA_PLATFORM_WINDOWS) || defined(EA_PLATFORM_XBOX) || defined(EA_PLATFORM_XENON)
             #define                EA_FILE_PATH_SEPARATOR_TYPE_WINDOWS    1
             #define                EA_FILE_PATH_SEPARATOR_8               '\\'
             #define                EA_FILE_PATH_SEPARATOR_STRING_8        "\\"
@@ -415,6 +417,65 @@ namespace EA
 
             inline bool IsFilePathSeparator(int c)
                 { return ((c == (int)kFilePathSeparator8) || (c == (int)kFilePathSeparatorAlt8)) || (c == (int)kFilePathDriveSeparator8); }
+
+        #elif defined(EA_PLATFORM_PS3) 
+            #define                EA_FILE_PATH_SEPARATOR_TYPE_UNIX       1
+            #define                EA_FILE_PATH_SEPARATOR_8               '/'
+            #define                EA_FILE_PATH_SEPARATOR_STRING_8        "/"
+            #define                EA_FILE_PATH_SEPARATOR_ALT_8           '/'
+            #define                EA_FILE_PATH_SEPARATOR_STRING_ALT_8    "/"
+            #define                EA_FILE_PATH_DRIVE_SEPARATOR_8         '\0'
+            #define                EA_FILE_PATH_DRIVE_SEPARATOR_STRING_8  "\0"
+
+            #define                EA_FILE_PATH_SEPARATOR_16              L'/'
+            #define                EA_FILE_PATH_SEPARATOR_STRING_16       L"/"
+            #define                EA_FILE_PATH_SEPARATOR_ALT_16          L'/'
+            #define                EA_FILE_PATH_SEPARATOR_STRING_ALT_16   L"/"
+            #define                EA_FILE_PATH_DRIVE_SEPARATOR_16        L'\0'
+            #define                EA_FILE_PATH_DRIVE_SEPARATOR_STRING_16 L"\0"
+
+            // The following const-based definitions are generally less desirable, due to the 
+            // way compilers work. We may want to deprecate them in favor of the above macros.
+            const char             kFilePathSeparator8               = '/';
+            const char*      const kFilePathSeparatorString8         = "/";
+            const char             kFilePathSeparatorAlt8            = '/';
+            const char*      const kFilePathSeparatorAltString8      = "/";
+            const char             kFilePathDriveSeparator8          = '\0'; 
+            const char*      const kFilePathDriveSeparatorString8    = "\0";
+
+            #if (EA_WCHAR_SIZE == 2) // If we can use the L string prefix for 16 bit strings..
+            const char16_t         kFilePathSeparator16              = '/';
+            const char16_t*  const kFilePathSeparatorString16        = L"/";
+            const char16_t         kFilePathSeparatorAlt16           = '/';
+            const char16_t*  const kFilePathSeparatorAltString16     = L"/";
+            const char16_t         kFilePathDriveSeparator16         = '\0';
+            const char16_t*  const kFilePathDriveSeparatorString16   = L"\0";
+            #else
+            const char16_t         kFilePathSeparator16              = '/';
+            const char16_t         kFilePathSeparatorString16[]      = { '/', 0 };
+            const char16_t         kFilePathSeparatorAlt16           = '/';
+            const char16_t*  const kFilePathSeparatorAltString16     = kFilePathSeparatorString16;
+            const char16_t         kFilePathDriveSeparator16         = '\0';
+            const char16_t         kFilePathDriveSeparatorString16[] = { 0 };
+            #endif
+
+            #if defined(EA_PLATFORM_PS3)
+            const int              kMaxPathLength                    = 1024; 
+            #else
+            const int              kMaxPathLength                    = 256; 
+            #endif
+            const int              kMaxDriveLength                   =   8; 
+            const int              kMaxDirectoryLength               = 255; 
+            const int              kMaxFileNameLength                = 255; 
+            const int              kMaxDirectoryNameLength           = 255; 
+            const int              kMaxExtensionLength               = 255;
+
+            const int              kMaxVolumeNameLength              = 255;  
+            const int              kMaxVolumeSerialNumberLength      = 255;  
+
+            inline bool IsFilePathSeparator(int c)
+                { return (c == (int)kFilePathSeparator8); }
+
 
         #else // defined(EA_PLATFORM_UNIX) // Includes Linux, BSD, AIX, Solaris.
             #define                EA_FILE_PATH_SEPARATOR_TYPE_UNIX       1

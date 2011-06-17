@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -53,6 +53,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <EAAssert/eaassert.h>
 #include "JavascriptCore/kjs/interpreter.h"
 
+#include <EAWebKit/internal/EAWebKitDomainFilter.h>
+
 #if USE(DIRTYSDK)
 
 #include "protossl.h"
@@ -75,6 +77,9 @@ namespace WebKit
   
 //////Time related  stuff
 EAWebKitTimerCallback gTimerCallback = NULL;
+
+// User supplied stack base callback
+EAWebKitStackBaseCallback gStackBaseCallback = NULL;
 
 // Temporary assertion while we figure out the best way to define cursor ids.
 // See the definition of EA::WebKit::CursorId for a discussion of this.
@@ -153,71 +158,6 @@ EAWEBKIT_API Allocator* GetAllocator()
 	return gpAllocator;
 }
 
-///////////////////////////////////////////////////////////////////////
-// Parameter
-///////////////////////////////////////////////////////////////////////
-  
-// Default param constructor.
-Parameters::Parameters()
-		: mLogChannelFlags(kLogChannelNotYetImplemented | kLogChannelPopupBlocking | kLogChannelEvents),
-		mpLocale(NULL),
-		mpApplicationName(NULL),
-		mpUserAgent(NULL),
-		mMaxTransportJobs(32),
-		mTransportPollTimeSeconds(0.05),
-		mPageTimeoutSeconds(kPageTimeoutDefault),
-		mbVerifyPeers(true),
-		mbDrawIntermediatePages(true),
-		mCaretBlinkSeconds(1.f),
-		mCheckboxSize(kCheckboxSizeDefault),
-		//mColors,
-		mSystemFontDescription(),
-		//mFontFamilyStandard,
-		//mFontFamilySerif,
-		//mFontFamilySansSerif,
-		//mFontFamilyMonospace,
-		//mFontFamilyCursive,
-		//mFontFamilyFantasy,
-		mDefaultFontSize(16),
-		mDefaultMonospaceFontSize(13),
-		mMinimumFontSize(1),
-		mMinimumLogicalFontSize(8),
-		mJavaScriptEnabled(true),
-		mJavaScriptCanOpenWindows(true),
-		mPluginsEnabled(true),
-		mPrivateBrowsing(false),
-		mTabsToLinks(true),
-		mFontSmoothingEnabled(false),
-		mHistoryItemLimit(100),
-		mHistoryAgeLimit(7),
-		mbEnableFileTransport(true),
-		mbEnableDirtySDKTransport(true),
-		mbEnableCurlTransport(true),
-		mbEnableUTFTransport(true),
-		mbEnableImageCompression(false),
-		mJavaScriptStackSize(128 * 1024), //128 KB
-        mEnableSmoothText(false), 
-        mbEnableImageAdditiveAlphaBlending(false),
-		mbEnableProfiling(false),
-        mbEnableGammaCorrection(true),
-#if defined(_DEBUG)
-		mbEnableJavaScriptDebugOutput(true),
-#else
-		mbEnableJavaScriptDebugOutput(false),
-#endif
-		mFireTimerRate(kFireTimerRate30Hz)
-	{
-		mColors[kColorActiveSelectionBack]         .setRGB(0xff3875d7);
-		mColors[kColorActiveSelectionFore]         .setRGB(0xffd4d4d4);
-		mColors[kColorInactiveSelectionBack]       .setRGB(0xff3875d7);
-		mColors[kColorInactiveSelectionFore]       .setRGB(0xffd4d4d4);
-		mColors[kColorActiveListBoxSelectionBack]  .setRGB(0xff3875d7);
-		mColors[kColorActiveListBoxSelectionFore]  .setRGB(0xffd4d4d4);
-		mColors[kColorInactiveListBoxSelectionBack].setRGB(0xff3875d7);
-		mColors[kColorInactiveListBoxSelectionFore].setRGB(0xffd4d4d4);
-		mFontFamilyStandard[0] = mFontFamilySerif[0] = mFontFamilySansSerif[0] = 0;
-		mFontFamilyMonospace[0] = mFontFamilyCursive[0] = mFontFamilyFantasy[0] = 0;
-	}
 
 ///////////////////////////////////////////////////////////////////////
 // Font / Text
@@ -241,7 +181,7 @@ EAWEBKIT_API void SetGlyphCache(EA::Internal::IGlyphCache* pGlyphCache)
 EAWEBKIT_API EA::Internal::IGlyphCache* CreateGlyphCacheWrapperInterface(void* pGlyphCache)
 {
     EAW_ASSERT(pGlyphCache);
-    EA::TextWrapper::GlyphCacheProxy* pProxy = WTF::fastNew<EA::TextWrapper::GlyphCacheProxy, void*>(pGlyphCache); 
+	EA::TextWrapper::GlyphCacheProxy* pProxy = EAWEBKIT_NEW("GlyphCacheProxy")EA::TextWrapper::GlyphCacheProxy(pGlyphCache);//WTF::fastNew<EA::TextWrapper::GlyphCacheProxy, void*>(pGlyphCache); 
     EAW_ASSERT(pProxy);
     SetGlyphCache(pProxy);
     return pProxy;  
@@ -249,7 +189,7 @@ EAWEBKIT_API EA::Internal::IGlyphCache* CreateGlyphCacheWrapperInterface(void* p
 
 EAWEBKIT_API void DestroyGlyphCacheWrapperInterface(EA::Internal::IGlyphCache* pGlyphCacheInterface)
 {
-    WTF::fastDelete<EA::Internal::IGlyphCache>(pGlyphCacheInterface);
+    EAWEBKIT_DELETE pGlyphCacheInterface;//WTF::fastDelete<EA::Internal::IGlyphCache>(pGlyphCacheInterface);
 }
 
 EA::Internal::IFontServer* gpFontServer = NULL;
@@ -269,7 +209,7 @@ EAWEBKIT_API EA::Internal::IFontServer* GetFontServer()
 EAWEBKIT_API EA::Internal::IFontServer* CreateFontServerWrapperInterface(void* pFontServer)
 {
     EAW_ASSERT(pFontServer);
-    EA::TextWrapper::FontServerProxy* pProxy = WTF::fastNew<EA::TextWrapper::FontServerProxy, void*>(pFontServer); 
+	EA::TextWrapper::FontServerProxy* pProxy = EAWEBKIT_NEW("FontServerProxy") EA::TextWrapper::FontServerProxy(pFontServer);//WTF::fastNew<EA::TextWrapper::FontServerProxy, void*>(pFontServer); 
     EAW_ASSERT(pProxy);
     SetFontServer(pProxy);
     return pProxy;
@@ -277,7 +217,7 @@ EAWEBKIT_API EA::Internal::IFontServer* CreateFontServerWrapperInterface(void* p
 
 EAWEBKIT_API void DestroyFontServerWrapperInterface(EA::Internal::IFontServer* pFontServerInterface)
 {
-    WTF::fastDelete<EA::Internal::IFontServer>(pFontServerInterface);
+    EAWEBKIT_DELETE pFontServerInterface; //WTF::fastDelete<EA::Internal::IFontServer>(pFontServerInterface);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -305,9 +245,6 @@ EAWEBKIT_API void SetRAMCacheUsage(const EA::WebKit::RAMCacheInfo& ramCacheInfo)
 
 EAWEBKIT_API bool SetDiskCacheUsage(const EA::WebKit::DiskCacheInfo& diskCacheInfo)
 {
-	EAW_ASSERT_MSG(false, "The disk cache usage system has bugs that can slowdown the application. Disabling it for now");
-	return false;
-
 	//Set params for the disk cache
 	WebCore::ResourceHandleManager* pRHM = WebCore::ResourceHandleManager::sharedInstance();
 	EAW_ASSERT(pRHM);
@@ -316,8 +253,11 @@ EAWEBKIT_API bool SetDiskCacheUsage(const EA::WebKit::DiskCacheInfo& diskCacheIn
 		return false;
 	
 	pRHM->SetCacheDirectory(diskCacheInfo.mCacheDiskDirectory);
-	pRHM->SetMaxCacheSize(diskCacheInfo.mDiskCacheSize);
-	//Disable the cache if the size passed is 0.
+    pRHM->SetMaxCacheSize(diskCacheInfo.mDiskCacheSize);
+    pRHM->SetMaxNumberOfCachedFiles(diskCacheInfo.mMaxNumberOfCachedFiles);
+    pRHM->SetMaxNumberOfOpenFiles(diskCacheInfo.mMaxNumberOfOpenFiles);
+    pRHM->SetMinFileSizeToCache(diskCacheInfo.mMinFileSizeToCache);
+    //Disable the cache if the size passed is 0.
 	if(diskCacheInfo.mDiskCacheSize)
 		return pRHM->UseFileCache(true);
 	else
@@ -483,10 +423,96 @@ EAWEBKIT_API void SetHighResolutionTimer(EAWebKitTimerCallback timer)
 	gTimerCallback = timer;
 }
 
+EAWEBKIT_API void SetStackBaseCallback(EAWebKitStackBaseCallback callback)
+{
+	gStackBaseCallback = callback;
+}
 
+
+
+// This is just for debug to dump loaded files to a dir
+EAWEBKIT_API void SetDebugFileDumpStatus(const bool enabled)
+{
+#if EAWEBKIT_DUMP_TRANSPORT_FILES 
+
+    WebCore::ResourceHandleManager* pRHM = WebCore::ResourceHandleManager::sharedInstance();
+    EAW_ASSERT(pRHM);
+
+    pRHM->setDebugWriteFileStatus(enabled);
+#else
+    EAW_ASSERT_MSG( (!enabled), "EAWEBKIT_DUMP_TRANSPORT_FILES is not defined so inactive");
+#endif
+
+}
+
+//////////////////////////////////////////////////////////////////////
+// Parameter
 ///////////////////////////////////////////////////////////////////////
-// Parameters 
-///////////////////////////////////////////////////////////////////////
+
+// Default param constructor.
+Parameters::Parameters()
+:	mLogChannelFlags(kLogChannelNotYetImplemented | kLogChannelPopupBlocking | kLogChannelEvents),
+	mpLocale(NULL),
+	mpApplicationName(NULL),
+	mpUserAgent(NULL),
+	mMaxTransportJobs(32),
+	mTransportPollTimeSeconds(0.05),
+	mPageTimeoutSeconds(kPageTimeoutDefault),
+	mbEnableHttpPipelining(false),
+	mbVerifyPeers(true),
+	mbDrawIntermediatePages(true),
+	mCaretBlinkSeconds(1.f),
+	mCheckboxSize(kCheckboxSizeDefault),
+	//mColors,
+	mSystemFontDescription(),
+	//mFontFamilyStandard,
+	//mFontFamilySerif,
+	//mFontFamilySansSerif,
+	//mFontFamilyMonospace,
+	//mFontFamilyCursive,
+	//mFontFamilyFantasy,
+	mDefaultFontSize(16),
+	mDefaultMonospaceFontSize(13),
+	mMinimumFontSize(1),
+	mMinimumLogicalFontSize(8),
+	mJavaScriptEnabled(true),
+	mJavaScriptCanOpenWindows(true),
+	mPluginsEnabled(true),
+	mPrivateBrowsing(false),
+	mTabsToLinks(true),
+	mFontSmoothingEnabled(false),
+	mHistoryItemLimit(100),
+	mHistoryAgeLimit(7),
+	mbEnableFileTransport(true),
+	mbEnableDirtySDKTransport(true),
+	mbEnableCurlTransport(true),
+	mbEnableUTFTransport(true),
+	mbEnableImageCompression(false),
+	mJavaScriptStackSize(128 * 1024), //128 KB
+	mEnableSmoothText(false), 
+	mbEnableImageAdditiveAlphaBlending(false),
+	mbEnableProfiling(false),
+	mbEnableGammaCorrection(true),
+	#if defined(_DEBUG)
+	mbEnableJavaScriptDebugOutput(true),
+	#else
+	mbEnableJavaScriptDebugOutput(false),
+	#endif
+	
+	mFireTimerRate(kFireTimerRate60Hz)
+	{
+		mColors[kColorActiveSelectionBack]         .setRGB(0xff3875d7);
+		mColors[kColorActiveSelectionFore]         .setRGB(0xffd4d4d4);
+		mColors[kColorInactiveSelectionBack]       .setRGB(0xff3875d7);
+		mColors[kColorInactiveSelectionFore]       .setRGB(0xffd4d4d4);
+		mColors[kColorActiveListBoxSelectionBack]  .setRGB(0xff3875d7);
+		mColors[kColorActiveListBoxSelectionFore]  .setRGB(0xffd4d4d4);
+		mColors[kColorInactiveListBoxSelectionBack].setRGB(0xff3875d7);
+		mColors[kColorInactiveListBoxSelectionFore].setRGB(0xffd4d4d4);
+		mFontFamilyStandard[0] = mFontFamilySerif[0] = mFontFamilySansSerif[0] = 0;
+		mFontFamilyMonospace[0] = mFontFamilyCursive[0] = mFontFamilyFantasy[0] = 0;
+	}
+
 
 
 struct ParametersEx : public Parameters
@@ -538,8 +564,6 @@ EAWEBKIT_API void SetParameters(const Parameters& parameters)
         sParametersEx().msUserAgent = parameters.mpUserAgent;
     else
         sParametersEx().msUserAgent.clear();
-
-	sParametersEx().msUserAgent.append_sprintf(" EAWebKit/%s",EAWEBKIT_VERSION); 
     sParametersEx().mpUserAgent = sParametersEx().msUserAgent.c_str();
 
     sParametersEx().mCaretBlinkSeconds = parameters.mCaretBlinkSeconds;
@@ -607,6 +631,9 @@ EAWEBKIT_API void SetParameters(const Parameters& parameters)
 	KJS::Interpreter::setShouldPrintExceptions(parameters.mbEnableJavaScriptDebugOutput);
 
     OWBAL::setFireTimerRate(parameters.mFireTimerRate);
+
+    // Deprecated: This is to be removed in an upcoming version after 1.12.00 or later
+    EAW_ASSERT_MSG(!parameters.mbEnableImageAdditiveAlphaBlending, "DEPRECATED: mbEnableImageAdditiveAlphaBlending no longer needs to be set");
 }
 
 
@@ -615,7 +642,17 @@ EAWEBKIT_API Parameters& GetParameters()
     return sParametersEx();
 }
 
+EAWEBKIT_API void AddAllowedDomainInfo(const char8_t* allowedDomain, const char8_t* excludedPaths /* = 0 */)
+{
+	EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+	EAWebKitDomainFilter::GetInstance().AddAllowedDomainInfo(allowedDomain, excludedPaths);
+}
 
+EAWEBKIT_API bool CanNavigateToURL(const char8_t* pURL)
+{
+	EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+	return EAWebKitDomainFilter::GetInstance().CanNavigateToURL(pURL);
+}
 
 ///////////////////////////////////////////////////////////////////////
 // EAWebKit Init / Shutdown
@@ -647,8 +684,7 @@ EAWEBKIT_API bool Init(Allocator* pAllocator)
     // DeepSee is the macro-based trace system that the OWB people made. It is similar to EAAssert and EATrace.
     DS_INIT_DEEPSEE_FRAMEWORK();
 
-	//Note by Arpit Baldeva: Set default parameters in case the user does not call SetParameters
-	SetParameters(sParametersEx());	
+		
     
 	SetWebKitStatus(kWebKitStatusActive);
     return true;
@@ -681,28 +717,28 @@ EAWEBKIT_API const char16_t* GetCharacters(const EASTLFixedString16Wrapper& str)
 {
 	EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
 
-	return GET_FIXEDSTRING16(str)->c_str();
+	return GetFixedString(str)->c_str();
 }
 
 EAWEBKIT_API void SetCharacters(const char16_t* chars, EASTLFixedString16Wrapper& str)
 {
 	EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
 
-	GET_FIXEDSTRING16(str)->assign(chars);
+	GetFixedString(str)->assign(chars);
 }
 
 EAWEBKIT_API const char8_t* GetCharacters(const EASTLFixedString8Wrapper& str)
 {
 	EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
 
-	return GET_FIXEDSTRING8(str)->c_str();
+	return GetFixedString(str)->c_str();
 }
 
 EAWEBKIT_API void SetCharacters(const char8_t* chars, EASTLFixedString8Wrapper& str)
 {
 	EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
 
-	GET_FIXEDSTRING8(str)->assign(chars);
+	GetFixedString(str)->assign(chars);
 }
 ///////////////////////////////////////////////////////////////////////
 // EAWebKit Build Version 
@@ -715,6 +751,7 @@ EAWEBKIT_API const char* GetVersion()
 
 EAWEBKIT_API void SetPlatformSocketAPI(EA::WebKit::PlatformSocketAPI& platformSocketAPI)
 {
+#if USE(DIRTYSDK)
 	PlatformSocketAPICallbacks* socketCallbacks = GetPlatformSocketAPICallbacksInstance();
 	if(socketCallbacks)
 	{
@@ -738,6 +775,7 @@ EAWEBKIT_API void SetPlatformSocketAPI(EA::WebKit::PlatformSocketAPI& platformSo
 		socketCallbacks->poll			=  platformSocketAPI.poll;
 		socketCallbacks->getlasterror	=  platformSocketAPI.getlasterror;
 	}
+#endif
 }
 
 
@@ -753,12 +791,12 @@ namespace EA
 	{
 		EAWEBKIT_API EA::Raster::Surface* CreateSurface(int width, int height, EA::Raster::PixelFormatType pft)
 		{
-			return WTF::fastNew<EA::Raster::Surface, int, int, EA::Raster::PixelFormatType>(width, height, pft);
+			return EAWEBKIT_NEW("Surface") EA::Raster::Surface(width, height, pft);//WTF::fastNew<EA::Raster::Surface, int, int, EA::Raster::PixelFormatType>(width, height, pft);
 		}
 
 		EAWEBKIT_API void DestroySurface(EA::Raster::Surface* pSurface) 
 		{
-			WTF::fastDelete<EA::Raster::Surface>(pSurface);
+			EAWEBKIT_DELETE pSurface;//WTF::fastDelete<EA::Raster::Surface>(pSurface);
 		}
 
 		EAWEBKIT_API bool WritePPMFile(const char* pPath, EA::Raster::Surface* pSurface, bool bAlphaOnly)
@@ -784,8 +822,8 @@ namespace EA
 		
 			//Remove existing cookies from the transport headers
 			EA::WebKit::HeaderMap::iterator it;
-			while((it = GET_HEADERMAP(pTInfo->mHeaderMapOut)->find_as(L"Cookie", EA::WebKit::str_iless())) != GET_HEADERMAP(pTInfo->mHeaderMapOut)->end())
-				GET_HEADERMAP(pTInfo->mHeaderMapOut)->erase(it);
+			while((it = GetHeaderMap(pTInfo->mHeaderMapOut)->find_as(L"Cookie", EA::WebKit::str_iless())) != GetHeaderMap(pTInfo->mHeaderMapOut)->end())
+				GetHeaderMap(pTInfo->mHeaderMapOut)->erase(it);
 			
 			//Attach new cookies
 			WebCore::ResourceHandleManager* pRHM = WebCore::ResourceHandleManager::sharedInstance();
@@ -869,42 +907,6 @@ namespace EA
 			return &EA::WebKit::gCoreAllocatorWebkitImplementation;
 		}
 	}
-}
-
-//EASTL requires us to define following overloaded operators. Although it requires us to define only the first two array new operators,
-//defining the rest seem to be safer.
-void* operator new[](size_t size, const char* name, int flags, 
-					 unsigned debugFlags, const char* file, int line)
-{
-	(void)name; (void)flags; (void)debugFlags; (void)file; (void)line;
-	return EA::WebKit::GetAllocator()->Malloc(size, flags, "global new[] 1");
-}
-
-void operator delete[](void *p, const char* /*name*/, int /*flags*/, unsigned /*debugFlags*/, const char* /*file*/, int /*line*/)
-{
-	EA::WebKit::GetAllocator()->Free(p,0);
-}
-
-void* operator new[](size_t size, size_t alignment, size_t alignmentOffset, const char* name, 
-					 int flags, unsigned debugFlags, const char* file, int line)
-{
-	(void)name; (void)flags; (void)debugFlags; (void)file; (void)line;
-	return EA::WebKit::GetAllocator()->MallocAligned(size, alignment, alignmentOffset, flags,"global new[] aligned");
-}
-
-void operator delete[](void *p, size_t /*alignment*/, size_t /*alignmentOffset*/, const char* /*name*/, int /*flags*/, unsigned /*debugFlags*/, const char* /*file*/, int /*line*/)
-{
-	EA::WebKit::GetAllocator()->Free(p,0);
-}
-
-void* operator new[](size_t size)
-{
-	return EA::WebKit::GetAllocator()->Malloc(size, 0, "global new[] 2");
-}
-
-void operator delete[](void *p)
-{
-	EA::WebKit::GetAllocator()->Free(p,0);
 }
 
 
@@ -1091,6 +1093,18 @@ namespace EA
 			EA::WebKit::SetHighResolutionTimer(timer);
 		}
 
+		void EAWebkitConcrete::SetStackBaseCallback(EAWebKitStackBaseCallback callback)
+		{
+			EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+
+			EA::WebKit::SetStackBaseCallback(callback);
+		}
+
+        void EAWebkitConcrete::SetDebugFileDumpStatus(const bool enabled)
+        {
+            EA::WebKit::SetDebugFileDumpStatus(enabled);
+        }
+
 		void EAWebkitConcrete::SetParameters(const Parameters& parameters)
 		{
 			EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
@@ -1104,7 +1118,21 @@ namespace EA
 
 			return EA::WebKit::GetParameters();
 		}
+
+		void EAWebkitConcrete::AddAllowedDomainInfo(const char8_t* allowedDomain, const char8_t* excludedPaths /* = 0 */)
+		{
+			EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+			
+			EA::WebKit::AddAllowedDomainInfo(allowedDomain, excludedPaths);
+		}
 		
+		bool EAWebkitConcrete::CanNavigateToURL(const char8_t* url)
+		{
+			EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+			
+			return EA::WebKit::CanNavigateToURL(url);
+		}
+
 		void EAWebkitConcrete::SetFileSystem(FileSystem* pFileSystem)
 		{
 			EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
@@ -1235,7 +1263,7 @@ namespace EA
 			EAW_ASSERT(result > 0);
 			return result;
 #endif
-			//Arpit - Temp 
+			//Arpit - Temp hack to compile ps3/xenon build because they are not using DirtySDK yet
 
 			return -1;
 		}
@@ -1349,12 +1377,26 @@ namespace EA
 		{
 			EA::WebKit::SetPlatformSocketAPI(platformSocketAPI);
 		}
-	}
+	
+        EA::WebKit::JavascriptValue* EAWebkitConcrete::CreateJavaScriptValue()
+		{
+			EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+
+			return EA::WebKit::CreateJavaScriptValue();
+		}
+
+		void EAWebkitConcrete::DestroyJavaScriptValue(EA::WebKit::JavascriptValue* pValue)
+		{
+			EA::WebKit::DestroyJavaScriptValue(pValue);
+		}
+
+
+    }
 }
 
 
 
-#if (EAWEBKIT_WINDOWS_DLL)
+#if (EAWEBKIT_PS3_PRX || EAWEBKIT_XENON_DLL ||EAWEBKIT_WINDOWS_DLL)
 extern "C" EA::WebKit::IEAWebkit* CreateEAWebkitInstance(void)
 {
 	//Note by Arpit Baldeva: WTF::fastNew calls EAWebkit allocator under the hood. Since the first thing we do after loading the relocatable module is to 
@@ -1368,8 +1410,10 @@ extern "C" EA::WebKit::IEAWebkit* CreateEAWebkitInstance(void)
 	return &concreteInstance;
 }
 
-#if defined(_WIN32) || defined(_WIN64) //Windows 
+#if defined(_WIN32) || defined(_WIN64) //Windows or Xbox 360
 #include <EAWebKit/DLLInterface.h>
+#elif defined(__PPU__) //PS3
+#include <sys/DLLInterface.h>
 #endif
 
 extern "C" int EAWebKitDllStart(void)

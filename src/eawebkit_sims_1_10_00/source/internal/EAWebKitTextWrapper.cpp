@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -367,7 +367,7 @@ FontServerProxy::FontServerProxy(void* pServer)
     {
         // Create our own font server inside EAWebKit
     	mbOwnFontServer = true;
-		mpServer = WTF::fastNew<EA::Text::FontServer> ();
+		mpServer = EAWEBKIT_NEW("FontServer") EA::Text::FontServer();//WTF::fastNew<EA::Text::FontServer> ();
 		EA::Text::FontServer* pFontServer = reinterpret_cast<EA::Text::FontServer*>(mpServer);
 		EA::Text::SetFontServer(pFontServer);
        
@@ -461,7 +461,7 @@ FontServerProxy::~FontServerProxy()
 	{
 		// We need to remove the font server since it was created inside EAWebkit
         reinterpret_cast<EA::Text::FontServer*>(mpServer)->Shutdown();
-		WTF::fastDelete<EA::Text::FontServer>((reinterpret_cast<EA::Text::FontServer*>(mpServer)));
+		EAWEBKIT_DELETE (reinterpret_cast<EA::Text::FontServer*>(mpServer));//WTF::fastDelete<EA::Text::FontServer>((reinterpret_cast<EA::Text::FontServer*>(mpServer)));
         EA::WebKit::SetFontServer(0);   
         mbOwnFontServer = false;
     }
@@ -502,12 +502,19 @@ FontProxy* FontServerProxy::CreateFontProxyWrapper(void* pFont)
     return pFontProxy;
 }
 
+uint32_t FontServerProxy::AddFace(IO::IStream* pStream, EA::Internal::FontType fontType)
+{
+	EA::Text::FontServer* pServer = reinterpret_cast<EA::Text::FontServer*> (mpServer); 
+    return pServer->AddFace(pStream,(EA::Text::FontType) fontType);
+}
+
 
 uint32_t FontServerProxy::AddDirectory(const char16_t* pFaceDirectory, const char16_t* pFilter)
 {
 	EA::Text::FontServer* pServer = reinterpret_cast<EA::Text::FontServer*> (mpServer); 
 	return pServer->AddDirectory(pFaceDirectory, pFilter);
 }
+
 bool FontServerProxy::AddSubstitution(const char16_t* pFamily, const char16_t* pFamilySubstitution)
 {
 #if EATEXT_FAMILY_SUBSTITUTION_ENABLED
@@ -849,7 +856,7 @@ GlyphCacheProxy::GlyphCacheProxy(void* pGlypheCache)
         InitFontSystem();
 		
         mbOwnGlyphCache = true;
-		mpGlyphCache = WTF::fastNew<EA::Text::GlyphCache_Memory> (EA::Text::kTextureFormat8Bpp);
+		mpGlyphCache = EAWEBKIT_NEW("GlyphCache_Memory")EA::Text::GlyphCache_Memory(EA::Text::kTextureFormat8Bpp);//WTF::fastNew<EA::Text::GlyphCache_Memory> (EA::Text::kTextureFormat8Bpp);
 
         EA::Text::GlyphCache* pGlyphCache = reinterpret_cast<EA::Text::GlyphCache*>(mpGlyphCache);
 		pGlyphCache->SetAllocator(EA::Text::GetAllocator());
@@ -869,7 +876,7 @@ GlyphCacheProxy::~GlyphCacheProxy()
 	{
 		// We need to remove the GlypyCache since it was created inside EAWebKit.
         reinterpret_cast<EA::Text::GlyphCache*>(mpGlyphCache)->Shutdown();
-		WTF::fastDelete<EA::Text::GlyphCache>((reinterpret_cast<EA::Text::GlyphCache*>(mpGlyphCache)));
+		EAWEBKIT_DELETE reinterpret_cast<EA::Text::GlyphCache*>(mpGlyphCache);//WTF::fastDelete<EA::Text::GlyphCache>((reinterpret_cast<EA::Text::GlyphCache*>(mpGlyphCache)));
         mbOwnGlyphCache = false;
     }
   	spGlyphCacheWrapperInterface = NULL;

@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -366,30 +366,30 @@ extern "C" {
 //
 namespace WTF {
 
-    void* fastMalloc(size_t n) 
+    void* fastMalloc(size_t n, int flags, const char* pName) 
     {
-        void* p = EA::WebKit::GetAllocator()->Malloc(n, 0, "EAWebKit/WTF");
+        void* p = EA::WebKit::GetAllocator()->Malloc(n, flags, pName);
 #ifdef MALLOC_PURGE
         if((!p) && (n))
         {
             // 8/26/09 CSidhall - Added size check as some allocators might return NULL for a size 0.       
             // 7/9/09 CSidhall - We might be crashing here so do an emergency purge to try to free some mem 
             EA::WebKit::PurgeCache(true, true, true);
-            p = EA::WebKit::GetAllocator()->Malloc(n, 0, "EAWebKit/WTF");
+            p = EA::WebKit::GetAllocator()->Malloc(n, flags, pName);
         }
 #endif
         return p;
     }
 
-    void* fastMallocAligned(size_t n, size_t alignment) 
+    void* fastMallocAligned(size_t n, size_t alignment, size_t offset, int flags, const char* pName) 
     {
-        void* p= EA::WebKit::GetAllocator()->MallocAligned(n, alignment, 0, 0, "EAWebKit/WTF");
+        void* p= EA::WebKit::GetAllocator()->MallocAligned(n, alignment, offset, flags, pName);
 #ifdef MALLOC_PURGE
         if((!p) && (n))
         {
             // 7/9/09 CSidhall - We might be crashing here so do an emergency purge to try to free some mem 
             EA::WebKit::PurgeCache(true, true, true);
-            p= EA::WebKit::GetAllocator()->MallocAligned(n, alignment, 0, 0, "EAWebKit/WTF");
+            p= EA::WebKit::GetAllocator()->MallocAligned(n, alignment, offset, flags, pName);
         }
 #endif
         return p;
@@ -407,15 +407,15 @@ namespace WTF {
     //     return p;
     // }
 
-    void* fastCalloc(size_t count, size_t n)
+    void* fastCalloc(size_t count, size_t n, int flags, const char* pName)
     {
-        void* p = EA::WebKit::GetAllocator()->Malloc(count * n, 0, "EAWebKit/WTF");
+        void* p = EA::WebKit::GetAllocator()->Malloc(count * n, flags, pName);
 #ifdef MALLOC_PURGE      
         if((!p) && (n*count))
         {
             // 7/9/09 CSidhall - We might be crashing here so do an emergency purge to try to free some mem 
             EA::WebKit::PurgeCache(true, true, true);
-            p = EA::WebKit::GetAllocator()->Malloc(count * n, 0, "EAWebKit/WTF");
+            p = EA::WebKit::GetAllocator()->Malloc(count * n, flags, pName);
         }
 #endif
         if(p)
@@ -429,9 +429,9 @@ namespace WTF {
         return EA::WebKit::GetAllocator()->Free(p, 0);
     }
 
-    void* fastRealloc(void* p, size_t n)
+    void* fastRealloc(void* p, size_t n, int flags)
     {
-        return EA::WebKit::GetAllocator()->Realloc(p, n, 0);
+        return EA::WebKit::GetAllocator()->Realloc(p, n, flags);
     }
 
 } // namespace WTF
