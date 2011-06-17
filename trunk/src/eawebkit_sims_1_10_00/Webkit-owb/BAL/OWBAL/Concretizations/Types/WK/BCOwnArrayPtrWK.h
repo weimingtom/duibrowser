@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WTF_OwnArrayPtr_h
@@ -35,7 +35,8 @@ namespace WTF {
 
     template <typename T> class OwnArrayPtr : Noncopyable {
 public:
-        // Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
         void* operator new(size_t, void* p) { return p; }
         void* operator new[](size_t, void* p) { return p; }
 
@@ -64,7 +65,8 @@ public:
             fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
             fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
         }
-    public:
+#endif //NO_MACRO_NEW
+	public:
         explicit OwnArrayPtr(T* ptr = 0) : m_ptr(ptr) { }
         ~OwnArrayPtr() { safeDelete(); }
 
@@ -88,7 +90,7 @@ public:
         void swap(OwnArrayPtr& o) { std::swap(m_ptr, o.m_ptr); }
 
     private:
-        void safeDelete() { typedef char known[sizeof(T) ? 1 : -1]; if (sizeof(known)) WTF::fastDeleteArray<T>(m_ptr); }
+		void safeDelete() { typedef char known[sizeof(T) ? 1 : -1]; if (sizeof(known)) EAWEBKIT_DELETE[] m_ptr;}//WTF::fastDeleteArray<T>(m_ptr); }
 
         T* m_ptr;
     };

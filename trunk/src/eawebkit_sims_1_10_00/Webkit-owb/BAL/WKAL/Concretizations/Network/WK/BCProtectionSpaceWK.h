@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ProtectionSpace_h
@@ -55,7 +55,7 @@ enum ProtectionSpaceAuthenticationScheme {
   ProtectionSpaceAuthenticationSchemeNegotiate = 6,
 };
 
-class ProtectionSpace: public WTF::FastAllocBase {
+class ProtectionSpace/*: public WTF::FastAllocBase*/ {
 
 public:
     ProtectionSpace();

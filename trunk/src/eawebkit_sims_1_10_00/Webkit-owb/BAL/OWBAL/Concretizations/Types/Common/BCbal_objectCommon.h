@@ -53,7 +53,7 @@ enum BalType {
     GetterSetterType  = 7
 };
 
-class BalValue: public WTF::FastAllocBase {
+class BalValue/*: public WTF::FastAllocBase*/ {
     public:
         BalValue();
         BalValue(BalValuePrivate *priv);
@@ -86,7 +86,7 @@ class BalValue: public WTF::FastAllocBase {
 class BalClass;
 class BalMethod;
 
-class BalObject: public WTF::FastAllocBase
+class BalObject/*: public WTF::FastAllocBase*/
 {
 public:
     BalObject();
@@ -94,9 +94,9 @@ public:
     void invalidate();
     bool hasMethod(const char *name);
     virtual WebCore::String getName() { return ""; };
-    virtual BalValue *invoke(const char *name, Vector<BalValue *> args);
+    virtual BalValue *invoke(const char *name, Vector<BalValue *> args, KJS::ExecState* exec=0); // 3/25/10 CSidhall - Added passing exec. Fixes a binding return string alloc problem.
     bool hasProperty(const char *name);
-    virtual BalValue *getProperty(const char *name);
+    virtual BalValue *getProperty(const char *name, KJS::ExecState* exec=0); // 3/25/10 CSidhall - Added passing exec. Fixes a binding string alloc problem.
     virtual void setProperty( const char *name, BalValue *value);
     void addMethod(const char *);
     void removeMethod(const char *);

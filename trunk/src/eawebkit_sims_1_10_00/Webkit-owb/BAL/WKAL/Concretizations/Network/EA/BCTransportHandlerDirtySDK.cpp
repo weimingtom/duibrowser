@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -50,8 +50,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "TransportHandler.h"
 #include <EAWebKit/EAWebKitConfig.h>
+#include <EAWebKit/EAWebKitView.h>
 #include <EAAssert/eaassert.h>
-
 #if defined(WTF_USE_DIRTYSDK) && WTF_USE_DIRTYSDK
 //Note by Arpit Baldeva: Forward declare some functions from the DirtySDK here instead of including the
 //header file. This is because DirtySDK has a header named "platform.h" which conflicts with soo many
@@ -80,9 +80,12 @@ int32_t SocketDestroy(uint32_t uFlags);
 
 #define MULTICHAR_CONST(a,b,c,d) (a << 24 | b << 16 | c << 8 | d) 
 #define DIRTY_OPEN MULTICHAR_CONST('o','p','e','n')
+#define DIRTY_ESSL MULTICHAR_CONST('e','s','s','l')
+#define DIRTY_PIPE MULTICHAR_CONST('p','i','p','e')
+#define DIRTY_PIPE_WITHOUT_KEEP_ALIVE MULTICHAR_CONST('p','w','k','a')
+
 
 #ifndef BUILDING_EAWEBKIT_DLL
-extern EA::WebKit::IEAWebkit* gEAWebkitInstance;
 #include "netconn.h"
 #endif
 #include "StreamDecompressor.h"
@@ -218,7 +221,7 @@ namespace EA
 				s8.resize((eastl_size_t)destLen);
 		}
 		
-		static void WriteHeaderMapEntry(EA::TransportHelper::TransportString16& sKey, EA::TransportHelper::TransportString16& sValue, EA::TransportHelper::TransportHeaderMap& headerMap)
+		static void WriteHeaderMapEntry(EA::TransportHelper::TransportHeaderMap::key_type& sKey, EA::TransportHelper::TransportHeaderMap::mapped_type& sValue, EA::TransportHelper::TransportHeaderMap& headerMap)
 		{
 			while(!sKey.empty() && ((sKey.back() == ' ') || (sKey.back() == '\t')))
 				sKey.pop_back(); // Remove trailing whitespace.
@@ -243,7 +246,7 @@ namespace EA
 				const EA::TransportHelper::TransportHeaderMap::mapped_type& sKey   = it->first;
 				const EA::TransportHelper::TransportHeaderMap::mapped_type& sValue = it->second;
 
-				const uint32_t lineSize = (uint32_t)(sKey.length() + 2 + sValue.length() + 2);
+				const uint32_t lineSize = (uint32_t)(sKey.length() + 2 + sValue.length() + 2 + 1); //1 for the terminating 0 char
 
 				if(uHeaderCapacity > lineSize) // Use > instead of >= because we want to write a terminating 0 char.
 				{
@@ -260,7 +263,7 @@ namespace EA
 					*pHeader++ = '\n';
 					*pHeader   = 0;
 
-					uHeaderCapacity -= lineSize;
+					uHeaderCapacity -= lineSize; 
 				}
 			}
 		}
@@ -286,8 +289,8 @@ namespace EA
 			Mode               mode = kModeKey;
 			const char*        p    = pHeaderMapText;
 			const char*        pEnd = pHeaderMapText + textSize;
-			EA::TransportHelper::TransportString16      sKey;
-			EA::TransportHelper::TransportString16      sValue;
+			EA::TransportHelper::TransportHeaderMap::key_type		sKey;
+			EA::TransportHelper::TransportHeaderMap::mapped_type	sValue;
 			const eastl_size_t kMaxKeySize = 128;
 			const eastl_size_t kMaxValueSize = 2048;
 			bool               inErrorCondition = false;
@@ -425,6 +428,20 @@ namespace EAWEBKIT_PACKAGE_NAMESPACE
 	}
 #endif
 
+	TransportHandlerDirtySDK::DirtySDKInfo::DirtySDKInfo():
+		mHttpHandle(0), 
+		mURI(), 
+		mbHeadersReceived(false), 
+		mSendIndex(0), 
+		mPostData(), 
+		mbPostActive(false), 
+		mPostBufferSize(0), 
+		mPostBufferPosition(0), 
+		mStreamDecompressor(0) 
+		{ 
+
+		}
+
 	TransportHandlerDirtySDK::DirtySDKInfo::~DirtySDKInfo()
 	{
 #if ENABLE_PAYLOAD_DECOMPRESSION
@@ -438,22 +455,20 @@ namespace EAWEBKIT_PACKAGE_NAMESPACE
 #endif
 	}
 TransportHandlerDirtySDK::TransportHandlerDirtySDK()
+:
+mpHttpManager(NULL),
+#ifdef EA_DEBUG
+mJobCount(0),
+#endif
+mIsDirtySockStartedHere(false)
 {
-    #ifdef EA_DEBUG
-        mJobCount = 0;
-    #endif
-    #if USE_HTTPMANAGER
-        mpHttpManager = NULL;
-    #endif
-	
-	mIsDirtySockStartedHere = false;
 
 }
 
 
 TransportHandlerDirtySDK::~TransportHandlerDirtySDK()
 {
-    TransportHandlerDirtySDK::Shutdown(NULL); // Just in case it somehow was missed.
+    Shutdown(NULL); // Just in case it somehow was missed.
 
     #ifdef EA_DEBUG
         EAW_ASSERT(mJobCount == 0); // If this fails then the TransportServer is leaking jobs.
@@ -475,9 +490,8 @@ bool TransportHandlerDirtySDK::Init(const char16_t* /*pScheme*/)
 	}
 #endif
 	
-    #if USE_HTTPMANAGER
     //$$note -- called twice with the same transport handler
-    if (mpHttpManager == NULL)
+    if (!mpHttpManager)
     {
         mpHttpManager = HttpManagerCreate(4096, 16);
         // set callback function pointers
@@ -488,12 +502,16 @@ bool TransportHandlerDirtySDK::Init(const char16_t* /*pScheme*/)
 #endif
 		// set the redirection limit to a higher value
         HttpManagerControl(mpHttpManager, -1, 0x726d6178 /*'rmax'*/, 10, 0, NULL); 
+		
+		//Set timeout for DirtySDK based on the page timeout of EAWebKit params
+		EA::WebKit::Parameters& params = ACCESS_EAWEBKIT_API(GetParameters());
+		HttpManagerControl(mpHttpManager, -1, 0x74696d65 /*'time'*/, (int32_t)(params.mPageTimeoutSeconds * 1000.0), 0, NULL);
+
         // set debug level
         #if defined(EA_DEBUG) || defined(_DEBUG)
         HttpManagerControl(mpHttpManager, -1, 0x7370616d /*'spam'*/, 1, 0, NULL); 
         #endif
     }
-    #endif // USE_HTTPMANAGER
 
 
     return true;
@@ -502,14 +520,12 @@ bool TransportHandlerDirtySDK::Init(const char16_t* /*pScheme*/)
 
 bool TransportHandlerDirtySDK::Shutdown(const char16_t* /*pScheme*/)
 {
-	#if USE_HTTPMANAGER
     //$$note -- called twice with the same transport handler
-    if (mpHttpManager != NULL)
+    if (mpHttpManager)
     {
         HttpManagerDestroy(mpHttpManager);
         mpHttpManager = NULL;
     }
-    #endif
 
 #ifdef BUILDING_EAWEBKIT_DLL
 	SocketDestroy(0);
@@ -529,35 +545,23 @@ bool TransportHandlerDirtySDK::InitJob(EA::WebKit::TransportInfo* pTInfo, bool& 
 {
 	EA::WebKit::Allocator* pAllocator = ACCESS_EAWEBKIT_API(GetAllocator());
     DirtySDKInfo* pDirtySDKInfo = new(pAllocator->Malloc(sizeof(DirtySDKInfo), 0, "EAWebKit/TransportHandlerDirtySDK")) DirtySDKInfo; 
-	
 	pTInfo->mTransportHandlerData = (uintptr_t)pDirtySDKInfo;
 
-    #if USE_HTTPMANAGER
     // allocate an HTTP transfer handle
     pDirtySDKInfo->mHttpHandle = HttpManagerAlloc(mpHttpManager);
-    #else
-    // Create the HTTP transfer object.
-    pDirtySDKInfo->mpProtoHttp = ProtoHttpCreate(4096);
-    #endif
 
-    #if USE_HTTPMANAGER
     if (pDirtySDKInfo->mHttpHandle == 0)
-    #else
-    if(!pDirtySDKInfo->mpProtoHttp)
-    #endif
     {
         EAW_ASSERT_MSG(false,"TransportHandlerDirtySDK: ProtoHttpCreate failed.\n");
         return false;
     }
 
-    #if USE_HTTPMANAGER
     // disable certificate validation if set to do so. An application normally doesn't want to do this, but it's useful for debugging.
     if(!pTInfo->mbVerifyPeers)
         HttpManagerControl(mpHttpManager, pDirtySDKInfo->mHttpHandle, 0x6e637274 /*'ncrt'*/, 1, 0, NULL); 
    
 	// set client timeout
-    HttpManagerControl(mpHttpManager, pDirtySDKInfo->mHttpHandle, 0x74696d65 /*'time'*/, (int32_t)(pTInfo->mTimeoutInterval * 1000.0), 0, NULL);
-    #endif
+    //HttpManagerControl(mpHttpManager, pDirtySDKInfo->mHttpHandle, 0x74696d65 /*'time'*/, (int32_t)(pTInfo->mTimeoutInterval * 1000.0), 0, NULL);
 
     // Copy the 16 bit URI to our 8 bit version. No encoding translations are done.
 	
@@ -575,7 +579,15 @@ bool TransportHandlerDirtySDK::InitJob(EA::WebKit::TransportInfo* pTInfo, bool& 
     // By default WebKit doesn't create this header, nor does DirtySDK, 
     // yet some web servers are non-conforming and require it.
 	if(!ACCESS_EAWEBKIT_API(GetHeaderMapValue(pTInfo->mHeaderMapOut,L"Accept-Encoding")))
+	{
+#if ENABLE_PAYLOAD_DECOMPRESSION
+		//Note by Arpit Baldeva: put deflate first as it has a lower overhead compared to gzip. Since we support both raw DEFLATE stream and zlib wrapped DEFLATE stream transparently,
+		//we end up with lower overhead.
+		ACCESS_EAWEBKIT_API(SetHeaderMapValue(pTInfo->mHeaderMapOut,L"Accept-Encoding", L"deflate,gzip,identity"));
+#else
 		ACCESS_EAWEBKIT_API(SetHeaderMapValue(pTInfo->mHeaderMapOut,L"Accept-Encoding", L"identity"));
+#endif
+	}
 	
 	pDirtySDKInfo->mbHeadersReceived = false;
 
@@ -595,17 +607,11 @@ bool TransportHandlerDirtySDK::ShutdownJob(EA::WebKit::TransportInfo* pTInfo, bo
         DirtySDKInfo*          pDirtySDKInfo  = (DirtySDKInfo*)pTInfo->mTransportHandlerData;
         EA::WebKit::Allocator* pAllocator     = ACCESS_EAWEBKIT_API(GetAllocator());
 
-        #if USE_HTTPMANAGER
         if(pDirtySDKInfo->mHttpHandle != 0)
             HttpManagerFree(mpHttpManager, pDirtySDKInfo->mHttpHandle);
-        #else
-        if(pDirtySDKInfo->mpProtoHttp)
-            ProtoHttpDestroy(pDirtySDKInfo->mpProtoHttp);
-        #endif
 
         pDirtySDKInfo->~DirtySDKInfo();
         pAllocator->Free(pDirtySDKInfo, sizeof(DirtySDKInfo));
-
         pTInfo->mTransportHandlerData = 0;
 
         #ifdef EA_DEBUG
@@ -627,42 +633,13 @@ bool TransportHandlerDirtySDK::Connect(EA::WebKit::TransportInfo* pTInfo, bool& 
 
     DirtySDKInfo* pDirtySDKInfo = (DirtySDKInfo*)pTInfo->mTransportHandlerData;
 
-    #if USE_HTTPMANAGER
     // set callback user info
     HttpManagerControl(mpHttpManager, pDirtySDKInfo->mHttpHandle, MULTICHAR_CONST('c','b','u','p'), 0, 0, (void *)pTInfo);
-    #else
-    // set timeout value
-    double timeoutRelative = pTInfo->mTimeoutInterval;
-    ProtoHttpControl(pDirtySDKInfo->mpProtoHttp, 0x74696d65 /*'time'*/, (int32_t)timeoutRelative * 1000, 0, NULL);
-
-    // Set the redirection limit to a higher value
-    ProtoHttpControl(pDirtySDKInfo->mpProtoHttp, 0x726d6178 /*'rmax'*/, 10, 0, NULL); 
-
-    // Set debug level
-    #if defined(EA_DEBUG) || defined(_DEBUG)
-        // ProtoHttpControl(pDirtySDKInfo->mpProtoHttp, 0x7370616d /*'spam'*/, 2, 0, NULL); 
-    #endif
-
-    // Disable certificate validation if set to do so. An application normally doesn't want to do this, but it's useful for debugging.
-    if(!pTInfo->mbVerifyPeers)
-        ProtoHttpControl(pDirtySDKInfo->mpProtoHttp, 0x6e637274 /*'ncrt'*/, 1, 0, NULL); 
-
-    // Set a callback to call so we can override the sent headers.
-    #if (DIRTYVERS >= 0x07010200)
-        ProtoHttpCallback2(pDirtySDKInfo->mpProtoHttp, &TransportHandlerDirtySDK::DirtySDKSendHeaderCallbackStatic, &TransportHandlerDirtySDK::DirtySDKRecvHeaderCallbackStatic, pTInfo);
-    #else
-        ProtoHttpCallback(pDirtySDKInfo->mpProtoHttp, &TransportHandlerDirtySDK::DirtySDKSendHeaderCallbackStatic, pTInfo);
-    #endif
-    #endif // USE_HTTPMANAGER
-
+   
     // Initiate the HTTP transfer.
     if(EA::TransportHelper::Stricmp(pTInfo->mMethod, "GET") == 0)
     {
-        #if USE_HTTPMANAGER
         iResult = HttpManagerGet(mpHttpManager, pDirtySDKInfo->mHttpHandle, pDirtySDKInfo->mURI.c_str(), PROTOHTTP_HEADBODY);
-        #else
-        iResult = ProtoHttpGet(pDirtySDKInfo->mpProtoHttp, pDirtySDKInfo->mURI.c_str(), PROTOHTTP_HEADBODY);
-        #endif
     }
     else if(EA::TransportHelper::Stricmp(pTInfo->mMethod, "POST") == 0)
     {
@@ -694,12 +671,7 @@ bool TransportHandlerDirtySDK::Connect(EA::WebKit::TransportInfo* pTInfo, bool& 
 			swprintf(bufferLen,32, L"%u",pDirtySDKInfo->mPostData.length());
 
 			ACCESS_EAWEBKIT_API(SetHeaderMapValue(pTInfo->mHeaderMapOut, L"Content-Length", bufferLen));
-
-            #if USE_HTTPMANAGER
             iResult = HttpManagerPost(mpHttpManager, pDirtySDKInfo->mHttpHandle, pDirtySDKInfo->mURI.c_str(), pDirtySDKInfo->mPostData.c_str(), (int32_t) pDirtySDKInfo->mPostData.length(), PROTOHTTP_POST);
-            #else
-            iResult = ProtoHttpPost(pDirtySDKInfo->mpProtoHttp, pDirtySDKInfo->mURI.c_str(), pDirtySDKInfo->mPostData.c_str(), (int32_t)pDirtySDKInfo->mPostData.length(), PROTOHTTP_POST);
-            #endif            
         }
     }
     else
@@ -718,7 +690,7 @@ bool TransportHandlerDirtySDK::Connect(EA::WebKit::TransportInfo* pTInfo, bool& 
 
 
 
-#if DIRTYVERS > 0x07050300 && USE_HTTPMANAGER
+#if DIRTYVERS > 0x07050300 
 int32_t 
 #else
 void
@@ -726,7 +698,7 @@ void
 TransportHandlerDirtySDK::DirtySDKSendHeaderCallbackStatic(ProtoHttpRefT* pState, char* pHeader, uint32_t uHeaderCapacity, const char* pBody, uint32_t uBodyLen, void* pUserRef)
 {
     EA::WebKit::TransportInfo* pTInfo = static_cast<EA::WebKit::TransportInfo*>(pUserRef);
-#if DIRTYVERS > 0x07050300 && USE_HTTPMANAGER
+#if DIRTYVERS > 0x07050300 
     int32_t iResult = ((TransportHandlerDirtySDK*)pTInfo->mpTransportHandler)->DirtySDKSendHeaderCallback(pHeader, uHeaderCapacity, pBody, uBodyLen, pTInfo);
 	return iResult;
 #else
@@ -738,7 +710,7 @@ TransportHandlerDirtySDK::DirtySDKSendHeaderCallbackStatic(ProtoHttpRefT* pState
 //
 // pHeader is 0-terminated the raw header text received by ProtoHttp.
 // uHeaderCapacity is the capacity of the buffer pointed to by pHeader, which will usually be > than the strlen of pHeader.
-// pData is the immutablebody data that will be sent. It is data and so not necessarily 0-terminated.
+// pData is the immutable body data that will be sent. It is data and so not necessarily 0-terminated.
 // uDataLen is the length of the body data.
 //
 // We are expected to possibly rewrite pHeader, though we can't use more than uHeaderCapacity space.
@@ -755,9 +727,10 @@ int32_t TransportHandlerDirtySDK::DirtySDKSendHeaderCallback(char* pHeader, uint
 
     if(pDirtySDKInfo->mSendIndex > 1) // If this is the 2nd or later time through... then that means we have been redirected by the server to a new URL...
     {
-        // In this case we have received a 300-family redirect. 
-        // We clear any cookies in the headers and re-attach cookies, as the
-        // new request might well need a different or updated set of cookies.
+		// If this is a redirect (mSendIndex > 1) then remove cookies from the 
+		// previous time through (when mSendIndex == 0) and re-add them now, as they may
+		// have changed, especially if the redirect happened to give us a new cookie. 
+		// Some servers (including EA servers) rely on this.
 		ACCESS_EAWEBKIT_API(ReattachCookies(pTInfo));
     }
 
@@ -772,13 +745,10 @@ int32_t TransportHandlerDirtySDK::DirtySDKSendHeaderCallback(char* pHeader, uint
             p++;
 
         // We read the text into a temp header map, do any modifications, then write the result out.
-        #if EAWEBKIT_ASSERT_ENABLED
-            bool errorEncountered = 
-        #endif        
-				EA::TransportHelper::SetHeaderMapWrapperFromText(p, strlen(p), headerMapDSDK, false, true);
-        #if EAWEBKIT_ASSERT_ENABLED
-            EAW_ASSERT_MSG(!errorEncountered, "The incoming text header map has some error. The resource response object created using partial header info may not be valid.");
-        #endif        
+        bool errorEncountered = EA::TransportHelper::SetHeaderMapWrapperFromText(p, strlen(p), headerMapDSDK, false, true);
+        (void)(errorEncountered);
+		//TODO: Do something useful here in the release build? Indicate the error?
+		EAW_ASSERT_MSG(!errorEncountered, "The incoming text header map has some error. The resource response object created using partial header info may not be valid.");
 
         // Write sCommandLine
         const uint32_t commandSize = (uint32_t)(sCommandLine.length() + 2); // +2 for \r\n. 
@@ -795,15 +765,19 @@ int32_t TransportHandlerDirtySDK::DirtySDKSendHeaderCallback(char* pHeader, uint
             uHeaderCapacity -= commandSize;
         }
 
-        // Fix the Host header to remove :80 if it is present. Some web servers (e.g. Google's www.gstatic.com) 
-        // are broken and expect that :80 is never present, even though :80 is valid.
-		// Fix the Host header to remove :80 if it is present. Some web servers (e.g. Google's www.gstatic.com) 
+        // Fix the Host header to remove :80 if it is present. Some web servers (e.g. Google's www.gstatic.com or www.twitter.com) 
 		// are broken and expect that :80 is never present, even though :80 is valid.
 		EA::TransportHelper::TransportHeaderMap::iterator itHost = headerMapDSDK.find_as(L"host", EA::TransportHelper::str_iless());
 
 		if(itHost != headerMapDSDK.end())  // This should always be true.
 		{
-			if(EA::TransportHelper::Stricmp(pTInfo->mScheme, L"http") == 0)
+			//Note by Arpit Baldeva: As it happens, we can send a request as "http". Server redirects that request to a "https" url. Now, DirtySDK
+			//send the headers back but we failed to strip the port information in following logic previously because our scheme stays as "http".
+			//Following is a workaround for this.
+			
+			//no other side effects are known at this time of EAWebKit and DirtySDK being a little our of sync
+			//in this case. Probably a better fix would be to changes the transportInfo scheme but I am not sure of the ramifications currently.
+			if(EA::TransportHelper::Stricmp(pTInfo->mScheme, L"http") == 0 || EA::TransportHelper::Stricmp(pTInfo->mScheme, L"https") == 0)
 			{
 				EA::TransportHelper::TransportHeaderMap::mapped_type& sValueHost = itHost->second;
 				size_t sizeStr = sValueHost.size();
@@ -811,26 +785,24 @@ int32_t TransportHandlerDirtySDK::DirtySDKSendHeaderCallback(char* pHeader, uint
 				{
 					sValueHost.erase(sizeStr-3);  // Remove the ":80", as some servers mistakenly fail when it's present for HTTP.
 				}
-			}
-			else if(EA::TransportHelper::Stricmp(pTInfo->mScheme, L"https") == 0)
-			{
-				EA::TransportHelper::TransportHeaderMap::mapped_type& sValueHost = itHost->second;
-				size_t sizeStr = sValueHost.size();
-				if(sValueHost.substr(sizeStr-4,sizeStr) == L":443")//strlen ":443" = 4
+				else if(sValueHost.substr(sizeStr-4,sizeStr) == L":443")//strlen ":443" = 4
 				{
 					sValueHost.erase(sizeStr-4);  // Remove the ":443", as some servers mistakenly fail when it's present for HTTPS.
 				}
 			}
+			/*else if(EA::TransportHelper::Stricmp(pTInfo->mScheme, L"https") == 0)
+			{
+				EA::TransportHelper::TransportHeaderMap::mapped_type& sValueHost = itHost->second;
+				size_t sizeStr = sValueHost.size();
+				
+			}*/
 		}
 
 		EA::TransportHelper::CopyHeaderLine(L"host",              headerMapDSDK, pHeader, uHeaderCapacity);
         EA::TransportHelper::CopyHeaderLine(L"transfer-encoding", headerMapDSDK, pHeader, uHeaderCapacity);
         EA::TransportHelper::CopyHeaderLine(L"connection",        headerMapDSDK, pHeader, uHeaderCapacity);
   
-		// To do: If this is a redirect (mSendIndex > 1) then remove cookies from the 
-        // previous time through (when mSendIndex == 0) and re-add them now, as they may
-        // have changed, especially if the redirect happened to give us a new cookie. 
-        // Some servers (including EA servers) rely on this.
+		//TODO: DirtySDK user-agent detection. Make this a simple static operation. Do it once at the transport handler init.
 
 		// We append the DirtySDK user-agent string to our user-agent string.
 		EA::TransportHelper::TransportHeaderMap::const_iterator itDSDK = headerMapDSDK.find_as(L"user-agent", EA::TransportHelper::str_iless());
@@ -873,7 +845,7 @@ int32_t TransportHandlerDirtySDK::DirtySDKSendHeaderCallback(char* pHeader, uint
 }
 
 
-#if DIRTYVERS > 0x07050300 && USE_HTTPMANAGER
+#if DIRTYVERS > 0x07050300 
 int32_t 
 #else
 void
@@ -883,147 +855,11 @@ TransportHandlerDirtySDK::DirtySDKRecvHeaderCallbackStatic(ProtoHttpRefT* pState
     EA::WebKit::TransportInfo* pTInfo = static_cast<EA::WebKit::TransportInfo*>(pUserRef);
 
     ((TransportHandlerDirtySDK*)pTInfo->mpTransportHandler)->DirtySDKRecvHeaderCallback(pHeader, uHeaderSize, pTInfo);
-#if DIRTYVERS > 0x07050300 && USE_HTTPMANAGER
+#if DIRTYVERS > 0x07050300 
 	return 0;
 #endif
 }
 
-#if OLD_HEADERPARSE_CODE
-void TransportHandlerDirtySDK::DirtySDKRecvHeaderCallback(const char* pHeader, uint32_t uHeaderSize, EA::WebKit::TransportInfo* pTInfo)
-{
-	// pHeader includes all the received header text.
-	DirtySDKInfo* pDirtySDKInfo = (DirtySDKInfo*)pTInfo->mTransportHandlerData;
-
-	const size_t  kBufferSize = 1024;   // 2/27/09 CSidhall - Increase size from 512 for now to fix 0 offset problem in dirtysdk (on Paul P suggestion)
-	char          buffer[kBufferSize];  // Eventually we want to make this a fixed string instead and resize if the string overflows the kBufferSize
-
-	// Check for a set-cookie header
-	{
-		const char* pCookie = EA::TransportHelper::Stristr(pHeader, "\nSet-Cookie");  //Covers Set-Cookie and SetCookie2
-		const char* pCookieEnd;
-
-		while(pCookie)
-		{
-			// Find the cookie value
-			// We have something like "Set-Cookie: abscdef, ayx=wcjkb"
-			pCookie = EA::TransportHelper::Stristr(pCookie, ":") + 1;
-			while((*pCookie == ' ') || (*pCookie == '\t'))
-				++pCookie;
-
-			pCookieEnd = pCookie;
-
-			while(*pCookieEnd != '\r' && *pCookieEnd != '\n' && *pCookieEnd != '\0' && (pCookieEnd < (pHeader + uHeaderSize)))
-				++pCookieEnd;
-
-			if(pCookieEnd > pCookie)  // If not empty...
-			{
-				// We use the latest URI that we've seen (as it might have changed due to redirections).
-				EA::TransportHelper::TransportString8  sCookieValue(pCookie, pCookieEnd);
-				EA::TransportHelper::TransportString8  uriOriginal;
-				const char*   pURI = buffer;
-
-				buffer[0] = 0;
-
-				// 2/27/09 CSidhall - buffer size correction of -1 because ProtoHttpStatus adds a terminator which is not accounted for in the size
-#if USE_HTTPMANAGER
-				if((HttpManagerStatus(mpHttpManager, pDirtySDKInfo->mHttpHandle, 0x6c6f636e /*'locn'*/, buffer, (kBufferSize-1)) != 0) || (buffer[0] == 0))
-#else
-				if((ProtoHttpStatus(pDirtySDKInfo->mpProtoHttp, 0x6c6f636e /*'locn'*/, buffer, (kBufferSize-1)) != 0) || (buffer[0] == 0))
-#endif
-				{
-					EA::TransportHelper::TransportString16 uriOriginal16(ACCESS_EAWEBKIT_API(GetCharacters(pTInfo->mURI)));
-					EA::TransportHelper::ConvertToString8(uriOriginal16, uriOriginal);
-					EAW_ASSERT_MSG(uriOriginal.size() <= kBufferSize, "Buffer not enough." );//Required:%d,Available:%d",uriOriginal.size(),kBufferSize);
-					pURI = uriOriginal.c_str();
-				}            
-
-				if(*pURI)
-				{
-					// We tell the cookie manager about the cookie so future transport can use it.
-					//EA::WebKit::CookieManager* pCM = pTInfo->mpCookieManager;
-					gEAWebkitInstance->AddCookie(sCookieValue.c_str(), pURI);
-
-					// The following was disabled by Paul Pedriana (March 10, 2009). We instead write the 
-					// cookie values during redirects during our DirtySDKSendHeaderCallback.
-
-					// We manually set the current transport to use the cookie.
-					// We need to watch out that the header doesn't already have such a Cookie header.
-					//EA::WebKit::HeaderMap::value_type entry(L"Cookie");
-					//EA::WebKit::ConvertToString16(sCookieValue, entry.second);
-					//
-					//EA::WebKit::HeaderMap::iterator it = pTInfo->mHeaderMapOut.find_as(L"Cookie", EA::WebKit::str_iless());
-					//
-					//if(it == pTInfo->mHeaderMapOut.end())
-					//    pTInfo->mHeaderMapOut.insert(entry);
-					//else
-					//    it->second.assign(entry.second.c_str(), entry.second.length());
-					//
-					// Add the cookie directly to the current DirtySDK header output.
-					// sCookieValue.insert(0, "Cookie: ");
-					// sCookieValue.append("\r\n");
-					// ProtoHttpControl(pDirtySDKInfo->mpProtoHttp, 0x61706e64 /*'apnd'*/, 0, 0, (char*)sCookieValue.c_str());
-				}
-			}
-
-			pCookie = EA::TransportHelper::Stristr(pCookieEnd, "\nSet-Cookie");  //Covers Set-Cookie and SetCookie2
-
-		} // while(pCookie)
-	}
-
-
-	// Check for a Location header
-	{
-		const char* pLocation = EA::TransportHelper::Stristr(pHeader, "\nLocation");
-
-		if(pLocation)
-		{
-			// We have something like "Location: http://eucr-webdev03.eu.ad.ea.com/abc/def"
-			// Some servers violate the HTTP Standard and send domain-relative URLs instead of 
-			// full URLs. For example http://www.pogo.com/ redirects to /home/home.do, which is
-			// invalid but is supported by some browsers.
-
-			pLocation = EA::TransportHelper::Stristr(pLocation, ":") + 1;
-			while((*pLocation == ' ') || (*pLocation == '\t'))
-				++pLocation;
-
-			const char* pLocationEnd = pLocation;
-
-			while(*pLocationEnd != '\r' && *pLocationEnd != '\n' && *pLocationEnd != '\0' && (pLocationEnd < (pHeader + uHeaderSize)))
-				++pLocationEnd;
-
-			if(pLocationEnd > pLocation)  // If not empty...
-			{
-				EA::TransportHelper::TransportString8 sLocationValue(pLocation, pLocationEnd);
-
-				if(sLocationValue.find("://") > 6) // If it doesn't appear to be a fully qualified URL...
-				{
-					EA::TransportHelper::TransportString16 uriOriginal16(ACCESS_EAWEBKIT_API(GetCharacters(pTInfo->mURI)));
-					EA::TransportHelper::TransportString8 uriOriginal;
-					EA::TransportHelper::ConvertToString8(uriOriginal16, uriOriginal);
-
-					eastl_size_t domainPos = uriOriginal.find("://"); // We have a problem if this is not found, but not much to do about it.
-					if(domainPos != EA::TransportHelper::TransportString8::npos)
-					{
-						eastl_size_t pathPos = uriOriginal.find('/', domainPos + 3);
-
-						if(pathPos == EA::TransportHelper::TransportString8::npos)
-							pathPos = uriOriginal.size();
-
-						uriOriginal.resize(pathPos); // Convert urlOriginal from something like http://www.pogo.com/abc/def to something like http://www.pogo.com
-						sLocationValue.insert(0, uriOriginal); // Convert sLocationValue from something like /home/home.do to http://www.pogo.com/home/home.do
-					}
-				}
-
-				pTInfo->mpTransportServer->SetEffectiveURI(pTInfo, sLocationValue.c_str());
-
-				// if((pTInfo->mResultCode >= 300) && (pTInfo->mResultCode < 400))              // This result code might not yet be valid. We need to parse the header for the code here.
-				pTInfo->mpTransportServer->SetRedirect(pTInfo, sLocationValue.c_str());
-			}
-		}
-	}
-}
-
-#else
 void TransportHandlerDirtySDK::DirtySDKRecvHeaderCallback(const char* pHeader, uint32_t uHeaderSize, EA::WebKit::TransportInfo* pTInfo)
 {
     // pHeader includes all the received header text.
@@ -1036,19 +872,11 @@ void TransportHandlerDirtySDK::DirtySDKRecvHeaderCallback(const char* pHeader, u
 	pDirtySDKInfo->mbHeadersReceived = true;
 
 	// Check for a 200, 404, etc. code. ProtoHttpStatus returns -1 if headers have not been successfully received.
-#if USE_HTTPMANAGER
 	pTInfo->mResultCode = HttpManagerStatus(mpHttpManager, pDirtySDKInfo->mHttpHandle, 0x636f6465 /*'code'*/, NULL, 0);
-#else
-	pTInfo->mResultCode = ProtoHttpStatus(pDirtySDKInfo->mpProtoHttp, 0x636f6465 /*'code'*/, NULL, 0);
-#endif
 
 // 	Expected document length
 // 	Note by Arpit Baldeva: Following does not work anymore. I think because it is querying "body". We simply parse it from the headers.
-// #if USE_HTTPMANAGER
 // 	int32_t contentLength = HttpManagerStatus(mpHttpManager, pDirtySDKInfo->mHttpHandle, 0x626f6479 /*'body'*/, NULL, 0);
-// #else
-// 	int32_t contentLength = ProtoHttpStatus(pDirtySDKInfo->mpProtoHttp, 0x626f6479 /*'body'*/, NULL, 0);
-// #endif
 //  	if(contentLength >= 0) 
 //  		pTInfo->mpTransportServer->SetExpectedLength(pTInfo, static_cast<int64_t>(contentLength));
 
@@ -1077,61 +905,6 @@ void TransportHandlerDirtySDK::DirtySDKRecvHeaderCallback(const char* pHeader, u
 		}
 	}
 
-	//Note by Arpit Baldeva: Following code is now disabled. CookieManager gets cookies explicitly from the headers in the end. We don't need to parse for
-	//cookies here.
-	//Check for a set-cookie header
-// 	   const char* pCookie = EA::TransportHelper::Stristr(pHeader, "\nSet-Cookie");  //Covers Set-Cookie and SetCookie2
-// 	   const char* pCookieEnd;
-// 
-// 	    while(pCookie)
-// 	     {
-// 	         // Find the cookie value
-// 	         // We have something like "Set-Cookie: abscdef, ayx=wcjkb"
-// 	         pCookie = EA::TransportHelper::Stristr(pCookie, ":") + 1;
-// 	         while((*pCookie == ' ') || (*pCookie == '\t'))
-// 	             ++pCookie;
-// 	 
-// 	         pCookieEnd = pCookie;
-// 	 
-// 	         while(*pCookieEnd != '\r' && *pCookieEnd != '\n' && *pCookieEnd != '\0' && (pCookieEnd < (pHeader + uHeaderSize)))
-// 	             ++pCookieEnd;
-// 	 
-// 	         if(pCookieEnd > pCookie)  // If not empty...
-// 	         {
-// 	             // We use the latest URI that we've seen (as it might have changed due to redirections).
-// 	             EA::WebKit::TransportString8  sCookieValue(pCookie, pCookieEnd);
-// 	             EA::WebKit::TransportString8  uriOriginal;
-// 	 			
-// 	 			const int kBufferSize = 512;
-// 	 			char buffer[kBufferSize];
-// 	 			const char*   pURI = buffer;
-// 	             buffer[0] = 0;
-// 	 
-// 	             // 2/27/09 CSidhall - buffer size correction of -1 because ProtoHttpStatus adds a terminator which is not accounted for in the size
-// 	             #if USE_HTTPMANAGER
-// 	             if((HttpManagerStatus(mpHttpManager, pDirtySDKInfo->mHttpHandle, 0x6c6f636e /*'locn'*/, buffer, (kBufferSize-1)) != 0) || (buffer[0] == 0))
-// 	             #else
-// 	             if((ProtoHttpStatus(pDirtySDKInfo->mpProtoHttp, 0x6c6f636e /*'locn'*/, buffer, (kBufferSize-1)) != 0) || (buffer[0] == 0))
-// 	             #endif
-// 	             {
-// 	                 EA::WebKit::ConvertToString8(*GET_FIXEDSTRING16(pTInfo->mURI), uriOriginal);
-// 	                 EAW_ASSERT_FORMATTED(uriOriginal.size() <= kBufferSize, "Buffer not enough. Required:%d,Available:%d",uriOriginal.size(),kBufferSize);
-// 	                 pURI = uriOriginal.c_str(); 
-// 	             }            
-// 	 
-// 	             if(*pURI)
-// 	             {
-// 	                 // We tell the cookie manager about the cookie so future transport can use it.
-// 	 					EA::WebKit::CookieManager* pCM = pTInfo->mpCookieManager;
-// 	 					pCM->ProcessCookieHeader(sCookieValue.c_str(), pURI);
-// 	             }
-// 	         }
-// 	 
-// 	         pCookie = EA::TransportHelper::Stristr(pCookieEnd, "\nSet-Cookie");  //Covers Set-Cookie and SetCookie2
-// 	 
-// 	     } 
-
-	// Check for a Location header
 	const char* pLocation = EA::TransportHelper::Stristr(pHeader, "\nLocation");
 
     if(pLocation)
@@ -1196,18 +969,19 @@ void TransportHandlerDirtySDK::DirtySDKRecvHeaderCallback(const char* pHeader, u
 
 		if(contentEncodingEnd > contentEncoding)  // If not empty...
 		{
-			EAW_ASSERT_MSG(!pDirtySDKInfo->mStreamDecompressor, "Stream decompressor should be null");
 			EA::WebKit::Allocator* pAllocator = ACCESS_EAWEBKIT_API(GetAllocator());
-			
+			//This can happen, for example, on a redirect. Free the existing decompressor in case the content encoding type changes on the redirect.
 			if(pDirtySDKInfo->mStreamDecompressor)
 			{
 				pDirtySDKInfo->mStreamDecompressor->~IStreamDecompressor();
 				ACCESS_EAWEBKIT_API(GetAllocator())->Free(pDirtySDKInfo->mStreamDecompressor,0);
+				pDirtySDKInfo->mStreamDecompressor = 0;
 			}
-
+			
 			EA::TransportHelper::TransportString8 sContentEncodingValue(contentEncoding, contentEncodingEnd);
 			if(sContentEncodingValue.comparei("deflate") == 0)
 			{
+				
 				pDirtySDKInfo->mStreamDecompressor = new(pAllocator->Malloc(sizeof(DeflateStreamDecompressor),0,0)) DeflateStreamDecompressor(EA::EAWEBKIT_PACKAGE_NAMESPACE::eStreamTypeZLib);
 				pDirtySDKInfo->mStreamDecompressor->SetDecompressedDataCallback(DecompressedDataCallbackFunc, pTInfo);
 			}
@@ -1218,17 +992,23 @@ void TransportHandlerDirtySDK::DirtySDKRecvHeaderCallback(const char* pHeader, u
 			}
 		}
 	}
+	else
+	{
+		//This can happen, for example, on a redirect where the original response was compressed but redirected response is not compressed. Free the existing decompressor.
+		if(pDirtySDKInfo->mStreamDecompressor)
+		{
+			pDirtySDKInfo->mStreamDecompressor->~IStreamDecompressor();
+			ACCESS_EAWEBKIT_API(GetAllocator())->Free(pDirtySDKInfo->mStreamDecompressor,0);
+			pDirtySDKInfo->mStreamDecompressor = 0;
+		}
+	}
 #endif
 	
 	
 	//Store the headers in the incoming header map.
-#if EAWEBKIT_ASSERT_ENABLED
-	bool errorEncountered = 
-#endif
-		ACCESS_EAWEBKIT_API(SetHeaderMapWrapperFromText(pHeader, uHeaderSize, pTInfo->mHeaderMapIn, true, true));
-#if EAWEBKIT_ASSERT_ENABLED
+	bool errorEncountered = ACCESS_EAWEBKIT_API(SetHeaderMapWrapperFromText(pHeader, uHeaderSize, pTInfo->mHeaderMapIn, true, true));
+	(void) errorEncountered;
 	EAW_ASSERT_MSG(!errorEncountered, "The incoming text header map has some error. The resource response object created using partial header info may not be valid.");
-#endif
 
 	pTInfo->mpTransportServer->HeadersReceived(pTInfo);
 
@@ -1236,7 +1016,6 @@ void TransportHandlerDirtySDK::DirtySDKRecvHeaderCallback(const char* pHeader, u
 	ACCESS_EAWEBKIT_API(CookiesReceived(pTInfo));
 }
 
-#endif//OLD_HEADERPARSE_CODE
 
 bool TransportHandlerDirtySDK::Disconnect(EA::WebKit::TransportInfo* /*pTInfo*/, bool& bStateComplete)
 {
@@ -1248,11 +1027,8 @@ bool TransportHandlerDirtySDK::Disconnect(EA::WebKit::TransportInfo* /*pTInfo*/,
 
 bool TransportHandlerDirtySDK::Tick()
 {
-	
-    #if USE_HTTPMANAGER
 	if(mpHttpManager)    
 		HttpManagerUpdate(mpHttpManager);
-	#endif  
 	
 	return true;
 }
@@ -1263,37 +1039,22 @@ bool TransportHandlerDirtySDK::Transfer(EA::WebKit::TransportInfo* pTInfo, bool&
     char          buffer[1024]; 
     int32_t       iResult;
     DirtySDKInfo* pDirtySDKInfo = (DirtySDKInfo*)pTInfo->mTransportHandlerData;
-#if ENABLE_PAYLOAD_DECOMPRESSION
-	IStreamDecompressor* streamDecompressor = pDirtySDKInfo->mStreamDecompressor;
-#endif
+
 	const double dCurrentTime = ACCESS_EAWEBKIT_API(GetTime());
  
     if(dCurrentTime > pTInfo->mTimeout)
         bReturnValue = false;
 
-	#if !USE_HTTPMANAGER
-		ProtoHttpUpdate(pDirtySDKInfo->mpProtoHttp);
-	#endif
-	
 	if((EA::TransportHelper::Stricmp(pTInfo->mMethod, "GET") == 0) || !pDirtySDKInfo->mbPostActive) // If we are doing a GET or we are doing a POST but have already written the POST data...
     {
 		
-#if USE_HTTPMANAGER
         while((iResult = HttpManagerRecv(mpHttpManager, pDirtySDKInfo->mHttpHandle, buffer, 1, sizeof(buffer))) > 0)  // While there is received data...
-        #else
-        while((iResult = ProtoHttpRecv(pDirtySDKInfo->mpProtoHttp, buffer, 1, sizeof(buffer))) > 0)  // While there is received data...
-        #endif
         {
-#if OLD_HEADERPARSE_CODE
-			if(!pDirtySDKInfo->mbHeadersReceived)
-				ProcessReceivedHeaders(pTInfo);
-#else
 			EAW_ASSERT_MSG(pDirtySDKInfo->mbHeadersReceived,"The headers should have been received and processed by this time through the DirtySDK callback\n");
-#endif
 #if ENABLE_PAYLOAD_DECOMPRESSION
-			if(streamDecompressor)
+			if(pDirtySDKInfo->mStreamDecompressor)
 			{
-				if(streamDecompressor->Decompress((uint8_t*)buffer,iResult)<0)//if there is any error in the processing of stream, error out.
+				if(pDirtySDKInfo->mStreamDecompressor->Decompress((uint8_t*)buffer,iResult)<0)//if there is any error in the processing of stream, error out.
 				{
 					pTInfo->mpTransportServer->DataDone(pTInfo, false);
 					bReturnValue   = false;
@@ -1320,25 +1081,46 @@ bool TransportHandlerDirtySDK::Transfer(EA::WebKit::TransportInfo* pTInfo, bool&
             case PROTOHTTP_RECVDONE:
 				//Note by Arpit Baldeva: Old code processed the header here as well. But we should really be processing headers from the DirtySDK callback. 
 				//Old comment - "It's possible this will be called if the body size is zero."
-#if OLD_HEADERPARSE_CODE
-				if(!pDirtySDKInfo->mbHeadersReceived)
-					ProcessReceivedHeaders(pTInfo);
-#else
 				EAW_ASSERT_MSG(pDirtySDKInfo->mbHeadersReceived,"The headers should have been received and processed by this time through the DirtySDK callback\n");
-#endif		
                 pTInfo->mpTransportServer->DataDone(pTInfo, true);
                 bReturnValue   = true;
                 bStateComplete = true;
                 break;
 
             case PROTOHTTP_RECVFAIL:
-                //if(pTInfo->mURI.find(L"promotion-BG.jpg") < pTInfo->mURI.length())
-                //    OWB_OUTPUT_DEBUG_STRING("found fail\n");
+				{
+					pTInfo->mpTransportServer->DataDone(pTInfo, false);
+					bReturnValue   = false;
+					bStateComplete = true;
+					
+					//We would rather not have code structured as follows (multiple if conditions) but in DirtySDK, there is no uniform set of errors. The error interpretation
+					//depends on what you are querying. 
+					//We don't see this getting bigger so its okay for now.
+					EA::WebKit::NetworkErrorInfo info;
+					int32_t timeout = HttpManagerStatus(mpHttpManager, pDirtySDKInfo->mHttpHandle, 0x74696d65 /*'time'*/, NULL, 0);
+					if(timeout)
+					{
+						info.mNetworkErrorType = EA::WebKit::kNetworkErrorTimeOut;
+						info.mNetworkErrorCode = timeout;
+						ACCESS_EAWEBKIT_API(GetViewNotification())->NetworkError(info);
+						break;
+					}
 
-                pTInfo->mpTransportServer->DataDone(pTInfo, false);
-                bReturnValue   = false;
-                bStateComplete = true;
-                break;
+#if DIRTYVERS >= 0x07060A00
+					int32_t essl = HttpManagerStatus(mpHttpManager, pDirtySDKInfo->mHttpHandle, DIRTY_ESSL, NULL, 0);
+					if(essl < 0 && pDirtySDKInfo->mURI.find("https") != -1)//DirtySDK triggers the error for even non SSL links. Don't report those errors.
+					{
+						info.mNetworkErrorType = EA::WebKit::kNetworkErrorSSLCert;
+						info.mNetworkErrorCode = essl;
+						ACCESS_EAWEBKIT_API(GetViewNotification())->NetworkError(info);
+						break;
+					}
+#endif //DIRTYVERS >= 0x07060A00
+
+					//Default case.
+					ACCESS_EAWEBKIT_API(GetViewNotification())->NetworkError(info);
+					break;
+				}
 
             case PROTOHTTP_RECVWAIT:
             case PROTOHTTP_RECVHEAD:
@@ -1357,12 +1139,7 @@ bool TransportHandlerDirtySDK::Transfer(EA::WebKit::TransportInfo* pTInfo, bool&
 
             if(pDirtySDKInfo->mPostBufferSize == 0) // If there was nothing else to read, and the read was thus completed...
             {
-                #if USE_HTTPMANAGER
                 HttpManagerSend(mpHttpManager, pDirtySDKInfo->mHttpHandle, NULL, PROTOHTTP_STREAM_END);
-                #else
-                ProtoHttpSend(pDirtySDKInfo->mpProtoHttp, NULL, PROTOHTTP_STREAM_END);
-                #endif
-                
                 pDirtySDKInfo->mbPostActive = false;
                 
             }
@@ -1378,11 +1155,7 @@ bool TransportHandlerDirtySDK::Transfer(EA::WebKit::TransportInfo* pTInfo, bool&
 
         if(postSize > 0)
         {
-            #if USE_HTTPMANAGER
             iResult = HttpManagerSend(mpHttpManager, pDirtySDKInfo->mHttpHandle, pDirtySDKInfo->mPostBuffer + pDirtySDKInfo->mPostBufferPosition, (int32_t)postSize);
-            #else
-            iResult = ProtoHttpSend(pDirtySDKInfo->mpProtoHttp, pDirtySDKInfo->mPostBuffer + pDirtySDKInfo->mPostBufferPosition, (int32_t)postSize);
-            #endif
 
             if(iResult > 0)
             {
@@ -1412,67 +1185,6 @@ bool TransportHandlerDirtySDK::CanCacheToDisk()
     return true;
 }
 
-#if OLD_HEADERPARSE_CODE
-void TransportHandlerDirtySDK::ProcessReceivedHeaders(EA::WebKit::TransportInfo* pTInfo)
-{
-    DirtySDKInfo* pDirtySDKInfo = (DirtySDKInfo*)pTInfo->mTransportHandlerData;
-    int32_t       iResult;
-    const size_t  kBufferSize = 2048;
-    char          buffer[kBufferSize];
-
-    pDirtySDKInfo->mbHeadersReceived = true;
-
-    // Check for a 200, 404, etc. code. ProtoHttpStatus returns -1 if headers have not been successfully received.
-    #if USE_HTTPMANAGER
-    ProtoHttpResponseE eResponse = (ProtoHttpResponseE)HttpManagerStatus(mpHttpManager, pDirtySDKInfo->mHttpHandle, 0x636f6465 /*'code'*/, NULL, 0);
-    #else
-    ProtoHttpResponseE eResponse = (ProtoHttpResponseE)ProtoHttpStatus(pDirtySDKInfo->mpProtoHttp, 0x636f6465 /*'code'*/, NULL, 0);
-    #endif
-
-    pTInfo->mResultCode = (int)eResponse;
-    
-    // iResult = ProtoHttpStatus(pDirtySDKInfo->mpProtoHttp, 'head', NULL, 0);
-    // EAW_ASSERT(iResult >= 0);
-
-    // Expected document length
-    #if USE_HTTPMANAGER
-    int32_t contentLength = HttpManagerStatus(mpHttpManager, pDirtySDKInfo->mHttpHandle, 0x626f6479 /*'body'*/, NULL, 0);
-    #else
-    int32_t contentLength = ProtoHttpStatus(pDirtySDKInfo->mpProtoHttp, 0x626f6479 /*'body'*/, NULL, 0);
-    #endif
-    if(contentLength >= 0) 
-        pTInfo->mpTransportServer->SetExpectedLength(pTInfo, static_cast<int64_t>(contentLength));
-
-    // * This is disabled because it doesn't work. DirtySDK has thrown out the location value by the time we get here. *
-    // Effective URI
-    // If the URI was redirected to another location, we need to relay that info to our TransportServer so our web browser can display a new URI for the page.
-    // buffer[0] = 0;
-    // if((ProtoHttpStatus(pDirtySDKInfo->mpProtoHttp, 0x6c6f636e /*'locn'*/, buffer, kBufferSize) == 0) && buffer[0])
-    //     pTInfo->mpTransportServer->SetEffectiveURI(pTInfo, buffer);
-
-    #if USE_HTTPMANAGER
-    iResult = HttpManagerStatus(mpHttpManager, pDirtySDKInfo->mHttpHandle, 0x68747874 /*'htxt'*/, buffer, kBufferSize);
-    #else
-    iResult = ProtoHttpStatus(pDirtySDKInfo->mpProtoHttp, 0x68747874 /*'htxt'*/, buffer, kBufferSize);
-    #endif    
-    if(iResult >= 0) // The return value is not the length of the buffer, so we need to get the strlen manually.
-    {
-        const size_t n = strlen(buffer); // To do: resize the buffer if (n >= (kBufferSize - 1))
-
-        #if EAWEBKIT_ASSERT_ENABLED
-            bool errorEncountered = 
-        #endif
-            ACCESS_EAWEBKIT_API(SetHeaderMapWrapperFromText(buffer, n, pTInfo->mHeaderMapIn, true, true));
-        #if EAWEBKIT_ASSERT_ENABLED
-            EAW_ASSERT_MSG(!errorEncountered, "The incoming text header map has some error. The resource response object created using partial header info may not be valid.");
-        #endif
-
-        pTInfo->mpTransportServer->HeadersReceived(pTInfo);
-    }
-}
-
-
-#endif //OLD_HEADERPARSE_CODE
 } // namespace WebKit
 } // namespace EA
 

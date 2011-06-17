@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WTF_Assertions_h
@@ -165,6 +165,8 @@ void WTFLogVerbose(const char* file, int line, const char* function, WTFLogChann
                 #define EA_DEBUG_BREAK() asm("break")
             #elif defined(__SNC__)
                 #define EA_DEBUG_BREAK() *(int*)(0) = 0
+            #elif defined(EA_PLATFORM_PS3)
+                #define EA_DEBUG_BREAK() asm volatile("tw 31,1,1")
             #elif defined(EA_PROCESSOR_POWERPC) // Generic PowerPC. This triggers an exception by executing opcode 0x00000000.
                 #define EA_DEBUG_BREAK() asm(".long 0")
             #elif defined(EA_PROCESSOR_X86) && defined(EA_ASM_STYLE_INTEL)

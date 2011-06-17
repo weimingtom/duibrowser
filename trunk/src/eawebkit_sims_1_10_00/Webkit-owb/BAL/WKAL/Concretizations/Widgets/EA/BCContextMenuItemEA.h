@@ -124,7 +124,7 @@ namespace WKAL {
         SubmenuType
     };
 
-    struct PlatformMenuItemDescription: public WTF::FastAllocBase {
+    struct PlatformMenuItemDescription/*: public WTF::FastAllocBase*/ {
         PlatformMenuItemDescription()
             : type(ActionType)
             , action(ContextMenuItemTagNoAction)
@@ -142,7 +142,7 @@ namespace WKAL {
     };
 
 
-    class ContextMenuItem: public WTF::FastAllocBase {
+    class ContextMenuItem/*: public WTF::FastAllocBase*/ {
     public:
         ContextMenuItem(PlatformMenuItemDescription);
         ContextMenuItem(ContextMenu* subMenu = 0);

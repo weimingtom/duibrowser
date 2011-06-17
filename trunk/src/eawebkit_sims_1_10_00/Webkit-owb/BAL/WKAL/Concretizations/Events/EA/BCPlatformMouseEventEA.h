@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -40,7 +40,7 @@ namespace WKAL {
     enum MouseButton { NoButton = -1, LeftButton, MiddleButton, RightButton };
     enum MouseEventType { MouseEventMoved, MouseEventPressed, MouseEventReleased, MouseEventScroll };
     
-    class PlatformMouseEvent: public WTF::FastAllocBase {
+    class PlatformMouseEvent/*: public WTF::FastAllocBase*/ {
     public:
         PlatformMouseEvent()
             : m_button(NoButton)
@@ -86,8 +86,8 @@ namespace WKAL {
         //time in seconds
         double timestamp() const { return m_timestamp; }
 
-        PlatformMouseEvent(BalEventButton*);
-        PlatformMouseEvent(BalEventMotion*, int);
+        PlatformMouseEvent(const BalEventButton*);
+        PlatformMouseEvent(const BalEventMotion*, int);
 
     private:
         IntPoint m_position;

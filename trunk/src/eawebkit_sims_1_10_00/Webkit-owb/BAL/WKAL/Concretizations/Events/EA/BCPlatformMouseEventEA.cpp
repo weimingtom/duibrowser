@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -50,7 +50,7 @@ namespace WKAL {
 // struct and WebKit/OWB is somewhat designed to have this layering and 
 // we'll be more future compatible if we just go with it.
 
-PlatformMouseEvent::PlatformMouseEvent(BalEventButton* pEventButton)
+PlatformMouseEvent::PlatformMouseEvent(const BalEventButton* pEventButton)
 {
     using namespace EA::WebKit;
 
@@ -95,7 +95,7 @@ PlatformMouseEvent::PlatformMouseEvent(BalEventButton* pEventButton)
 // We define an unused 'int' parameter so that this function doesn't conflict 
 // with the other version when BalEventMotion == BalEventButton.
 
-PlatformMouseEvent::PlatformMouseEvent(BalEventMotion* pEventMotion, int)
+PlatformMouseEvent::PlatformMouseEvent(const BalEventMotion* pEventMotion, int)
 {
     using namespace EA::WebKit;
 

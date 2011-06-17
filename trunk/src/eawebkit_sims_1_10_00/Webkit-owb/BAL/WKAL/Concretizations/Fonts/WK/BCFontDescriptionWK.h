@@ -23,7 +23,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef FontDescription_h
@@ -50,7 +50,7 @@ enum FontWeight {
     FontWeightBold = FontWeight700
 };
 
-class FontDescription: public WTF::FastAllocBase {
+class FontDescription/*: public WTF::FastAllocBase*/ {
 public:
     enum GenericFamilyType { NoFamily, StandardFamily, SerifFamily, SansSerifFamily, 
                              MonospaceFamily, CursiveFamily, FantasyFamily };

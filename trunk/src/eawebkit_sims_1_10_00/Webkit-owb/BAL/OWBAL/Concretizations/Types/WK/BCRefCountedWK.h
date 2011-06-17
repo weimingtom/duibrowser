@@ -19,7 +19,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef RefCounted_h
@@ -31,7 +31,7 @@
 
 namespace WTF {
 
-    template<class T> class RefCounted : public WTF::FastAllocBase {
+    template<class T> class RefCounted /*: public WTF::FastAllocBase*/ {
 public:
     RefCounted(int initialRefCount = 1)
         : m_refCount(initialRefCount)

@@ -28,7 +28,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -49,7 +49,7 @@ using namespace WTF;
 namespace WKAL {
 #include <wtf/FastAllocBase.h>
 
-struct FontPlatformDataCacheKey: public WTF::FastAllocBase {
+struct FontPlatformDataCacheKey/*: public WTF::FastAllocBase*/ {
     FontPlatformDataCacheKey(const AtomicString& family = AtomicString(), unsigned size = 0, unsigned weight = 0, bool italic = false,
                              bool isPrinterFont = false, FontRenderingMode renderingMode = NormalRenderingMode)
         : m_family(family)
@@ -93,7 +93,7 @@ inline unsigned computeHash(const FontPlatformDataCacheKey& fontKey)
     return StringImpl::computeHash(reinterpret_cast<UChar*>(hashCodes), sizeof(hashCodes) / sizeof(UChar));
 }
 
-struct FontPlatformDataCacheKeyHash: public WTF::FastAllocBase {
+struct FontPlatformDataCacheKeyHash/*: public WTF::FastAllocBase*/ {
     static unsigned hash(const FontPlatformDataCacheKey& font)
     {
         return computeHash(font);
@@ -137,8 +137,7 @@ AtomicString* FontCache::m_st_pArial = NULL;
 AtomicString* FontCache::m_st_pHelvetica = NULL;
 const WebCore::AtomicString* FontCache::alternateFamilyName(const AtomicString& familyName)
 {
-    if (!m_st_pCourier)
-    {
+    if (!m_st_pCourier) {
         m_st_pCourier = new AtomicString("Courier");
         m_st_pCourierNew = new AtomicString("Courier New");
         m_st_pTimes = new AtomicString("Times");
@@ -211,7 +210,7 @@ FontPlatformData* FontCache::getCachedFontPlatformData(const FontDescription& fo
     return result;
 }
 
-struct FontDataCacheKeyHash: public WTF::FastAllocBase {
+struct FontDataCacheKeyHash/*: public WTF::FastAllocBase*/ {
     static unsigned hash(const FontPlatformData& platformData)
     {
         return platformData.hash();
@@ -267,8 +266,7 @@ InactiveFontDataHashSet::~InactiveFontDataHashSet()
 void InactiveFontDataHashSet::clear()
 {
     BaseClass::iterator iter;
-    for (iter = begin(); iter != end(); ++iter) 
-    {
+    for (iter = begin(); iter != end(); ++iter) {
         const SimpleFontData* fontData = *iter.get();
         delete fontData;
     }
@@ -439,8 +437,7 @@ const FontData* FontCache::getFontData(const Font& font, int& familyIndex, FontS
 //+daw ca 24/07 static and global management
 void FontCache::staticFinalize()
 {
-    if(gFontDataCache)
-    {
+    if(gFontDataCache) {
         // Disabled because gInactiveFontData is dependent on this leaking.
         // for(FontDataCache::iterator it(gFontDataCache->begin()), itEnd = gFontDataCache->end(); it != itEnd; ++it)
         // {
@@ -456,26 +453,36 @@ void FontCache::staticFinalize()
         // Disabled because gInactiveFontData is dependent on this leaking.
         // purgeInactiveFontData(1000000); // Purge all possible entries.
 
+        // 5/13/10 Chris Sidhall - Added to fix a memory leak with a CSS FontFace source if the font is not already cached and needs to create one.
+        // (Probably only occurs if you exit before the font makes it to the inactive list...).
+        for(FontDataCache::iterator it(gFontDataCache->begin()), itEnd = gFontDataCache->end(); it != itEnd; ++it) {
+            FontDataCache::ValueType& entry = *it;
+            if(entry.second.first) {
+               SimpleFontData* pSimpleFontData = entry.second.first;
+               // Only delete if inactive is not using it for inactive will clean up it's own.
+               if(!gInactiveFontData->contains(pSimpleFontData)) {                    
+                   delete pSimpleFontData;
+                   entry.second.first = NULL;
+               }
+            }
+         }
+
 	    delete gFontDataCache;
 	    gFontDataCache = NULL;
     }
 
-	if (gInactiveFontData)
-	{
+	if (gInactiveFontData) {
         // Note by Paul Pedriana (1/2009): gInactiveFontData is a container which is smart 
         // enough to auto-free its member data in its destructor.
 		delete gInactiveFontData;
 		gInactiveFontData = NULL;
 	}
 
-	if(gFontPlatformDataCache)
-    {
-        for(FontPlatformDataCache::iterator it(gFontPlatformDataCache->begin()), itEnd = gFontPlatformDataCache->end(); it != itEnd; ++it)
-        {
+	if(gFontPlatformDataCache) {
+        for(FontPlatformDataCache::iterator it(gFontPlatformDataCache->begin()), itEnd = gFontPlatformDataCache->end(); it != itEnd; ++it) {
             FontPlatformDataCache::ValueType& entry = *it;
         
-            if(entry.second)
-            {
+            if(entry.second) {
                 delete entry.second;
                 entry.second = NULL;
             }
@@ -485,8 +492,7 @@ void FontCache::staticFinalize()
 	    gFontPlatformDataCache = NULL;
     }
 
-	if (m_st_pCourier)
-	{
+	if (m_st_pCourier) {
 		m_st_pCourier->externalDeref();
 		delete m_st_pCourier;
 		m_st_pCourier = NULL;

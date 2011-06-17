@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -71,20 +71,32 @@ namespace EA
         /// Extracts useful info from the header directives  The Cache handler class will
         /// Use that info to decide if it ought to load from the cache, or save to it.
         ///
-        class CacheResponseHeaderInfo: public WTF::FastAllocBase
+        class CacheResponseHeaderInfo/*: public WTF::FastAllocBase*/
         {
         public:
             CacheResponseHeaderInfo();
-            void SetDirectivesFromHeader(const TransportInfo* pTInfo);
+            
+            // Returns false if should not cache to disk
+            bool SetDirectivesFromHeader(const TransportInfo* pTInfo);
+            bool PermissionToCacheFile() const {return m_ShouldCacheToDisk;}
 
-        public:
-			FixedString16 m_Header;
-            bool          m_ShouldCacheToDisk;
-            uint32_t      m_MaxAge;            //The origin server specifies a freshness lifetime for the entity, overriding lifetime values determined by the proxy caches.
 
         private:
+			bool          m_ShouldCacheToDisk;
+
+        public:    
+            bool          m_NoStoreFound;       // Store nothing
+            bool          m_PrivateFound;       // Private and no-cache (http://www.w3.org/Protocols/HTTP/Issues/cache-private.html)
+            bool          m_PublicFound;        // If the public directive was found.
+            bool          m_MaxAgeFound;        // If the max age directive was found.
+            uint32_t      m_MaxAge;             // The origin server specifies a freshness lifetime for the entity, overriding lifetime values determined by the proxy caches.
+            bool          m_ExpiresFound;       // Found the Expires tag.  Note: it will not search of it if max-age was alreqady found as this will overide the expires directive.
+            bool          m_RevalidateFound;    // Found must revalidate    
+            bool          m_NoTransformFound;   // Found the no transfomr tag.  This can be used by the image compression.    
+        private:
             void Reset();
-            void ApplyHeaderDirective(const FixedString16& directive);
+            bool ExtractCacheControlDirectives(const FixedString16_128& directive);
+            bool ExtractExpiresDirective(const FixedString16_128& directive);
         };
 
 
@@ -131,7 +143,7 @@ namespace EA
 
             //Evaluate and apply cache header
             void InvalidateCachedData(const TransportInfo* pTInfo);
-            void CacheToDisk(const FixedString16& uriFNameStr, const FixedString8& mimeStr, const WebCore::SharedBuffer& requestData);
+            void CacheToDisk(const FixedString16_128& uriFNameStr, const FixedString8_128& mimeStr, const WebCore::SharedBuffer& requestData, const CacheResponseHeaderInfo& cacheHeaderInfo);
 
             //Other functionality
             bool CacheEnabled() { return mbEnabled; }
@@ -140,21 +152,31 @@ namespace EA
             void ClearCache(); //clears the disk cache on demand.
 
             void  SetDefaultExpirationTime(uint32_t nDefaultExpirationTimeSeconds);
-            const FixedString16& GetCacheDirectory();
+            const FixedString16_128& GetCacheDirectory();
             bool  SetCacheDirectory(const char16_t* pCacheDirectory);
             bool  SetCacheDirectory(const char8_t* pCacheDirectory);
 
-            void  GetCacheDirectory(EA::WebKit::FixedString16& cacheDirectory);
-            void  GetCacheDirectory(EA::WebKit::FixedString8& cacheDirectory);
+            void  GetCacheDirectory(EA::WebKit::FixedString16_128& cacheDirectory);
+            void  GetCacheDirectory(EA::WebKit::FixedString8_128& cacheDirectory);
 
 
-            const FixedString16& GetCacheIniFileName();
+            const FixedString16_128& GetCacheIniFileName();
             bool  SetCacheIniFileName(const char16_t* pCacheIniFileName);
+            void  SetMaxFileCount(const uint32_t maxFileCount);
+            void  SetMaxJobCount(const uint32_t count);
             void  SetMaxCacheSize(uint32_t nCacheSize);
+            void  SetMinFileSize(const uint32_t size);
             uint32_t GetMaxCacheSize() {  return mnMaxFileCacheSize;  }
+            uint32_t GetMaxFileCount() const { return mnMaxFileCount; }
+            static uint32_t GetMaxJobCount() { return sMaxJobCount; }
 
-            bool GetCachedDataValidity( const FixedString16& url );
-            bool GetCachedDataValidity( const FixedString8& url );
+
+            bool GetCachedDataValidity( const FixedString16_128& url );
+            bool GetCachedDataValidity( const FixedString8_128& url );
+
+            static int32_t GetOpenFileCount() { return sOpenFileCount; } 
+            static int32_t GetOpenJobCount() { return sOpenJobCount; } 
+            static int32_t GetFileCount() { return sCurFileCount; } 
 
         protected:
             // This is a special timeout value that means to never timeout.
@@ -169,42 +191,50 @@ namespace EA
 
             struct Info
             {
-                FixedString8        msMIMEContentType;      /// MIME type (if known) of cached resource
-                FixedString16       msCachedFileName;       /// File Name Only. Must append to cache directory to get full path.
+                FixedString8_128        msMIMEContentType;      /// MIME type (if known) of cached resource
+                FixedString16_128       msCachedFileName;       /// File Name Only. Must append to cache directory to get full path.
                 EA::IO::size_type   mnDataSize;             /// Cached file/data size.
                 uint32_t            mnLocation;             /// BitField of locations where this is stored. Also indicates validity of cached data (kCacheLocationPending)
                 uint32_t            mnTimeoutSeconds;       /// Number of relative seconds before the cache info should timeout. This is used to determine mnTimeTimeout.
                 uint32_t            mnTimeCreated;          /// The time this cache info was created.
                 uint32_t            mnTimeLastUsed;         /// The time this cache info was last created, updated, or retrieved.
                 uint32_t            mnTimeTimeout;          /// The time of the timeout.
+                uint32_t            mnChecksum;             /// File checksum to detect corruption.
+                bool                mnRevalidate;           /// File must revalidate time before using.
             };
 
-            struct FileInfo: public WTF::FastAllocBase
+            struct FileInfo/*: public WTF::FastAllocBase*/
             {
                 FileSystem::FileObject mFileObject;
                 int64_t                mFileSize;
-                char                   mBuffer[4096];
+                uint32_t               mCurChecksum; 
+                // Removed buffer for now as we are using a shared aligned buffer is doing blocking reads
+                //char                   mBuffer[4096]; 
 
-                FileInfo() : mFileObject(FileSystem::kFileObjectInvalid), mFileSize(-1)
+                FileInfo() 
+                    : mFileObject(FileSystem::kFileObjectInvalid)
+                    , mFileSize(-1)
+                    , mCurChecksum(0)
                 {
                 }
+
             };
 
             /// cache map data type
-            typedef eastl::hash_map<FixedString8, Info, eastl::string_hash<FixedString8>, eastl::equal_to<FixedString8>, EASTLAllocator> DataMap;
+            typedef eastl::hash_map<FixedString8_128, Info, eastl::string_hash<FixedString8_128>, eastl::equal_to<FixedString8_128>, EASTLAllocator> DataMap;
 
             /// This is a callback function which is called by the ini file reader in ReadCacheIniFile.
             static bool IniFileCallbackFunction(const char16_t* pKey, const char16_t* pValue, void* pContext);
 
             bool GetCachedDataValidity( const Info& cacheInfo );
-            bool GetCachedDataInfo(const FixedString8& pKey, Info& fileCacheInfo) const;
+            bool GetCachedDataInfo(const FixedString8_128& pKey, Info& fileCacheInfo) const;
 
-            bool RemoveCachedData(const FixedString8& pKey);
+            bool RemoveCachedData(const FixedString8_128& pKey);
             void ClearCacheMap();
             bool UpdateCacheIniFile();
             bool ReadCacheIniFile();
 
-            bool GetNewCacheFileName( int nMIMEType, int nMIMESubtype, FixedString16& sFileName);
+            bool GetNewCacheFileName( int nMIMEType, int nMIMESubtype, FixedString16_128& sFileName);
             bool RemoveCachedFile(const char16_t* pFileName);
             bool RemoveUnusedCachedFiles();
             void DoPeriodicCacheMaintenance();
@@ -214,6 +244,8 @@ namespace EA
             // we declare these functions, but we don't define their implementations.
             TransportHandlerFileCache(const TransportHandlerFileCache&);
             const TransportHandlerFileCache& operator=(const TransportHandlerFileCache&);
+            char* GetCacheDownloadBuffer();                                     /// Get and allocate a shared download buffer if needed.
+            void RemoveCacheDownloadBuffer();                                   /// Remove the allocated download buffer
 
         protected:
             bool                        mbInitialized;                          /// Have we been initialized or not?
@@ -224,19 +256,28 @@ namespace EA
         #else
             int                         mRefCount;                              /// standard refcount
         #endif 
-            FixedString16               msCacheDirectory;                       /// Path to cache directory on disk.
-            FixedString16               msIniFileName;                          /// File name alone of cache ini file, which stores info about cached data on disk.
+            FixedString16_128           msCacheDirectory;                       /// Path to cache directory on disk.
+            FixedString16_128           msIniFileName;                          /// File name alone of cache ini file, which stores info about cached data on disk.
             DataMap                     mDataMap;                               /// Map of cached data key (string) to cached data.
             bool                        mbKeepExpired;                          /// Should cached entries be kept after they are expired?
             uint32_t                    mnMaxFileCacheSize;                     /// Max size of file cache.
             uint32_t                    mnDefaultExpirationTimeSeconds;         /// Default time for cache entries to expire.
             uint32_t                    mnCacheAccessCount;                     /// Count of number of times the cache was accessed.
             uint32_t                    mnCacheAccessCountSinceLastMaintenance; /// Count of number of times the cache was accessed since the last time we examined the cache for expirations.
+            uint32_t                    mnMaxFileCount;                         /// Max number of cache files in cache directory + 1 iniFile  
 
+       private:
+           static uint32_t              sMaxJobCount;                           /// Max number of jobs that can be active (= open files)
+           static int32_t               sCurFileCount;                          /// Number of cached files (not counting the init file)
+           static int32_t               sOpenFileCount;                         /// Keep track of the number of long term open files.
+           static int32_t               sOpenJobCount;                          /// Keep track of active jobs to limit too many open files  
+           static char*                 spCacheDownloadBuffer;                  /// Shared buffer for downloading blocking reads 
+           static uint32_t              sMinFileSize;                           /// Min file size before caching
+        protected:  
             #ifdef EA_DEBUG
                 int mJobCount;  // Used to verify jobs are all shut down and not leaked.
             #endif
-        };
+ };
 
     } // namespace WebKit
 

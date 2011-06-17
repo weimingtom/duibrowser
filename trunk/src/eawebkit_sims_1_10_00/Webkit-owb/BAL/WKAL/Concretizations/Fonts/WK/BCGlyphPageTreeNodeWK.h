@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef GlyphPageTreeNode_h
@@ -114,7 +114,7 @@ private:
 // system fallback page is not populated at construction like the other pages,
 // but on demand for each glyph, because the system may need to use different
 // fallback fonts for each. This lazy population is done by the Font.
-class GlyphPageTreeNode: public WTF::FastAllocBase {
+class GlyphPageTreeNode/*: public WTF::FastAllocBase*/ {
 public:
     GlyphPageTreeNode()
         : m_parent(0)

@@ -758,19 +758,14 @@ void ScrollView::paint(GraphicsContext* context, const IntRect& rect)
     //OWB_PRINTF("this = %p frameGeometry() x=%d y=%d w=%d h=%d\n", this, frameGeometry().x(), frameGeometry().y(), frameGeometry().width(), frameGeometry().height());
     //context->clip(frameGeometry());
 
-    if (documentDirtyRect.isEmpty()) {
-        // 2/9/09 CSidhall - Context leak fix.  
-        context->restore();
-        return;
-    }
     m_scrollViewPaintRecursiveCount++; // 2/13/09 CSidhall - Added to track recursive calls so we only call update view on full exit      
 
-    context->clip(documentDirtyRect); // Added by Paul Pedriana.
-
-    //OWB_PRINTF("this = %p documentDirtyRect x=%d y=%d w=%d h=%d\n", this, documentDirtyRect.x(), documentDirtyRect.y(), documentDirtyRect.width(), documentDirtyRect.height());
-
-    WebCore::Frame* pFrame = static_cast<const FrameView*>(this)->frame();
-    pFrame->paint(context, documentDirtyRect);
+    if (!documentDirtyRect.isEmpty()) {
+        context->clip(documentDirtyRect); // Added by Paul Pedriana.
+        //OWB_PRINTF("this = %p documentDirtyRect x=%d y=%d w=%d h=%d\n", this, documentDirtyRect.x(), documentDirtyRect.y(), documentDirtyRect.width(), documentDirtyRect.height());
+        WebCore::Frame* pFrame = static_cast<const FrameView*>(this)->frame();
+        pFrame->paint(context, documentDirtyRect);
+    }
 
     context->restore();
 

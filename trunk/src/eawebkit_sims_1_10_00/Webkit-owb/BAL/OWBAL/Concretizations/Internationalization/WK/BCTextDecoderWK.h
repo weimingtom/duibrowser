@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef TextDecoder_h
@@ -40,7 +40,7 @@ namespace OWBAL {
 
     class TextCodec;
 
-    class TextDecoder: public WTF::FastAllocBase {
+    class TextDecoder/*: public WTF::FastAllocBase*/ {
     public:
         TextDecoder(const TextEncoding&);
         void reset(const TextEncoding&);

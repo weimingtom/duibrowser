@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright ?2009
+* This file was modified by Electronic Arts Inc Copyright ?2009-2010
 */
 
 #ifndef WTF_Platform_h
@@ -62,8 +62,22 @@
 /* PLATFORM(WIN_OS) */
 /* Operating system level dependencies for Windows that should be used */
 /* regardless of operating environment */
-#if (defined(WIN32) || defined(_WIN32)) 
+#if (defined(WIN32) || defined(_WIN32)) && !defined(_XBOX)
 #define WTF_PLATFORM_WIN_OS 1
+#endif
+
+/* PLATFORM(XBOX) */
+/* Operating system level dependencies for XBox that should be used */
+/* regardless of operating environment */
+#if defined(_XBOX)
+#define WTF_PLATFORM_XBOX 1
+#endif
+
+/* PLATFORM(PS3) */
+/* Operating system level dependencies for PS3 that should be used */
+/* regardless of operating environment */
+#if defined(__PPU__)
+#define WTF_PLATFORM_PS3 1
 #endif
 
 /* PLATFORM(EA) */
@@ -295,6 +309,20 @@
 #define HAVE_FLOAT_H 1
 #define HAVE_SYS_TIMEB_H 1
 #define HAVE_VIRTUALALLOC 1     // To consider: Disable this because we don't want WebKit using this behind our backs.
+
+#elif PLATFORM(XBOX)
+
+#define HAVE_FLOAT_H 1
+#define HAVE_SYS_TIMEB_H 1
+// #define HAVE_VIRTUALALLOC 1  // Disabled because we don't want to use it, even though it is present.
+
+#elif PLATFORM(PS3)
+
+#define HAVE_FLOAT_H 1
+#define HAVE_SYS_TIME_H 1
+#define HAVE_ERRNO_H 1
+// #define HAVE_STDINT_H 1  // Already defined by kjs/config.h
+// #define HAVE_STRING_H 1  // Already defined by kjs/config.h
 
 #else
 

@@ -26,7 +26,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ResourceRequestBase_h
@@ -49,7 +49,7 @@ namespace WKAL {
     class ResourceRequest;
 
     // Do not use this type directly.  Use ResourceRequest instead.
-    class ResourceRequestBase: public WTF::FastAllocBase {
+    class ResourceRequestBase/*: public WTF::FastAllocBase*/ {
     public:
         bool isNull() const;
         bool isEmpty() const;

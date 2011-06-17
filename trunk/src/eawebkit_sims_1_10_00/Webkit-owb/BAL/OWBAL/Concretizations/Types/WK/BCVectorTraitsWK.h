@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WTF_VectorTraits_h
@@ -58,7 +58,7 @@ namespace WTF {
     class VectorTraitsBase;
 
     template<typename T>
-    struct VectorTraitsBase<false, T>: public WTF::FastAllocBase
+    struct VectorTraitsBase<false, T>/*: public WTF::FastAllocBase*/
     {
         static const bool needsDestruction = true;
         static const bool needsInitialization = true;
@@ -70,7 +70,7 @@ namespace WTF {
     };
 
     template<typename T>
-    struct VectorTraitsBase<true, T>: public WTF::FastAllocBase
+    struct VectorTraitsBase<true, T>/*: public WTF::FastAllocBase*/
     {
         static const bool needsDestruction = false;
         static const bool needsInitialization = false;
@@ -84,7 +84,7 @@ namespace WTF {
     template<typename T>
     struct VectorTraits : VectorTraitsBase<IsPod<T>::value, T> { };
 
-    struct SimpleClassVectorTraits: public WTF::FastAllocBase
+    struct SimpleClassVectorTraits/*: public WTF::FastAllocBase*/
     {
         static const bool needsDestruction = true;
         static const bool needsInitialization = true;
@@ -104,7 +104,7 @@ namespace WTF {
     struct VectorTraits<std::auto_ptr<P> > : SimpleClassVectorTraits { };
 
     template<typename First, typename Second>
-    struct VectorTraits<pair<First, Second> >: public WTF::FastAllocBase
+    struct VectorTraits<pair<First, Second> >/*: public WTF::FastAllocBase*/
     {
         typedef VectorTraits<First> FirstTraits;
         typedef VectorTraits<Second> SecondTraits;

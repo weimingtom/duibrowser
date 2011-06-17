@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -51,7 +51,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     #include <windows.h>
 #elif PLATFORM(DARWIN)
     #include <libkern/OSAtomic.h>
-#elif COMPILER(GCC) 
+#elif COMPILER(GCC) && !PLATFORM(PS3)
     #if (__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 2))
         #include <ext/atomicity.h>
     #else
@@ -120,11 +120,11 @@ typedef void*     PlatformMutex;
     typedef QWaitCondition* PlatformCondition;
 
 #elif PLATFORM(WIN_OS)
-    struct PlatformMutex: public WTF::FastAllocBase {
+    struct PlatformMutex/*: public WTF::FastAllocBase*/ {
         CRITICAL_SECTION m_internalMutex;
         size_t m_recursionCount;
     };
-    struct PlatformCondition: public WTF::FastAllocBase {
+    struct PlatformCondition/*: public WTF::FastAllocBase*/ {
         size_t m_timedOut;
         size_t m_blocked;
         size_t m_waitingForRemoval;
@@ -142,6 +142,7 @@ typedef void*     PlatformMutex;
 
 class Mutex : Noncopyable {
 public:
+#if NO_MACRO_NEW
         // Placement operator new.
         void* operator new(size_t, void* p) { return p; }
         void* operator new[](size_t, void* p) { return p; }
@@ -171,6 +172,7 @@ public:
             fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
             fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
         }
+#endif //NO_MACRO_NEW
 public:
     Mutex();
     ~Mutex();
@@ -191,6 +193,7 @@ typedef Locker<Mutex> MutexLocker;
 
 class ThreadCondition : Noncopyable {
 public:
+#if NO_MACRO_NEW
         // Placement operator new.
         void* operator new(size_t, void* p) { return p; }
         void* operator new[](size_t, void* p) { return p; }
@@ -220,6 +223,7 @@ public:
             fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
             fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
         }
+#endif //NO_MACRO_NEW
 public:
     ThreadCondition();
     ~ThreadCondition();
@@ -262,7 +266,7 @@ private:
     inline void atomicIncrement(int volatile* addend) { OSAtomicIncrement32Barrier(const_cast<int*>(addend)); }
     inline int atomicDecrement(int volatile* addend) { return OSAtomicDecrement32Barrier(const_cast<int*>(addend)); }
 
-#elif COMPILER(GCC) 
+#elif COMPILER(GCC) && !PLATFORM(PS3)
     #define WTF_USE_LOCKFREE_THREADSAFESHARED 1
 
     inline void atomicIncrement(int volatile* addend) { __gnu_cxx::__atomic_add(addend, 1); }
@@ -274,6 +278,7 @@ private:
 
 template<class T> class ThreadSafeShared : Noncopyable {
 public:
+#if NO_MACRO_NEW
         // Placement operator new.
         void* operator new(size_t, void* p) { return p; }
         void* operator new[](size_t, void* p) { return p; }
@@ -303,6 +308,7 @@ public:
             fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
             fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
         }
+#endif //NO_MACRO_NEW
 public:
     ThreadSafeShared(int initialRefCount = 1)
         : m_refCount(initialRefCount)

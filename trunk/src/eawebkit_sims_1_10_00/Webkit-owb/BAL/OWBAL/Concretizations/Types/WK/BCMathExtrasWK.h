@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 #ifndef WTF_MathExtras_h
 #define WTF_MathExtras_h
@@ -39,7 +39,7 @@
 
 #if COMPILER(MSVC)
 
-#include <xmath.h>
+//#include <xmath.h>//Note by Arpit Baldeva: Disabled this include. It does not seem to be required.
 #include <limits>
 
 #if HAVE(FLOAT_H)

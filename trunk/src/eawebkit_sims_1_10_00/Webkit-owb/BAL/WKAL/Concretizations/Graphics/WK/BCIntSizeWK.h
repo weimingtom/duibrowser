@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef IntSize_h
@@ -59,7 +59,7 @@ class TSize;
 
 namespace WKAL {
 
-class IntSize: public WTF::FastAllocBase {
+class IntSize/*: public WTF::FastAllocBase*/ {
 public:
     IntSize() : m_width(0), m_height(0) { }
     IntSize(int width, int height) : m_width(width), m_height(height) { }

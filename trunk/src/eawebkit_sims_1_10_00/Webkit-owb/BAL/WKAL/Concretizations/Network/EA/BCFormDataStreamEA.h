@@ -47,7 +47,7 @@
 
 namespace WKAL {
 
-class FormDataStream: public WTF::FastAllocBase {
+class FormDataStream/*: public WTF::FastAllocBase*/ {
 public:
     FormDataStream(ResourceHandle* handle)
         : m_resourceHandle(handle)

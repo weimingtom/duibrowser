@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -72,11 +72,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <EAWebKit/EAWebKit.h>
 #include <EAWebKit/EAWebKitFPUPrecision.h>
 #include <EAWebKit/Internal/EAWebKitString.h>   // For Stricmp and friends.
+#include <EAWebKit/internal/EAWebKitDomainFilter.h>
 #include <EAIO/FnEncode.h>          // For Strlcpy and friends.
 #include <EASTL/fixed_substring.h>
 #include "BCFormDataStreamEA.h"
 #include <wtf/StringExtras.h>
-
+#include <EAWebKit/internal/EAWebKitViewHelper.h> // For multiview support
 
 #ifdef GetJob // If windows.h has #defined GetJob to GetJobA...
     #undef GetJob
@@ -85,7 +86,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Local
 {
-    void ConvertWebCoreStr16ToEAString8(const WebCore::String& s16, EA::WebKit::FixedString8& s8)
+    void ConvertWebCoreStr16ToEAString8(const WebCore::String& s16, EA::WebKit::FixedString8_128& s8)
     {
         uint32_t s16Len = s16.length()+1;       //webcore strings do not include the NULL terminator
         s8.resize(s16Len);
@@ -165,13 +166,13 @@ ResourceHandleManager::JobInfo::JobInfo()
 
 ResourceHandleManager* ResourceHandleManager::m_pInstance = NULL;
 
-
+const double kPollTimeSeconds = 0.016;
 ResourceHandleManager::ResourceHandleManager()
     : m_downloadTimer(this, &ResourceHandleManager::downloadTimerCallback)
     , m_cookieFilePath()
     , m_resourceHandleList()
     , m_runningJobs(0)
-    , m_pollTimeSeconds(0.05)
+    , m_pollTimeSeconds(kPollTimeSeconds)
     , m_timeoutSeconds(120)
     , m_maxConcurrentJobs(32)
     , m_cookieManager()
@@ -181,7 +182,7 @@ ResourceHandleManager::ResourceHandleManager()
     , m_JobIdNext(0)
     , m_CondemnedJobsExist(false)
     #if EAWEBKIT_DUMP_TRANSPORT_FILES
-	, m_DebugWriteFileImages(true) //Note by Arpit Baldeva: Making it true by default. Use the preprocessor to enable/disable the dump.
+	, m_DebugWriteFileImages(false) 
     , m_DebugFileImageDirectory()
     #endif
     , m_readVolume(0)
@@ -191,8 +192,10 @@ ResourceHandleManager::ResourceHandleManager()
 
     m_maxConcurrentJobs = parameters.mMaxTransportJobs;
     m_pollTimeSeconds   = parameters.mTransportPollTimeSeconds;
-
-    #ifdef EA_DEBUG
+	if(m_pollTimeSeconds >= kPollTimeSeconds)//We want to make sure that we poll at least 60 Hz
+		m_pollTimeSeconds = kPollTimeSeconds;
+    
+#ifdef EA_DEBUG
         m_timeoutSeconds = 1000000;
     #else
         m_timeoutSeconds = parameters.mPageTimeoutSeconds;
@@ -206,6 +209,10 @@ ResourceHandleManager::ResourceHandleManager()
     #if EAWEBKIT_DUMP_TRANSPORT_FILES
         #if defined(EA_PLATFORM_WINDOWS)
 			m_DebugFileImageDirectory = L"c://temp//EAWebKitDebug//";
+		#elif defined(EA_PLATFORM_XENON)
+			m_DebugFileImageDirectory = L"d:\\temp\\EAWebKitDebug\\";
+		#elif defined(EA_PLATFORM_PS3)
+			m_DebugFileImageDirectory = L"/app_home/EAWebKitDebug/";
 	    #endif
 			EA::IO::Directory::Create(m_DebugFileImageDirectory.c_str());
 	#endif
@@ -279,7 +286,7 @@ void ResourceHandleManager::add(ResourceHandle* pRH)
         const char16_t* pScheme = sScheme.charactersWithNullTermination();
         EA::WebKit::TransportHandler* pTH = GetTransportHandler(pScheme);
         if( (!pTH)&& (!kurl.protocolIs("data")) )  // 6/17/09 CSidhall. Data scheme is supported in code.
-            EAW_ASSERT_FORMATTED(pTH != NULL, "ResourceHandleManager: Unsupported scheme %ls", pScheme); // There is no transport handler for this scheme.
+			EAW_ASSERT_FORMATTED(pTH != NULL, "There is no transport handler for this scheme: %ls\n", pScheme); // There is no transport handler for this scheme.
     #endif
 
     m_resourceHandleList.append(pRH);
@@ -528,8 +535,37 @@ int ResourceHandleManager::initializeHandle(ResourceHandle* pRH, bool bSynchrono
 
     int jobId = 0;
 
-    if(pTH)
-        jobId = AddTHJob(pRH, pTH, kurl, url, pScheme, bSynchronous);
+	if(pTH)
+	{	
+		jobId = AddTHJob(pRH, pTH, kurl, url, pScheme, bSynchronous);
+		// Note by Arpit Baldeva: We want all the links to be filtered as per our domain filter. There does not seem a central/well known place in the 
+		//code base whereevery link makes through. But this place does. So putting it here.
+		//Ideally, I'd like to integrate it with an in-built security module for navigation but could not find that either.
+		
+		//Domain filter call is efficient in the sense that if the user has not set it up, it is just a "if" check (+ func call).
+		if(!EA::WebKit::EAWebKitDomainFilter::GetInstance().CanNavigateToURL(kurl))
+		{
+            JobInfo* pJob = GetJob(jobId); 
+            // Get the job view for the notification
+            EA::WebKit::View* pView = NULL;
+            if(pJob)
+                pView = pJob->mTInfo.mpView; 
+            CondemnTHJob(pJob); //slow but safe
+			//CondemnTHJob(&(m_JobInfoList.back())); //fast but error prone
+			
+			//Notify the user that we filtered this link. They may want to do something with it.
+			EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();
+			if(pViewNotification)
+			{
+				EA::WebKit::LinkNotificationInfo lni;
+				lni.mpView = pView;
+                lni.mbURIInterceptedByDomainFiltering = true;
+				const WebCore::String& webCoreURI = kurl.string();
+				GetFixedString(lni.mOriginalURI)->assign(webCoreURI.characters(), webCoreURI.length());
+				pViewNotification->LinkSelected(lni);
+			}
+		}
+	}
 
     if(jobId)
         m_runningJobs++;
@@ -538,10 +574,10 @@ int ResourceHandleManager::initializeHandle(ResourceHandle* pRH, bool bSynchrono
 }
 
 
-static void GetPathFromFileURL(const KURL& kurl, EA::WebKit::FixedString8& sPath)
+static void GetPathFromFileURL(const KURL& kurl, EA::WebKit::FixedString8_128& sPath)
 {
     WebCore::String           sURLPath = kurl.path();
-    EA::WebKit::FixedString16 sPath16(sURLPath.characters(), sURLPath.length());
+    EA::WebKit::FixedString16_128 sPath16(sURLPath.characters(), sURLPath.length());
 
     // Look for Microsoft-style paths (e.g. "/C|/windows/test.html", to convert to "C:\windows\test.html")
     #if defined(_MSC_VER) || defined(EA_PLATFORM_WINDOWS)
@@ -581,13 +617,13 @@ int ResourceHandleManager::AddTHJob(ResourceHandle* pRH, EA::WebKit::TransportHa
         jobInfo.mpTH				= pTH;
         jobInfo.mbSynchronous		= bSynchronous;
 
-        GET_FIXEDSTRING16(jobInfo.mTInfo.mURI)->assign(url.characters(), url.length());
-        GET_FIXEDSTRING16(jobInfo.mTInfo.mEffectiveURI)->assign(GET_FIXEDSTRING16(jobInfo.mTInfo.mURI)->c_str());
+        GetFixedString(jobInfo.mTInfo.mURI)->assign(url.characters(), url.length());
+        GetFixedString(jobInfo.mTInfo.mEffectiveURI)->assign(GetFixedString(jobInfo.mTInfo.mURI)->c_str());
         EA::IO::EAIOStrlcpy16(jobInfo.mTInfo.mScheme, pScheme, sizeof(jobInfo.mTInfo.mScheme) / sizeof(jobInfo.mTInfo.mScheme[0]));
         jobInfo.mTInfo.mPort = kurl.port();
 
         if(EA::Internal::Stricmp(jobInfo.mTInfo.mScheme, L"file") == 0)
-            GetPathFromFileURL(kurl, *GET_FIXEDSTRING8(jobInfo.mTInfo.mPath));
+            GetPathFromFileURL(kurl, *GetFixedString(jobInfo.mTInfo.mPath));
         
         const WebCore::HTTPHeaderMap& customHeaders = pRH->request().httpHeaderFields(); // typedef HashMap<String, String, CaseFoldingHash> HTTPHeaderMap;
         WebCore::HTTPHeaderMap::const_iterator end = customHeaders.end();
@@ -596,9 +632,9 @@ int ResourceHandleManager::AddTHJob(ResourceHandle* pRH, EA::WebKit::TransportHa
         for(WebCore::HTTPHeaderMap::const_iterator it = customHeaders.begin(); it != end; ++it)
         {
             const WebCore::HTTPHeaderMap::ValueType& wcValue = *it;
-            EA::WebKit::HeaderMap::value_type eaValue(FixedString16(wcValue.first.characters(), wcValue.first.length()), FixedString16(wcValue.second.characters(), wcValue.second.length()));
+			EA::WebKit::HeaderMap::value_type eaValue(HeaderMap::key_type(wcValue.first.characters(), wcValue.first.length()), HeaderMap::mapped_type(wcValue.second.characters(), wcValue.second.length()));
 
-			GET_HEADERMAP(jobInfo.mTInfo.mHeaderMapOut)->insert(eaValue);
+			GetHeaderMap(jobInfo.mTInfo.mHeaderMapOut)->insert(eaValue);
         }
 
         // If we already have existing Basic or Digest username/password for this domain, we can try to provide it here.
@@ -607,7 +643,7 @@ int ResourceHandleManager::AddTHJob(ResourceHandle* pRH, EA::WebKit::TransportHa
         // Nothing to do. The transport handler fills this in.
         // jobInfo.mTInfo.mHeaderMapIn;
 
-        GET_FIXEDSTRING8(jobInfo.mTInfo.mCookieFilePath)->assign(m_cookieFilePath.c_str());
+        GetFixedString(jobInfo.mTInfo.mCookieFilePath)->assign(m_cookieFilePath.c_str());
         jobInfo.mTInfo.mResultCode     = 0;  // We expect an HTTP-style code such as 200 or 404.
 
         const String& method = pRH->request().httpMethod();
@@ -654,7 +690,7 @@ int ResourceHandleManager::AddTHJob(ResourceHandle* pRH, EA::WebKit::TransportHa
 
         //Now we Determine if we can redirect this job to the local file cache.  If the previous
         //function invalidated the cache, we have no problems.
-		if(m_THFileCache.GetCachedDataValidity(GET_FIXEDSTRING16(jobInfo.mTInfo.mURI)->c_str()))
+		if(m_THFileCache.GetCachedDataValidity(GetFixedString(jobInfo.mTInfo.mURI)->c_str()))
         {    
             jobInfo.mpTH = &m_THFileCache;
             jobInfo.mProcessInfo.mProcessType = EA::WebKit::kVProcessTypeFileCacheJob;
@@ -662,22 +698,45 @@ int ResourceHandleManager::AddTHJob(ResourceHandle* pRH, EA::WebKit::TransportHa
         //Cookie Manager code
         m_cookieManager.OnHeadersSend(&jobInfo.mTInfo);
 
-        #if EAWEBKIT_DUMP_TRANSPORT_FILES
+        #if EAWEBKIT_DUMP_TRANSPORT_FILES 
+            
+            // This will dump the loaded files to a dir for debug.
+            // 3/4//10 CSidhall - Changed the file name building to include a sub dir and when possible to
+            // use the base file name. 
             if(m_DebugWriteFileImages)
             {
-                FixedString16 sFilePath(m_DebugFileImageDirectory);
-                FixedString16 sURIFileName(GET_FIXEDSTRING16(jobInfo.mTInfo.mURI)->c_str());
+                FixedString16_256 sFilePath(m_DebugFileImageDirectory);
+                FixedString16_256 sDirName(jobInfo.mTInfo.mpView->GetURI());    // Could look into using base page insead. 
+                FixedString16_256 sURIFileName(GetFixedString(jobInfo.mTInfo.mURI)->c_str());
 
-                if((sURIFileName.find(L"http://") == 0) || (sURIFileName.find(L"file://") == 0))
-                    sURIFileName.erase(0, 7);
-
+                // --- Isolate the file name ---
+                int position =0;
                 for(eastl_size_t i = 0, iEnd = sURIFileName.size(); i < iEnd; ++i)
                 {
-                    if((sURIFileName[i] == ':'))
-                        sURIFileName[i] = '_';
-
                     if((sURIFileName[i] == '/') || (sURIFileName[i] == '\\'))
-                        sURIFileName[i] = '.';
+                        position = i + 1;
+                }
+                if(position)
+                    sURIFileName.erase(0, position);
+
+
+              if(!sURIFileName.size())
+                {
+                    // No file name found so might be a index.html                    
+                    sURIFileName = GetFixedString(jobInfo.mTInfo.mURI)->c_str();
+                    if((sURIFileName.find(L"http://") == 0) || (sURIFileName.find(L"file://") == 0))
+                        sURIFileName.erase(0, 7);
+                    
+                    static const wchar_t* kDefaultExt =L".html";
+                    sURIFileName.append_sprintf(L"%s", kDefaultExt);
+                    sDirName.clear();   // The URI dir might no longer be valid so don't use it 
+                }
+
+                // Cleanup file name
+                for(eastl_size_t i = 0, iEnd = sURIFileName.size(); i < iEnd; ++i)
+                {
+                    if((sURIFileName[i] == '/') || (sURIFileName[i] == '\\') ||(sURIFileName[i] == ':') ||(sURIFileName[i] == '.'))
+                        sURIFileName[i] = '_';
 
                     if((sURIFileName[i] == ';') || (sURIFileName[i] == '#') || (sURIFileName[i] == '?'))
                     {
@@ -686,15 +745,69 @@ int ResourceHandleManager::AddTHJob(ResourceHandle* pRH, EA::WebKit::TransportHa
                     }
                 }
 
-                while(sURIFileName.back() == '.')
-                    sURIFileName.pop_back();
+                
+                 //--- Build the directory to where to put the files ---
+                 if((sDirName.find(L"http://") == 0) || (sDirName.find(L"file://") == 0))
+                    sDirName.erase(0, 7);
+                
+                 if((sDirName.find(L"www.") == 0) && (sDirName[3] == '.'))
+                    sDirName.erase(0, 4);      
 
-                sFilePath += sURIFileName;
+              //  Cleanup
+                for(eastl_size_t i = 0, iEnd = sDirName.size(); i < iEnd; ++i)
+                {
+                    if((sDirName[i] == ':') || (sDirName[i] == '.') )
+                        sDirName[i] = '_';
 
-                jobInfo.mFileImage.SetPath(sFilePath.c_str());
-                bool bResult = jobInfo.mFileImage.Open(EA::IO::kAccessFlagRead | EA::IO::kAccessFlagWrite, EA::IO::kCDCreateAlways);
-                (void)bResult;
-				EAW_ASSERT(bResult);
+                    if((sDirName[i] == ';') || (sDirName[i] == '#') || (sDirName[i] == '?'))
+                    {
+                        sDirName.resize(i);
+                        break;
+                    }
+                }
+
+                position = 0;
+                for(eastl_size_t i = 0, iEnd = sDirName.size(); i < iEnd; ++i)
+                {
+                    if((sDirName[i] == '/') || (sDirName[i] == '\\'))
+                    {
+                        if((i+1) >= iEnd)
+                        {
+                            sDirName.resize(i); // End of string so remove now
+                            break;    
+                        }
+                        else
+                            position = i + 1;
+                    }
+                } 
+                if(position) 
+                    sDirName.erase(0, position);
+
+
+                // Add and create dir to path 
+                if(sDirName.size())
+                {
+                    sFilePath += sDirName;                
+                    EA::IO::Directory::Create(sFilePath.c_str());
+                    #if defined(EA_PLATFORM_XENON)
+                    sFilePath +='\\';
+                    #else
+                    sFilePath +='/';
+                    sFilePath +='/';
+                    #endif
+                }
+
+  
+                if(sURIFileName.size())
+                {
+                    sFilePath += sURIFileName;
+
+                    jobInfo.mFileImage.SetPath(sFilePath.c_str());
+                    bool bResult = jobInfo.mFileImage.Open(EA::IO::kAccessFlagRead | EA::IO::kAccessFlagWrite, EA::IO::kCDCreateAlways);
+                    (void)bResult;
+                    // We can get asserts here if we have for example 2 identical files open so disabled this assert for now.
+                    //  EAW_ASSERT(bResult);
+                }
             }
         #endif
     }
@@ -807,11 +920,13 @@ int ResourceHandleManager::ProcessTHJobs()
 	SET_AUTOFPUPRECISION(EA::WebKit::kFPUPrecisionExtended);   
 	// 11/09/09 CSidhall - Added notify start of process to user
 	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeTHJobs, EA::WebKit::kVProcessStatusStarted);
-	
+    
     for(JobInfoList::iterator it = m_JobInfoList.begin(); it != m_JobInfoList.end(); ++it)
     {
         JobInfo& jobInfo = *it;
-		//If a job is synchronous, make sure that its AsyncJobPaused flag is set to false. 
+        SET_AUTO_ACTIVE_VIEW(jobInfo.mTInfo.mpView);   // For mutliple view support
+
+        //If a job is synchronous, make sure that its AsyncJobPaused flag is set to false. 
 		//If the job is asynchronous, dont bother. Just pass the true to the assert macro.
 		EAW_ASSERT((jobInfo.mbSynchronous ? !jobInfo.mbAsyncJobPaused : true));
 		
@@ -958,7 +1073,7 @@ int ResourceHandleManager::ProcessTHJobs()
                     if(pRHC)
                     {
                         // To consider: Make a means for the transport handler to specify its own error code type and localized string.
-						const WebCore::String sURI(GET_FIXEDSTRING16(jobInfo.mTInfo.mURI)->data(), GET_FIXEDSTRING16(jobInfo.mTInfo.mURI)->length());
+						const WebCore::String sURI(GetFixedString(jobInfo.mTInfo.mURI)->data(), GetFixedString(jobInfo.mTInfo.mURI)->length());
                         const WebCore::String sError; // To consider: Assign a meaningful string to this, such as "Transport error."
 
                         ResourceError error(sURI, jobInfo.mTInfo.mResultCode, sURI, sError);
@@ -1002,7 +1117,6 @@ int ResourceHandleManager::ProcessTHJobs()
 		}
     }
 
-
 	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeTHJobs, EA::WebKit::kVProcessStatusEnded);
     return (int)m_JobInfoList.size();
 }
@@ -1021,7 +1135,7 @@ bool ResourceHandleManager::SetEffectiveURI(EA::WebKit::TransportInfo* pTInfo, c
         const String& s(url.string());
 
         pRHI->m_response.setUrl(url);
-		GET_FIXEDSTRING16(pTInfo->mEffectiveURI)->assign(s.characters(), s.length());
+		GetFixedString(pTInfo->mEffectiveURI)->assign(s.characters(), s.length());
 
         return true;
     }
@@ -1047,7 +1161,7 @@ bool ResourceHandleManager::SetRedirect(EA::WebKit::TransportInfo* pTInfo, const
     }
 
     // Alternatively to the following, we should be able to call our SetEffectiveURI function.
-	GET_FIXEDSTRING16(pTInfo->mEffectiveURI)->assign(sURI.characters(), sURI.length());
+	GetFixedString(pTInfo->mEffectiveURI)->assign(sURI.characters(), sURI.length());
     pRHI->m_request.setURL(newURL); // Do we need or want to do this?
     pRHI->m_response.setUrl(newURL);
 
@@ -1125,12 +1239,12 @@ bool ResourceHandleManager::HeadersReceived(EA::WebKit::TransportInfo* pTInfo)
     if(!pRHI->m_cancelled)
     {
         // Copy mHeaderMapIn to m_response.
-		for(EA::WebKit::HeaderMap::const_iterator it = GET_HEADERMAP(pTInfo->mHeaderMapIn)->begin(); it != GET_HEADERMAP(pTInfo->mHeaderMapIn)->end(); ++it)
+		for(EA::WebKit::HeaderMap::const_iterator it = GetHeaderMap(pTInfo->mHeaderMapIn)->begin(); it != GetHeaderMap(pTInfo->mHeaderMapIn)->end(); ++it)
         {
-            const EA::WebKit::FixedString16& sKey   = it->first;
-            const EA::WebKit::FixedString16& sValue = it->second;
+			const EA::WebKit::HeaderMap::key_type& sKey   = it->first;
+			const EA::WebKit::HeaderMap::mapped_type& sValue = it->second;
 
-            // Translate EA::WebKit::FixedString16 to WebCore::String (both are 16 bit string types).
+            // Translate EA::WebKit::FixedString16_256 to WebCore::String (both are 16 bit string types).
             const WebCore::String sWKey  (WebCore::String(sKey.data(),   sKey.length()));
             const WebCore::String sWValue(WebCore::String(sValue.data(), sValue.length()));
 
@@ -1142,9 +1256,9 @@ bool ResourceHandleManager::HeadersReceived(EA::WebKit::TransportInfo* pTInfo)
         //     content-type: text/html; charset=utf-8
 
         // We use the eastl find_as function to find a string in a hash table case-insensitively.
-		EA::WebKit::HeaderMap::const_iterator it = GET_HEADERMAP(pTInfo->mHeaderMapIn)->find_as(L"content-type", EA::WebKit::str_iless());
+		EA::WebKit::HeaderMap::const_iterator it = GetHeaderMap(pTInfo->mHeaderMapIn)->find_as(L"content-type", EA::WebKit::str_iless());
 
-		if(it != GET_HEADERMAP(pTInfo->mHeaderMapIn)->end())
+		if(it != GetHeaderMap(pTInfo->mHeaderMapIn)->end())
         {
             const EA::WebKit::HeaderMap::mapped_type& sValue = it->second;
 
@@ -1160,9 +1274,9 @@ bool ResourceHandleManager::HeadersReceived(EA::WebKit::TransportInfo* pTInfo)
         //     content-disposition: attachment; filename=checkimage.jpg
         //     Content-Disposition: attachment; filename=genome.jpeg; modification-date="Wed, 12 Feb 1997 16:29:51 -0500;
 
-		it = GET_HEADERMAP(pTInfo->mHeaderMapIn)->find_as(L"content-disposition", EA::WebKit::str_iless());
+		it = GetHeaderMap(pTInfo->mHeaderMapIn)->find_as(L"content-disposition", EA::WebKit::str_iless());
 
-		if(it != GET_HEADERMAP(pTInfo->mHeaderMapIn)->end())
+		if(it != GetHeaderMap(pTInfo->mHeaderMapIn)->end())
         {
             const EA::WebKit::HeaderMap::mapped_type& sValue = it->second;
 
@@ -1175,9 +1289,9 @@ bool ResourceHandleManager::HeadersReceived(EA::WebKit::TransportInfo* pTInfo)
             // We should have a header like this:
             //     WWW-Authenticate: Basic realm="WallyWorld"
 
-			it = GET_HEADERMAP(pTInfo->mHeaderMapIn)->find_as(L"WWW-Authenticate", EA::WebKit::str_iless());
+			it = GetHeaderMap(pTInfo->mHeaderMapIn)->find_as(L"WWW-Authenticate", EA::WebKit::str_iless());
 
-			if(it != GET_HEADERMAP(pTInfo->mHeaderMapIn)->end()) // 
+			if(it != GetHeaderMap(pTInfo->mHeaderMapIn)->end()) // 
             {
                 eastl_size_t pos, posEnd;
 
@@ -1215,7 +1329,7 @@ bool ResourceHandleManager::HeadersReceived(EA::WebKit::TransportInfo* pTInfo)
                         {
                             eastl_size_t posEnd = sValue.find('\"', pos + 1);
                             if(posEnd < sValue.size())
-								GET_FIXEDSTRING16(pTInfo->mAuthorizationRealm)->assign(&sValue[pos + 1], &sValue[posEnd]);
+								GetFixedString(pTInfo->mAuthorizationRealm)->assign(&sValue[pos + 1], &sValue[posEnd]);
                         }
                     }
                 }
@@ -1278,7 +1392,7 @@ bool ResourceHandleManager::DataReceived(EA::WebKit::TransportInfo* pTInfo, cons
                 pTInfo->mbEffectiveURISet = true;
 
                 // We set the "effective" URI to be the original URI.
-				const KURL url(GET_FIXEDSTRING16(pTInfo->mURI)->c_str());
+				const KURL url(GetFixedString(pTInfo->mURI)->c_str());
                 pRHI->m_response.setUrl(url);
             }
 
@@ -1356,8 +1470,8 @@ bool ResourceHandleManager::DataDone(EA::WebKit::TransportInfo* pTInfo, bool res
             // The following is the same as in our SetEffectiveURI function, so we could possibly
             // instead call that function instead of use this code. The main point is to call the
             // m_response setURL function.
-			EAW_ASSERT(!GET_FIXEDSTRING16(pTInfo->mEffectiveURI)->empty());
-			WebCore::String sEffectiveURI(GET_FIXEDSTRING16(pTInfo->mEffectiveURI)->data(), GET_FIXEDSTRING16(pTInfo->mEffectiveURI)->length());
+			EAW_ASSERT(!GetFixedString(pTInfo->mEffectiveURI)->empty());
+			WebCore::String sEffectiveURI(GetFixedString(pTInfo->mEffectiveURI)->data(), GetFixedString(pTInfo->mEffectiveURI)->length());
             KURL url(sEffectiveURI);
             pRHI->m_response.setUrl(url);
 
@@ -1365,20 +1479,19 @@ bool ResourceHandleManager::DataDone(EA::WebKit::TransportInfo* pTInfo, bool res
             {
                 if(result) // If succeeded... 
                 {
-                    if(pTInfo->mpTransportHandler->CanCacheToDisk())//No sense in caching either stuff loaded via cache, or file:///
+                    if( pTInfo->mpTransportHandler->CanCacheToDisk() &&  m_THFileCache.CacheEnabled() )  //No sense in caching either stuff loaded via cache, or file:///
                     {
-                        //test info from http headers
+                        //Check with the response header directives if we can cache this file
                         EA::WebKit::CacheResponseHeaderInfo cacheHeaderInfo;
-                        cacheHeaderInfo.SetDirectivesFromHeader(pTInfo);
-                        if(cacheHeaderInfo.m_ShouldCacheToDisk)
+                        if(cacheHeaderInfo.SetDirectivesFromHeader(pTInfo))
                         {
-                            EA::WebKit::FixedString8 mimeStr;
+                            EA::WebKit::FixedString8_128 mimeStr;
                             Local::ConvertWebCoreStr16ToEAString8(pRHI->m_response.mimeType(), mimeStr);
 
                             const SharedBuffer* requestData = pRHC->getRequestData();
                             //Note by Arpit Baldeva: Check against null pointer. Crashed on http://kotaku.com
-							if(requestData)
-								m_THFileCache.CacheToDisk(*GET_FIXEDSTRING16(pTInfo->mURI), mimeStr, *requestData);
+                            if(requestData)
+								m_THFileCache.CacheToDisk(*GetFixedString(pTInfo->mURI), mimeStr, *requestData, cacheHeaderInfo);
                         }
                     }
                     pRHC->didFinishLoading(pRH);
@@ -1458,6 +1571,10 @@ void ResourceHandleManager::TickTransportHandlers()
 	}
 }
 
+void ResourceHandleManager::TickDownload()
+{
+	downloadTimerCallback(0);
+}
 //Note by Arpit Baldeva: When you are removing a transport handler, you need to remove all dependent jobs regardless of the scheme
 //Otherwise, other schemes may end up using an already removed transport handler (say if you have both http and https schemes).
 //TO be more accurate, the RemoveTransportHandler call does not even require the scheme but will keep it like that for backward compatibility.
@@ -1526,18 +1643,22 @@ void ResourceHandleManager::AddDefaultTransportHandler(const char16_t* pScheme)
 #if USE(CURL)
 	if(parameters.mbEnableCurlTransport)
 	{
-		EAW_ASSERT_MSG(false, "No application supplied transport handler is found. Using the transport handler in the EAWebKit pacakge.");
 		if((EA::Internal::Stricmp(pScheme, L"http") == 0) || (EA::Internal::Stricmp(pScheme, L"ftp") == 0))
+		{
+			EAW_ASSERT_MSG(false, "No application supplied transport handler is found. Using the transport handler in the EAWebKit pacakge.");
 			AddTransportHandler(&m_THCurl, pScheme);
+		}
 	}
 #endif
 
 #if USE(DIRTYSDK)
 	if(parameters.mbEnableDirtySDKTransport)
 	{
-		EAW_ASSERT_MSG(false, "No application supplied transport handler is found. Using the transport handler in the EAWebKit pacakge.");
 		if((EA::Internal::Stricmp(pScheme, L"http") == 0) || (EA::Internal::Stricmp(pScheme, L"https") == 0))
+		{
+			EAW_ASSERT_MSG(false, "No application supplied transport handler is found. Using the transport handler in the EAWebKit pacakge.");
 			AddTransportHandler(&m_THDirtySDK, pScheme);
+		}
 	}
 #endif
 }
@@ -1582,13 +1703,13 @@ bool ResourceHandleManager::SetCacheDirectory(const char8_t* pCacheDirectory)
 }
 
 
-void ResourceHandleManager::GetCacheDirectory(EA::WebKit::FixedString8& cacheDirectory)
+void ResourceHandleManager::GetCacheDirectory(EA::WebKit::FixedString8_128& cacheDirectory)
 {
     return m_THFileCache.GetCacheDirectory(cacheDirectory);
 }
 
 
-void ResourceHandleManager::GetCacheDirectory(EA::WebKit::FixedString16& cacheDirectory)
+void ResourceHandleManager::GetCacheDirectory(EA::WebKit::FixedString16_128& cacheDirectory)
 {
     return m_THFileCache.GetCacheDirectory(cacheDirectory);
 }
@@ -1604,4 +1725,29 @@ uint32_t ResourceHandleManager::GetMaxCacheSize()
 {
     return m_THFileCache.GetMaxCacheSize();
 }
+
+
+void ResourceHandleManager::SetMaxNumberOfCachedFiles(const uint32_t count)
+{
+    m_THFileCache.SetMaxFileCount(count);
+}
+
+
+uint32_t ResourceHandleManager::GetMaxNumberOfCachedFiles() const
+{
+    return m_THFileCache.GetMaxFileCount();
+}
+
+
+void ResourceHandleManager::SetMaxNumberOfOpenFiles(const uint32_t count)
+{
+    m_THFileCache.SetMaxJobCount(count);
+}
+
+void ResourceHandleManager::SetMinFileSizeToCache(const uint32_t size)
+{
+    m_THFileCache.SetMinFileSize(size);
+}
+
+
 } // namespace WebCore

@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -53,8 +53,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //		#define EAW_ASSERT_FORMATTED EA_ASSERT_FORMATTED
 //	#endif
 
+	#include <EAWebKitUtil/EAWebkitUtil.h>
 	#ifndef ACCESS_EAWEBKIT_API		
-		#define ACCESS_EAWEBKIT_API(func) gEAWebkitInstance->func
+#define ACCESS_EAWEBKIT_API(func) EA::WebKitUtil::GetEAWebKitLibInstance()->func
 	#endif
 	#include <EAAssert/eaassert.h>
 #endif

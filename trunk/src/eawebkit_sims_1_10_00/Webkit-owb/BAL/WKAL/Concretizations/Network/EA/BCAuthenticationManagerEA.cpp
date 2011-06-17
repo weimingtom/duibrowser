@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -104,7 +104,7 @@ static void BasicEncodeNameAndPassword(const char16_t* pName16, const char16_t* 
     // Encode the text to our 'out' vector.
     WebCore::base64Encode(in, out);
 
-    // Copy WebCore Vector to our FixedString16.
+    // Copy WebCore Vector to our FixedString16_256.
     sEncoded = L"Basic ";
     for(size_t i = 0, iEnd = out.size(); i != iEnd; ++i)
         sEncoded.append(out[i]);
@@ -184,8 +184,8 @@ void AuthenticationManager::Tick()
             ai.mId           = (uintptr_t)&ti;     // We could use a numerical id, or we could use the address of the struct, which is unchanging for the life of the struct.
             ai.mUserContext  = ti.mTransportHandlerData;
             ai.mbBegin       = bFirstTime;
-			ai.mpURL         = GET_FIXEDSTRING16(ti.mURI)->c_str();
-            ai.mpRealm       = GET_FIXEDSTRING16(ti.mAuthorizationRealm)->c_str();
+			ai.mpURL         = GetFixedString(ti.mURI)->c_str();
+            ai.mpRealm       = GetFixedString(ti.mAuthorizationRealm)->c_str();
             ai.mpType        = ti.mAuthorizationType;
             ai.mName[0]      = 0;
             ai.mPassword[0]  = 0;
@@ -235,7 +235,7 @@ bool AuthenticationManager::ProvideCredentialsHeader(EA::WebKit::TransportInfo& 
 
     SavedCredentials* pSC = NULL;
 
-    WebCore::KURL   url(GET_FIXEDSTRING16(ti.mURI)->c_str());
+    WebCore::KURL   url(GetFixedString(ti.mURI)->c_str());
     WebCore::String sServer(url.host());
     WebCore::String sPath(url.path());
 
@@ -247,7 +247,7 @@ bool AuthenticationManager::ProvideCredentialsHeader(EA::WebKit::TransportInfo& 
         sPath.truncate((unsigned)pathSepPos + 1);
 
         // Convert to EASTL string because WebCore strings can't do what we want.
-        FixedString16 sPathEA(sPath.characters(), sPath.length());
+        FixedString16_256 sPathEA(sPath.characters(), sPath.length());
 
         for(SavedCredentialsList::iterator it(mSavedCredentialsList.begin()); it != mSavedCredentialsList.end(); ++it)
         {
@@ -278,8 +278,8 @@ bool AuthenticationManager::ProvideCredentialsHeader(EA::WebKit::TransportInfo& 
     if(pSC) // If we found some credentials that seem to match...
     {
         WebCore::String  sCredentialString;
-        FixedString32_16 mName(pSC->mName);
-        FixedString32_16 mPassword(pSC->mPassword);
+        FixedString16_32 mName(pSC->mName);
+        FixedString16_32 mPassword(pSC->mPassword);
 
         MungeString(mName,     false);
         MungeString(mPassword, false);
@@ -289,10 +289,10 @@ bool AuthenticationManager::ProvideCredentialsHeader(EA::WebKit::TransportInfo& 
         EA::WebKit::HeaderMap::value_type entry(L"Authorization");
         entry.second.assign(sCredentialString.characters(), sCredentialString.length());
 
-        EA::WebKit::HeaderMap::iterator it = GET_HEADERMAP(ti.mHeaderMapOut)->find_as(entry.first.c_str(), EA::WebKit::str_iless());
+        EA::WebKit::HeaderMap::iterator it = GetHeaderMap(ti.mHeaderMapOut)->find_as(entry.first.c_str(), EA::WebKit::str_iless());
 
-        if(it == GET_HEADERMAP(ti.mHeaderMapOut)->end())
-            GET_HEADERMAP(ti.mHeaderMapOut)->insert(entry);
+        if(it == GetHeaderMap(ti.mHeaderMapOut)->end())
+            GetHeaderMap(ti.mHeaderMapOut)->insert(entry);
         else
             it->second.assign(entry.second.c_str(), entry.second.length());
     }
@@ -378,7 +378,7 @@ void AuthenticationManager::AddSavedCredentials(const char16_t* pURI, const char
 }
 
 
-void AuthenticationManager::MungeString(FixedString32_16& s, bool /*bMunge*/)
+void AuthenticationManager::MungeString(FixedString16_32& s, bool /*bMunge*/)
 {
     // We add a minor amount of hacker resistance to our user name and password strings by 
     // xor-ing them with a value. This makes it a little harder for hackers to do the classic
@@ -418,7 +418,7 @@ void AuthenticationManager::Proceed(EA::WebKit::TransportInfo& ti, const EA::Web
     // In reality we don't want to save the credentials here but we need to 
     // have them be saved if the ResourceHandleManager is successful in the
     // first application of the credentials.
-	AddSavedCredentials(GET_FIXEDSTRING16(ti.mURI)->c_str(), GET_FIXEDSTRING16(ti.mAuthorizationRealm)->c_str(), ai.mName, ai.mPassword);
+	AddSavedCredentials(GetFixedString(ti.mURI)->c_str(), GetFixedString(ti.mAuthorizationRealm)->c_str(), ai.mName, ai.mPassword);
 
     // pRH->deref(); Don't need this if we are resubmitting the job, because the ResourceHandleManager takes over the ref.
 

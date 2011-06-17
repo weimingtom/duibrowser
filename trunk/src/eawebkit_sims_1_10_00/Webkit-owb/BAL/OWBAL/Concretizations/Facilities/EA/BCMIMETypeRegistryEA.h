@@ -44,7 +44,7 @@
 
 namespace OWBAL {
 
-class MIMETypeRegistry: public WTF::FastAllocBase {
+class MIMETypeRegistry/*: public WTF::FastAllocBase*/ {
 public:
     static String getMIMETypeForExtension(const String& ext);
     static Vector<String> getExtensionsForMIMEType(const String& type);

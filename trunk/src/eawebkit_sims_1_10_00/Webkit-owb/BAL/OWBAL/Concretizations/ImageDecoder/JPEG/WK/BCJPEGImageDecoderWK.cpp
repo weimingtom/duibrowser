@@ -36,7 +36,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -61,7 +61,7 @@ extern "C" {
 namespace OWBAL {
 #include <wtf/FastAllocBase.h>
 
-struct decoder_error_mgr: public WTF::FastAllocBase {
+struct decoder_error_mgr/*: public WTF::FastAllocBase*/ {
     struct jpeg_error_mgr pub;  /* "public" fields for IJG library*/
     jmp_buf setjmp_buffer;      /* For handling catastropic errors */
 };
@@ -86,14 +86,14 @@ void error_exit(j_common_ptr cinfo);
 /*
  *  Implementation of a JPEG src object that understands our state machine
  */
-struct decoder_source_mgr: public WTF::FastAllocBase {
+struct decoder_source_mgr/*: public WTF::FastAllocBase*/ {
   /* public fields; must be first in this struct! */
   struct jpeg_source_mgr pub;
 
   JPEGImageReader *decoder;
 };
 
-class JPEGImageReader: public WTF::FastAllocBase
+class JPEGImageReader/*: public WTF::FastAllocBase*/
 {
 public:
     JPEGImageReader(JPEGImageDecoder* decoder)
@@ -395,9 +395,12 @@ void term_source (j_decompress_ptr jd)
     src->decoder->decoder()->jpegComplete();
 }
 
+
 JPEGImageDecoder::JPEGImageDecoder()
 : m_reader(0)
-{}
+{
+
+}
 
 JPEGImageDecoder::~JPEGImageDecoder()
 {
@@ -423,7 +426,7 @@ bool JPEGImageDecoder::isSizeAvailable() const
 {
     // If we have pending data to decode, send it to the JPEG reader now.
     if (!m_sizeAvailable && m_reader) {
-        if (m_failed)
+        if (m_failed || !m_allDataReceived)
             return false;
 
         // The decoder will go ahead and aggressively consume everything up until the
@@ -452,7 +455,7 @@ RGBA32Buffer* JPEGImageDecoder::frameBufferAtIndex(size_t index)
 // Feed data to the JPEG reader.
 void JPEGImageDecoder::decode(bool sizeOnly) const
 {
-    if (m_failed)
+    if (m_failed || !m_allDataReceived)
         return;
 
     m_failed = !m_reader->decode(m_data->buffer(), sizeOnly);
@@ -465,7 +468,7 @@ void JPEGImageDecoder::decode(bool sizeOnly) const
 
 bool JPEGImageDecoder::outputScanlines()
 {
-    if (m_frameBufferCache.isEmpty())
+    if (m_frameBufferCache.isEmpty() || !m_allDataReceived)
         return false;
 
     // Resize to the width and height of the image.

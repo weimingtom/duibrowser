@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -50,6 +50,11 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BCAuthenticationManagerEA.h"
 
 //Note by Arpit Baldeva:If following is defined as 1, it will dump the files received by the transport handler to a location at the disk. 
+#ifdef _DEBUG
+    // Make sure not to have this active in a final release build.
+    #define EAWEBKIT_DUMP_TRANSPORT_FILES 1
+#endif
+
 #ifndef EAWEBKIT_DUMP_TRANSPORT_FILES
 	#define EAWEBKIT_DUMP_TRANSPORT_FILES 0
 #endif
@@ -110,7 +115,7 @@ public:
 
     // To consider: We might be able to fold this information into TransportInfo and 
     // just use TransportInfo instead encapsulating TransportInfo into JobInfo here.
-    struct JobInfo: public WTF::FastAllocBase
+    struct JobInfo/*: public WTF::FastAllocBase*/
     {
         int                           mId;                      // This is simply an ever-increasing number.
         WebCore::ResourceHandle*      mpRH;                     // WebKit ResourceHandle. Ref-counted while stored in this struct.
@@ -147,7 +152,7 @@ public:
     void							RemoveTransportHandler (EA::WebKit::TransportHandler* pTH, const char16_t* pScheme);
     void							RemoveTransportHandlers();
 	void							TickTransportHandlers();
-
+	void							TickDownload();
 	EA::WebKit::TransportHandler*	GetTransportHandler    (const char16_t* pScheme);
 
     EA::WebKit::CookieManager*         GetCookieManager();
@@ -158,12 +163,15 @@ public:
     bool                            UseFileCache(bool enabled);
     bool                            SetCacheDirectory(const char16_t* pCacheDirectory);
     bool                            SetCacheDirectory(const char8_t* pCacheDirectory);
-    void                            GetCacheDirectory(EA::WebKit::FixedString8& cacheDirectory);
-    void                            GetCacheDirectory(EA::WebKit::FixedString16& cacheDirectory);
+    void                            GetCacheDirectory(EA::WebKit::FixedString8_128& cacheDirectory);
+    void                            GetCacheDirectory(EA::WebKit::FixedString16_128& cacheDirectory);
 
     void                            SetMaxCacheSize(uint32_t nCacheSize);
     uint32_t                        GetMaxCacheSize();
-
+    void                            SetMaxNumberOfCachedFiles(const uint32_t count);
+    uint32_t                        GetMaxNumberOfCachedFiles() const; 
+    void                            SetMaxNumberOfOpenFiles(const uint32_t count);
+    void                            SetMinFileSizeToCache(const uint32_t size);
 
     int      AddTHJob(ResourceHandle* pRH, EA::WebKit::TransportHandler* pTH, const KURL& kurl, const String& url, const char16_t* pScheme, bool bSynchronous);
     JobInfo* GetJob(int jobId);
@@ -172,6 +180,11 @@ public:
     void     SetupTHPut(JobInfo* pJobInfo);
     void     SetupTHPost(JobInfo* pJobInfo);
     int      ProcessTHJobs(); // To be called repeatedly while there are active jobs.
+
+
+   #if EAWEBKIT_DUMP_TRANSPORT_FILES
+    void setDebugWriteFileStatus(const bool enabled) {m_DebugWriteFileImages = enabled; }    
+    #endif
 
 protected:
     ResourceHandleManager();
@@ -190,7 +203,7 @@ protected:
 
 protected:
     Timer<ResourceHandleManager>        m_downloadTimer;            // 
-    EA::WebKit::FixedString8            m_cookieFilePath;           // File path to use to store cookies in a persistent way.
+    EA::WebKit::FixedString8_256            m_cookieFilePath;           // File path to use to store cookies in a persistent way.
     Vector<ResourceHandle*>             m_resourceHandleList;       // This is a list of jobs that haven't been started yet.
     int                                 m_runningJobs;              // This is a count of jobs that have been started and are running.
     double                              m_pollTimeSeconds;          // Defaults to something small like 0.05 seconds.
@@ -200,7 +213,7 @@ protected:
     EA::WebKit::AuthenticationManager   m_AuthenticationManager;    // 
 
     typedef eastl::fixed_list<THInfo,  4, true, EA::WebKit::EASTLAllocator> THInfoList;    // List of available TransportHandlers.
-    typedef eastl::fixed_list<JobInfo, 4, true, EA::WebKit::EASTLAllocator> JobInfoList;   // Currently running jobs.
+    typedef eastl::fixed_list<JobInfo, 8, true, EA::WebKit::EASTLAllocator> JobInfoList;   // Currently running jobs.
 
     THInfoList                              m_THInfoList;
     JobInfoList                             m_JobInfoList;
@@ -217,7 +230,7 @@ protected:
 
     #if EAWEBKIT_DUMP_TRANSPORT_FILES
         bool                                m_DebugWriteFileImages;     // Used to enable writing received file contents to disk.
-        EA::WebKit::FixedString16           m_DebugFileImageDirectory;  
+        EA::WebKit::FixedString16_256           m_DebugFileImageDirectory;  
     #endif
 
 public:

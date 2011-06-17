@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Color_h
@@ -47,7 +47,7 @@ RGBA32 makeRGBAFromHSLA(double h, double s, double l, double a);
 
 int differenceSquared(const Color&, const Color&);
 
-class Color: public WTF::FastAllocBase {
+class Color/*: public WTF::FastAllocBase*/ {
 public:
     Color() : m_color(0), m_valid(false) { }
     Color(RGBA32 col) : m_color(col), m_valid(true) { }

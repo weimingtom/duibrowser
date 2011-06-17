@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -43,7 +43,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EventHandler.h"
 #include "EARaster.h"
 #include <EAWebKit/EAWebKit.h>
-
+#include <EAWebKit/internal/EAWebKitViewHelper.h> // For multiview support
 
 using namespace WebCore;
 static int cHorizontalWidth = 15;
@@ -60,7 +60,7 @@ static int cThumbWidth = 15;
 static int cThumbHeight = 15;
 static int cThumbMinLength = 26;
 static int cArrowInset = 5;
-
+static PlatformScrollbar* spActiveAutoScrollThumb=0; // To keep track of the thumb ptr when in auto mode
 
 const double cInitialTimerDelay = 0.25;
 const double cNormalTimerDelay = 0.05;
@@ -89,6 +89,7 @@ PlatformScrollbar::PlatformScrollbar(ScrollbarClient* client, ScrollbarOrientati
 
 PlatformScrollbar::~PlatformScrollbar()
 {
+    unregisterAutoScrollThumb(this);    // CS - Added for auto scroll hanlding
     stopTimerIfNeeded();
 }
 
@@ -219,7 +220,12 @@ void PlatformScrollbar::paintButton(GraphicsContext* context, const IntRect& rec
 
     // Draw the arrow in one of four directions.
     EA::Raster::Orientation o;
-    IntRect     inner( rect.x()+cArrowInset, rect.y()+cArrowInset, rect.width()-(2*cArrowInset), rect.height()-(2*cArrowInset) );
+    
+    // 4/12/10 CSidhall - Added origin offset to fix arrow draw offset (for iframes).
+    IntRect     inner((rect.x() + context->origin().width() + cArrowInset),
+                      (rect.y() + context->origin().height() + cArrowInset),
+                      (rect.width()-(2*cArrowInset)),
+                      (rect.height()-(2*cArrowInset)));
     int         arrowX;
     int         arrowY;
 
@@ -375,11 +381,15 @@ void PlatformScrollbar::SetScrollDrawInfo(EA::WebKit::ScrollbarDrawInfo& sbi, co
 void PlatformScrollbar::paint(GraphicsContext* context, const IntRect& damageRect)
 {
     EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
-    // EA::Raster::Surface* const pSurface = containingWindow();
-
     EA::WebKit::ScrollbarDrawInfo sbi;
+    
+    EA::Raster::Surface* const pSurface = containingWindow();
+    EA::WebKit::View* pView = NULL;
+    if(pSurface)
+        pView = static_cast<EA::WebKit::View*>(pSurface->mpUserData);  
+    
+    sbi.mpView = pView;
     SetScrollDrawInfo(sbi, damageRect);
-
     if(!pVN || !pVN->DrawScrollbar(sbi))
         defaultpaint(context, damageRect);
 }
@@ -465,7 +475,10 @@ int PlatformScrollbar::verticalScrollbarWidth()
 void PlatformScrollbar::updateViewOnMouseHover()
 {
     EA::Raster::Surface* const pSurface = containingWindow();
-    EA::WebKit::View* pView = static_cast<EA::WebKit::View*>(pSurface->mpUserData);
+    EA::WebKit::View* pView = NULL;
+    if(pSurface)
+        pView = static_cast<EA::WebKit::View*>(pSurface->mpUserData);   // EAWebKit uses userData as a View pointer...
+   
     const EA::WebKit::ViewParameters& vPm = pView->GetParameters();
     if(vPm.mbRedrawScrollbarOnCursorHover)
     {
@@ -496,32 +509,9 @@ void PlatformScrollbar::updateViewOnMouseHover()
 
 bool PlatformScrollbar::handleMouseMoveEvent(const PlatformMouseEvent& evt)
 {
-    if (m_pressedPart == ThumbPart) 
+    if (m_pressedPart == ThumbPart)
     {
-        // Drag the thumb.
-        int thumbPos = thumbPosition();
-        int thumbLen = thumbLength();
-        int trackLen = trackLength();
-        int maxPos = trackLen - thumbLen;
-        int delta = 0;
-        if (m_orientation == HorizontalScrollbar)
-            delta = convertFromContainingWindow(evt.pos()).x() - m_pressedPos;
-        else
-            delta = convertFromContainingWindow(evt.pos()).y() - m_pressedPos;
-
-        if (delta > 0)
-            // The mouse moved down/right.
-            delta = min(maxPos - thumbPos, delta);
-        else if (delta < 0)
-            // The mouse moved up/left.
-            delta = max(-thumbPos, delta);
-
-        if (delta != 0) 
-        {
-            setValue(static_cast<int>((float)(thumbPos + delta) * (m_totalSize - m_visibleSize) / (trackLen - thumbLen)));
-            m_pressedPos += thumbPosition() - thumbPos;
-        }
-
+        moveAutoScrollThumb(evt);
         return true;
     }
 
@@ -574,6 +564,11 @@ bool PlatformScrollbar::handleMouseOutEvent(const PlatformMouseEvent& evt)
 bool PlatformScrollbar::handleMousePressEvent(const PlatformMouseEvent& evt)
 {
     m_pressedPart = hitTest(evt);
+    
+    // Check if need to track the auto scroll for the thumb.
+    if (m_pressedPart == ThumbPart) 
+        registerAutoScrollThumb(this);    
+
     m_pressedPos = (m_orientation == HorizontalScrollbar ? convertFromContainingWindow(evt.pos()).x() : convertFromContainingWindow(evt.pos()).y());
     invalidatePart(m_pressedPart);
     autoscrollPressedPart(cInitialTimerDelay);
@@ -582,10 +577,10 @@ bool PlatformScrollbar::handleMousePressEvent(const PlatformMouseEvent& evt)
 
 bool PlatformScrollbar::handleMouseReleaseEvent(const PlatformMouseEvent& evt)
 {
-    invalidatePart(m_pressedPart);
-    m_pressedPart = NoPart;
-    m_pressedPos = 0;
-    stopTimerIfNeeded();
+    endAutoScrollThumb();
+    
+    // Release the auto scroll tracking.
+    unregisterAutoScrollThumb(this);    
 
     if (parent() && parent()->isFrameView())
         static_cast<FrameView*>(parent())->frame()->eventHandler()->setMousePressed(evt.button(), false);
@@ -744,9 +739,88 @@ void PlatformScrollbar::stopTimerIfNeeded()
 
 void PlatformScrollbar::autoscrollTimerFired(Timer<PlatformScrollbar>*)
 {
+    ASSERT(parent()->isFrameView());
+    FrameView* pFrameView = static_cast<FrameView*>(parent());
+    EA::WebKit::View* pView = EA::WebKit::GetView(pFrameView);
+    SET_AUTO_ACTIVE_VIEW(pView);   // For mutliple view support for could be fired inside another view currently
+
     autoscrollPressedPart(cNormalTimerDelay);
 }
 
+void PlatformScrollbar::endAutoScrollThumb()
+{
+    invalidatePart(m_pressedPart);
+    m_pressedPart = NoPart;
+    m_pressedPos = 0;
+    stopTimerIfNeeded();
+}
 
+void PlatformScrollbar::moveAutoScrollThumb(const PlatformMouseEvent& evt)
+{
+    // Drag the thumb.
+    int thumbPos = thumbPosition();
+    int thumbLen = thumbLength();
+    int trackLen = trackLength();
+    int maxPos = trackLen - thumbLen;
+    int delta = 0;
+    if (m_orientation == HorizontalScrollbar)
+        delta = convertFromContainingWindow(evt.pos()).x() - m_pressedPos;
+    else
+        delta = convertFromContainingWindow(evt.pos()).y() - m_pressedPos;
+
+    if (delta > 0)
+        // The mouse moved down/right.
+        delta = min(maxPos - thumbPos, delta);
+    else if (delta < 0)
+        // The mouse moved up/left.
+        delta = max(-thumbPos, delta);
+
+    if (delta != 0) {
+        setValue(static_cast<int>((float)(thumbPos + delta) * (m_totalSize - m_visibleSize) / (trackLen - thumbLen)));
+        m_pressedPos += thumbPosition() - thumbPos;
+    }
+}
+
+
+// 2/5/10 CSidhall -Added to globally track thumb mouse movement for the previous system only
+// seemed to get callback when the frame was in focus or active so it could lose mouse events.
+void PlatformScrollbar::registerAutoScrollThumb(PlatformScrollbar* pBar)
+{
+    if(!spActiveAutoScrollThumb)
+        spActiveAutoScrollThumb = pBar;
+    else if (pBar != spActiveAutoScrollThumb) {    
+        
+        // Notifiy the old bar that his time is up
+        spActiveAutoScrollThumb->endAutoScrollThumb();        
+        
+        // Start tracking the new bar
+        spActiveAutoScrollThumb = pBar;
+    }
+}
+
+void PlatformScrollbar::unregisterAutoScrollThumb(PlatformScrollbar* pBar)
+{
+    if(pBar == spActiveAutoScrollThumb) 
+        spActiveAutoScrollThumb = 0;
+}
+
+
+void PlatformScrollbar::updateAutoScrollThumbWithMouseMove(const EA::WebKit::MouseMoveEvent& mouseMoveEvent)
+{
+    if(spActiveAutoScrollThumb) {
+        // Only update if we have an active captured thumb
+        PlatformMouseEvent evt(&mouseMoveEvent,0);
+        spActiveAutoScrollThumb->moveAutoScrollThumb(evt);    
+    }
+}
+
+void PlatformScrollbar::updateAutoScrollThumbWithMouseRelease()
+{
+    if(spActiveAutoScrollThumb) {
+        // Only release if we have an active captured thumb
+        spActiveAutoScrollThumb->endAutoScrollThumb();        
+        spActiveAutoScrollThumb->unregisterAutoScrollThumb(spActiveAutoScrollThumb);
+    }
+}
 
 

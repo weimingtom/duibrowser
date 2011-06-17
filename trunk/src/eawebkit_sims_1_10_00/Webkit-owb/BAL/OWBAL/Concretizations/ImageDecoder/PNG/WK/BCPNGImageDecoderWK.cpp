@@ -36,7 +36,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -82,7 +82,7 @@ static void PNGAPI rowAvailable(png_structp png_ptr, png_bytep new_row,
 static void PNGAPI pngComplete(png_structp png_ptr, png_infop info_ptr);
 #include <wtf/FastAllocBase.h>
 
-class PNGImageReader: public WTF::FastAllocBase
+class PNGImageReader/*: public WTF::FastAllocBase*/
 {
 public:
     PNGImageReader(PNGImageDecoder* decoder)
@@ -176,7 +176,7 @@ bool PNGImageDecoder::isSizeAvailable() const
 {
     // If we have pending data to decode, send it to the PNG reader now.
     if (!m_sizeAvailable && m_reader) {
-        if (m_failed)
+        if (m_failed || !m_allDataReceived)
             return false;
 
         // The decoder will go ahead and aggressively consume everything up until the
@@ -202,7 +202,7 @@ RGBA32Buffer* PNGImageDecoder::frameBufferAtIndex(size_t index)
 // Feed data to the PNG reader.
 void PNGImageDecoder::decode(bool sizeOnly) const
 {
-    if (m_failed)
+    if (m_failed || !m_allDataReceived)
         return;
 
     m_reader->decode(m_data->buffer(), sizeOnly);

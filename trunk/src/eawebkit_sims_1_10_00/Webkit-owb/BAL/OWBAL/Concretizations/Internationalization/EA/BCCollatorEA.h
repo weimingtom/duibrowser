@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -44,7 +44,8 @@ namespace WTF {
 
     class Collator : Noncopyable {
 public:
-        // Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
         void* operator new(size_t, void* p) { return p; }
         void* operator new[](size_t, void* p) { return p; }
 
@@ -73,7 +74,8 @@ public:
             fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
             fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
         }
-    public:
+#endif //NO_MACRO_NEW
+	public:
         enum Result { Equal = 0, Greater = 1, Less = -1 };
 
         Collator(const char* /*locale*/) { }  // Currently we don't do anything with locale. 99% of the time collation is locale independent, assuming you are following the Unicode Standard.

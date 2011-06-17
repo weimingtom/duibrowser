@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef TextStream_h
@@ -38,7 +38,7 @@ namespace OWBAL {
 
 class String;
 
-class TextStream: public WTF::FastAllocBase {
+class TextStream/*: public WTF::FastAllocBase*/ {
 public:
     TextStream& operator<<(int);
     TextStream& operator<<(unsigned);

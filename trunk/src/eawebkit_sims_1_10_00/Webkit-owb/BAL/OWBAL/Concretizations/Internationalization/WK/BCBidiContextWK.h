@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef BidiContext_h
@@ -34,7 +34,7 @@
 namespace OWBAL {
 
 // Used to keep track of explicit embeddings.
-class BidiContext: public WTF::FastAllocBase {
+class BidiContext/*: public WTF::FastAllocBase*/ {
 public:
     BidiContext(unsigned char level, WTF::Unicode::Direction direction, bool override = false, BidiContext* parent = 0)
         : m_level(level)

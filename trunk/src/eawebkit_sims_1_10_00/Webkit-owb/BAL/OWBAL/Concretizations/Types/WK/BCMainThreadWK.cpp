@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -39,7 +39,7 @@
 namespace WTF {
 #include <wtf/FastAllocBase.h>
 
-struct FunctionWithContext: public WTF::FastAllocBase {
+struct FunctionWithContext/*: public WTF::FastAllocBase*/ {
     MainThreadFunction* function;
     void* context;
     FunctionWithContext(MainThreadFunction* f = 0, void* c = 0) : function(f), context(c) { }

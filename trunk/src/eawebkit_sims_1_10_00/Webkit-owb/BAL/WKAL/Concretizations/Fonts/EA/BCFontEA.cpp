@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -39,6 +39,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "IntSize.h"
 #include <EASTL/fixed_string.h>
 #include "EARaster.h"
+#include "EARaster/internal/EARasterUtils.h"
 #include <EAWebKit/EAWebKit.h>
 #include <EAWebKit/EAWebKitTextInterface.h>  
 #include <EAWebKit/internal/EAWebKitAssert.h>
@@ -53,7 +54,7 @@ namespace WKAL {
 // the assumption below that a single glyph cache texture handles all glyphs at 
 #include <wtf/FastAllocBase.h>
 // at time.
-struct GlyphDrawInfo: public WTF::FastAllocBase
+struct GlyphDrawInfo/*: public WTF::FastAllocBase*/
 {
     int x1;     // Destination glyph box x left
     int x2;     // Destination glyph box x right
@@ -255,16 +256,21 @@ void Font::drawGlyphs(GraphicsContext* pGraphicsContext, const SimpleFontData* p
         const Color                penColor = pGraphicsContext->fillColor();
 
         // Write the glyphs into a linear buffer.
-        // To consider: See if it's possible to often get away with using stack space for this by
+        // To consider: 
+		//See if it's possible to often get away with using stack space for this by
         //              using Vector<uint32_t, N> in order to avoid a memory allocation. A typical
         //              width is ~400 pixels and a typical height ~16 pixels, which is 25600 bytes.
         //              So unless the string is small there won't be any benefit to this.
-        Vector<uint32_t> glyphRGBABuffer(destWidth * destHeight);
-        const int        penA   = penColor.alpha();
-        const int        penR   = penColor.red();
-        const int        penG   = penColor.green();
-        const int        penB   = penColor.blue();
-        const int        penRGB = (penR << 16) | (penG << 8) | penB;
+        
+		//Answer(Arpit Baldeva): In practice, I am seeing lot of smaller allocations.
+		//We allocate 2k on the stack in following. So if (destWidth*destHeight)<=500,
+		//we save an allocation. This could be significant as it is used for each text draw. Currently, we have
+		//weird full screen draw issues, so this is pretty helpful.
+		//In case (destWidth*destHeight) > 500, following vector would automatically allocate from the heap.
+		Vector<uint32_t,500> glyphRGBABuffer(destWidth * destHeight);
+        uint32_t  penC    = penColor.rgb();
+        uint32_t  penA    = (penC >> 24);
+        uint32_t  penRGB  = (penC & 0x00ffffff);
 
         glyphRGBABuffer.fill(0);
 
@@ -289,10 +295,14 @@ void Font::drawGlyphs(GraphicsContext* pGraphicsContext, const SimpleFontData* p
 				{
 					//+ 1/5/10 CSidhall - When building the text string texture map, kerning can make certain letters overlap and stomp over the alpha of previous letters so 
                     // we need to preserve texels that were aleady set. Should be able to OR herer because we have a clean buffer and penRGB is the same.
+                    //+ 2/23/10 YChin - We have switched to using premultiplied colors, so we need to multiply the alpha onto the final color so the Blt
                     // Old code:
                     // pDestColor[x] = ((penA * pGlyphAlpha[x] / 255) << 24) | penRGB;
                     // New code:
-                    pDestColor[x] |= ((penA * pGlyphAlpha[x] / 255) << 24) | penRGB;
+                    uint32_t destAlpha = EA::Raster::DivideBy255Rounded(penA * pGlyphAlpha[x]) | (pDestColor[x] >> 24);
+                    uint32_t destRGB = EA::Raster::MultiplyColorAlpha(penRGB, destAlpha);
+                    pDestColor[x] = (destAlpha << 24 ) | destRGB;
+
                     // -CS
 				}
                 

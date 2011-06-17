@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -52,17 +52,6 @@ Vector<char> loadResourceIntoArray(const char*);
 
 
 namespace WKAL {
-
-
-// Get on/off blend status
-// 10/28/09 CSidhall - Added support for image additive alpha blending.
-static bool IsImageAdditiveBlendingActive(void)
-{
-    // We have the blend as a global param (could be also set on a view basis but we need a way to find the current active view)
-    const EA::WebKit::Parameters& parameters = EA::WebKit::GetParameters();
-    bool blendingFlag = parameters.mbEnableImageAdditiveAlphaBlending;
-    return blendingFlag;
-}
 
 
 void FrameData::clear()
@@ -124,8 +113,6 @@ void BitmapImage::draw(GraphicsContext* context, const FloatRect& dst, const Flo
             fillWithSolidColor(context, dst, solidColor(), op);
         else
         {
-            const bool additive = IsImageAdditiveBlendingActive();
-            
             // Set the compositing operation.
             if (op == CompositeSourceOver && !frameHasAlphaAtIndex(m_currentFrame))
                 context->setCompositeOperation(CompositeCopy);
@@ -190,7 +177,7 @@ void BitmapImage::draw(GraphicsContext* context, const FloatRect& dst, const Flo
                 {
                     EA::Raster::Surface* const pZoomedSurface = EA::Raster::ZoomSurface(pImage, scaleX, scaleY, 0);
 
-                    EA::Raster::Blit(pZoomedSurface, &srcRect, cr, &dstRect, NULL, additive);
+                    EA::Raster::Blit(pZoomedSurface, &srcRect, cr, &dstRect, NULL);
 
                     EA::Raster::DestroySurface(pZoomedSurface);
                 }
@@ -201,7 +188,7 @@ void BitmapImage::draw(GraphicsContext* context, const FloatRect& dst, const Flo
                     EA::Raster::Surface* const pAlphadSurface = EA::Raster::CreateTransparentSurface(pImage, static_cast<int>(context->transparencyLayer() * 255));
                     EA::Raster::Surface* const pZoomedSurface = EA::Raster::ZoomSurface(pAlphadSurface, scaleX, scaleY, 0);
 
-                    EA::Raster::Blit(pZoomedSurface, &srcRect, cr, &dstRect, NULL, additive);
+                    EA::Raster::Blit(pZoomedSurface, &srcRect, cr, &dstRect, NULL);
 
                     EA::Raster::DestroySurface(pZoomedSurface);
                     EA::Raster::DestroySurface(pAlphadSurface);
@@ -210,12 +197,12 @@ void BitmapImage::draw(GraphicsContext* context, const FloatRect& dst, const Flo
             else
             {
                 if (context->transparencyLayer() == 1.0)
-                    EA::Raster::Blit(pImage, &srcRect, cr, &dstRect, NULL, additive);
+                    EA::Raster::Blit(pImage, &srcRect, cr, &dstRect, NULL);
                 else
                 {
                     EA::Raster::Surface* const pAlphadSurface = CreateTransparentSurface(pImage, static_cast<int>(context->transparencyLayer() * 255));
 
-                    EA::Raster::Blit(pAlphadSurface, &srcRect, cr, &dstRect, NULL, additive);
+                    EA::Raster::Blit(pAlphadSurface, &srcRect, cr, &dstRect, NULL);
 
                     EA::Raster::DestroySurface(pAlphadSurface);
                 }
@@ -346,8 +333,6 @@ void Image::drawPattern(GraphicsContext* context, const FloatRect& tileRect, con
         srcRect.y = (int)(src.y() * ratioH);
     }
 
-    const bool additive = IsImageAdditiveBlendingActive();
-
     // EA/Alex Mole, 12/22/09: Just create the transparent surface once, rather than once per tile
     // Create a transparency layer if we need one
     EA::Raster::Surface* pAlphadSurface = NULL;
@@ -385,7 +370,7 @@ void Image::drawPattern(GraphicsContext* context, const FloatRect& tileRect, con
             dstRect.w = dest.width();
             dstRect.h = dest.height();
 
-            EA::Raster::Blit(pSurfaceToBlit, &srcRect, cr, &dstRect, &clipRect, additive);
+            EA::Raster::Blit(pSurfaceToBlit, &srcRect, cr, &dstRect, &clipRect);
         }
     }
 

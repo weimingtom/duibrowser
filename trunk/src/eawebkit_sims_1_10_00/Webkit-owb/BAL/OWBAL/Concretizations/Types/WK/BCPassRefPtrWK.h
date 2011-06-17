@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WTF_PassRefPtr_h
@@ -35,7 +35,7 @@ namespace WTF {
     template<typename T> class PassRefPtr;
     template <typename T> PassRefPtr<T> adoptRef(T*);
 
-    template<typename T> class PassRefPtr: public WTF::FastAllocBase {
+    template<typename T> class PassRefPtr/*: public WTF::FastAllocBase*/ {
     public:
         PassRefPtr() : m_ptr(0) {}
         PassRefPtr(T* ptr) : m_ptr(ptr) { if (ptr) ptr->ref(); }

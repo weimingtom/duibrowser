@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -114,6 +114,7 @@ public:
     void OnMouseButtonEvent(const EA::WebKit::MouseButtonEvent& mouseButtonEvent);
     void OnMouseWheelEvent(const EA::WebKit::MouseWheelEvent& mouseWheelEvent);
     void OnFocusChangeEvent(bool bHasFocus);
+    void OnScrollViewEvent();
 
     void scrollUpdateOffset(int& newOffset); 
 
@@ -160,6 +161,7 @@ private:
     ScrollClient            m_scrollClient;
     RefPtr<PlatformScrollbar> m_scrollVBar;   
     RefPtr<Scrollbar>       m_vBar;
+    IntSize                 m_viewScrollOffset;         // Save the original scroll offset to detect changes
 };
 
 }  // namespace WKAL

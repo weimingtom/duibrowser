@@ -142,7 +142,13 @@ bool RenderThemeBal::paintCheckbox(RenderObject* o, const RenderObject::PaintInf
     EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
     EA::WebKit::ButtonDrawInfo bdi;
 
-    bdi.mpSurface   = i.context->platformContext();
+    EA::Raster::Surface* const pSurface = i.context->platformContext();;
+    EA::WebKit::View* pView = NULL;
+    if(pSurface)
+        pView  = static_cast<EA::WebKit::View*>(pSurface->mpUserData);  // Need to verify if this cast is safe...
+  
+    bdi.mpView      = pView;
+    bdi.mpSurface   = pSurface;
     bdi.mDirtyRect  = r;            // This probably isn't correct.
     bdi.mButtonRect = r;
     bdi.mButtonType = EA::WebKit::ButtonDrawInfo::Checkbox;
@@ -243,7 +249,13 @@ bool RenderThemeBal::paintRadio(RenderObject* o, const RenderObject::PaintInfo& 
     EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
     EA::WebKit::ButtonDrawInfo bdi;
 
-    bdi.mpSurface   = i.context->platformContext();
+    EA::Raster::Surface* const pSurface = i.context->platformContext();;
+    EA::WebKit::View* pView = NULL;
+    if(pSurface)
+        pView  = static_cast<EA::WebKit::View*>(pSurface->mpUserData);
+
+    bdi.mpView      = pView;
+    bdi.mpSurface   = pSurface;
     bdi.mDirtyRect  = r;            // This probably isn't correct.
     bdi.mButtonRect = r;
     bdi.mButtonType = EA::WebKit::ButtonDrawInfo::Radio;
@@ -298,8 +310,13 @@ bool RenderThemeBal::paintButton(RenderObject* o, const RenderObject::PaintInfo&
 
     EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
     EA::WebKit::ButtonDrawInfo bdi;
+    EA::Raster::Surface* const pSurface = i.context->platformContext();;
+    EA::WebKit::View* pView = NULL;
+    if(pSurface)
+        pView  = static_cast<EA::WebKit::View*>(pSurface->mpUserData);
 
-    bdi.mpSurface   = i.context->platformContext();
+    bdi.mpView      = pView;
+    bdi.mpSurface   = pSurface;
     bdi.mDirtyRect  = r;        // This probably isn't correct.
     bdi.mButtonRect = r;
     bdi.mButtonType = EA::WebKit::ButtonDrawInfo::Button;
@@ -347,8 +364,15 @@ bool RenderThemeBal::paintMenuList(RenderObject* o, const RenderObject::PaintInf
     // This menu consists of a static (uneditable) text box with a drop-down arrow on the right
     // side (for left-to-right locales) which indicates this is clickable item. When this is 
     // clicked then 
-
-    pdi.mpSurface    = i.context->platformContext();
+    
+    EA::Raster::Surface* const pSurface = i.context->platformContext();;
+    EA::WebKit::View* pView = NULL;
+    if(pSurface)
+        pView  = static_cast<EA::WebKit::View*>(pSurface->mpUserData);
+   
+    
+    pdi.mpView      = pView;
+    pdi.mpSurface   = pSurface;
     pdi.mDirtyRect   = r;        // This probably isn't correct.
     pdi.mMenuRect    = r;
     pdi.mIsHovered   = false;    // How do we tell this?
@@ -421,8 +445,13 @@ bool RenderThemeBal::paintTextField(RenderObject* o, const RenderObject::PaintIn
 
     EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
     EA::WebKit::TextFieldDrawInfo tdi;
-
-    tdi.mpSurface   = i.context->platformContext();
+    EA::WebKit::View* pView = NULL;
+    EA::Raster::Surface* const pSurface = i.context->platformContext();;
+    if(pSurface)
+        pView  = static_cast<EA::WebKit::View*>(pSurface->mpUserData);
+    
+    tdi.mpView      = pView;
+    tdi.mpSurface   = pSurface;
     tdi.mDirtyRect  = r;        // This probably isn't correct.
     tdi.mTextRect   = r;
 

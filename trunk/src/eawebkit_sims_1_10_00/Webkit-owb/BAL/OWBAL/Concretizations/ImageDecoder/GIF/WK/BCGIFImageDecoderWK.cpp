@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -39,7 +39,7 @@
 namespace OWBAL {
 #include <wtf/FastAllocBase.h>
 
-class GIFImageDecoderPrivate: public WTF::FastAllocBase
+class GIFImageDecoderPrivate/*: public WTF::FastAllocBase*/
 {
 public:
     GIFImageDecoderPrivate(GIFImageDecoder* decoder = 0)
@@ -124,7 +124,7 @@ bool GIFImageDecoder::isSizeAvailable() const
 {
     // If we have pending data to decode, send it to the GIF reader now.
     if (!m_sizeAvailable && m_reader) {
-        if (m_failed)
+        if (m_failed || !m_allDataReceived)
             return false;
 
         // The decoder will go ahead and aggressively consume everything up until the first
@@ -185,7 +185,7 @@ RGBA32Buffer* GIFImageDecoder::frameBufferAtIndex(size_t index)
 // Feed data to the GIF reader.
 void GIFImageDecoder::decode(GIFQuery query, unsigned haltAtFrame) const
 {
-    if (m_failed)
+    if (m_failed || !m_allDataReceived)
         return;
 
     m_failed = !m_reader->decode(m_data->buffer(), query, haltAtFrame);

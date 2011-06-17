@@ -51,7 +51,7 @@ namespace OWBAL {
 class String;
 
 
-class OwbFile: public WTF::FastAllocBase
+class OwbFile/*: public WTF::FastAllocBase*/
 {
 public:
     OwbFile(const String& path);

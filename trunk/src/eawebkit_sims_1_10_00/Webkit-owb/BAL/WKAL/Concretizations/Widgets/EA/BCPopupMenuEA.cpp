@@ -106,6 +106,7 @@ PopupMenu::PopupMenu(PopupMenuClient* client)
     , m_mouseScrollRect()
     , m_scrollClient(this)
     , m_scrollVBar(0)
+    , m_viewScrollOffset()
 {
     m_itemCount = m_popupClient->listSize();
 
@@ -140,7 +141,7 @@ void PopupMenu::show(const IntRect& r, FrameView* v, int index)
 
     if(!clientRect().isEmpty() && m_itemCount)
     {
-        EAW_TRACE_FORMATTED("PopupMenu::show (%d %d %d %d) (%d %d %d %d)\n", r.x(), r.y(), r.width(), r.height(), m_windowRect.x(), m_windowRect.y(), m_windowRect.width(), m_windowRect.height());
+//        EAW_TRACE_FORMATTED("PopupMenu::show (%d %d %d %d) (%d %d %d %d)\n", r.x(), r.y(), r.width(), r.height(), m_windowRect.x(), m_windowRect.y(), m_windowRect.width(), m_windowRect.height());
 
         createDropListText();
         populateDropListText();
@@ -150,6 +151,9 @@ void PopupMenu::show(const IntRect& r, FrameView* v, int index)
 
         if(m_popupSurface)
         {
+            // We store a pointer to the view 'this' in the Surface.
+            m_popupSurface->mpUserData = static_cast<EA::WebKit::View*>(m_View);
+            
             // Scroll offset correction
             int index;
             int count;
@@ -228,7 +232,7 @@ void PopupMenu::updateFocusedIndex(int newFocusedIndex)
         if( (newFocusedIndex < 0) || (newFocusedIndex >= m_itemCount) )
             return;
         
-        EAW_TRACE_FORMATTED("PopupMenu::updateFocusedIndex: old: %d new: %d\n", m_focusedIndex, newFocusedIndex);
+//        EAW_TRACE_FORMATTED("PopupMenu::updateFocusedIndex: old: %d new: %d\n", m_focusedIndex, newFocusedIndex);
 
         int oldIndex = m_focusedIndex;
         m_focusedIndex = newFocusedIndex;
@@ -302,6 +306,7 @@ void PopupMenu::calculatePositionAndSize(const IntRect& r, FrameView* v)
 
     EAW_ASSERT(v);
 
+    m_viewScrollOffset = v->scrollOffset();   // Save to determine scroll changes
     IntRect rScreenCoords(v->contentsToWindow(r.location()), r.size());
     rScreenCoords.setY(rScreenCoords.y() + r.height());
     
@@ -793,6 +798,24 @@ void PopupMenu::OnMouseButtonEvent(const EA::WebKit::MouseButtonEvent& mouseButt
 			    m_popupClient->valueChanged(m_focusedIndex);
 			    m_popupClient->setTextFromItem(m_focusedIndex); //Note by Arpit Baldeva: This is needed otherwise the text is not updated. 
 		    }
+        }
+    }
+}
+
+// 2/15/10 CSidhall - Added for scroll change detection outside of normal mouse\keyboard events 
+// so that we can shut down the popup. It keeps track of the original scroll value and exits if
+// it detects any new delta.   
+void PopupMenu::OnScrollViewEvent()
+{
+    if(m_View)
+    {
+        int x=0;
+        int y=0;
+        m_View->GetScrollOffset(x,y);    
+        if((x != m_viewScrollOffset.width()) || (y != m_viewScrollOffset.height()))
+        {    
+            m_View->SetModalInput(NULL);
+            m_popupClient->hidePopup();
         }
     }
 }

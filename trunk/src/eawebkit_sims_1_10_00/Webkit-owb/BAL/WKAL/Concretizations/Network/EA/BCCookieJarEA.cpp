@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -105,14 +105,14 @@ void setCookies(Document* /*document*/, const KURL& url, const KURL& /*policyURL
     
     if(cookieManager)
     {
-        EA::WebKit::FixedString16 urlStr16;
+        EA::WebKit::FixedString16_256 urlStr16;
         urlStr16.assign(url.string().characters(),url.string().length());
-        EA::WebKit::FixedString8 url8; 
+        EA::WebKit::FixedString8_256 url8; 
         EA::WebKit::ConvertToString8(urlStr16,url8);
 
-        EA::WebKit::FixedString16 valueStr16;
+        EA::WebKit::FixedString16_256 valueStr16;
         valueStr16.assign(value.characters(),value.length());
-        EA::WebKit::FixedString8 valueStr8; 
+        EA::WebKit::FixedString8_256 valueStr8; 
         EA::WebKit::ConvertToString8(valueStr16, valueStr8);
         cookieManager->ProcessCookieHeader(valueStr8.c_str(),url8.c_str());
     }
@@ -127,8 +127,8 @@ String cookies(const Document* /*document*/, const KURL& url)
     EA::WebKit::CookieManager* cookieManager = WKAL::ResourceHandleManager::sharedInstance()->GetCookieManager();
     if(cookieManager)
     {
-        EA::WebKit::FixedString8 cookieStr8 = cookieManager->GetCookieTextForURL(url,true); 
-        //EA::WebKit::FixedString16 cookieStr16;
+        EA::WebKit::FixedString8_256 cookieStr8 = cookieManager->GetCookieTextForURL(url,true); 
+        //EA::WebKit::FixedString16_256 cookieStr16;
         //EA::WebKit::ConvertToString16(cookieStr8, cookieStr16);
         //String cookieStr(cookieStr16.c_str());
         return String(cookieStr8.c_str());

@@ -50,7 +50,7 @@ namespace WKAL {
 
 #include <wtf/FastAllocBase.h>
 
-class WidgetPrivate: public WTF::FastAllocBase {
+class WidgetPrivate/*: public WTF::FastAllocBase*/ {
 public:
     BalWidget*      widget;                 // The surface associated with this window.
     WidgetClient*   client;                 // 

@@ -20,12 +20,13 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WTF_Vector_h
 #define WTF_Vector_h
 
+#include <wtf/FastAllocBase.h>
 #include "Assertions.h"
 #include "FastMalloc.h"
 #include "Noncopyable.h"
@@ -83,13 +84,13 @@ namespace WTF {
     class VectorDestructor;
 
     template<typename T>
-    struct VectorDestructor<false, T>: public WTF::FastAllocBase
+    struct VectorDestructor<false, T>/*: public WTF::FastAllocBase*/
     {
         static void destruct(T*, T*) {}
     };
 
     template<typename T>
-    struct VectorDestructor<true, T>: public WTF::FastAllocBase
+    struct VectorDestructor<true, T>/*: public WTF::FastAllocBase*/
     {
         static void destruct(T* begin, T* end) 
         {
@@ -102,13 +103,13 @@ namespace WTF {
     class VectorInitializer;
 
     template<bool ignore, typename T>
-    struct VectorInitializer<false, ignore, T>: public WTF::FastAllocBase
+    struct VectorInitializer<false, ignore, T>/*: public WTF::FastAllocBase*/
     {
         static void initialize(T*, T*) {}
     };
 
     template<typename T>
-    struct VectorInitializer<true, false, T>: public WTF::FastAllocBase
+    struct VectorInitializer<true, false, T>/*: public WTF::FastAllocBase*/
     {
         static void initialize(T* begin, T* end) 
         {
@@ -118,7 +119,7 @@ namespace WTF {
     };
 
     template<typename T>
-    struct VectorInitializer<true, true, T>: public WTF::FastAllocBase
+    struct VectorInitializer<true, true, T>/*: public WTF::FastAllocBase*/
     {
         static void initialize(T* begin, T* end) 
         {
@@ -130,7 +131,7 @@ namespace WTF {
     class VectorMover;
 
     template<typename T>
-    struct VectorMover<false, T>: public WTF::FastAllocBase
+    struct VectorMover<false, T>/*: public WTF::FastAllocBase*/
     {
         static void move(const T* src, const T* srcEnd, T* dst)
         {
@@ -158,7 +159,7 @@ namespace WTF {
     };
 
     template<typename T>
-    struct VectorMover<true, T>: public WTF::FastAllocBase
+    struct VectorMover<true, T>/*: public WTF::FastAllocBase*/
     {
         static void move(const T* src, const T* srcEnd, T* dst) 
         {
@@ -174,7 +175,7 @@ namespace WTF {
     class VectorCopier;
 
     template<typename T>
-    struct VectorCopier<false, T>: public WTF::FastAllocBase
+    struct VectorCopier<false, T>/*: public WTF::FastAllocBase*/
     {
         static void uninitializedCopy(const T* src, const T* srcEnd, T* dst) 
         {
@@ -187,7 +188,7 @@ namespace WTF {
     };
 
     template<typename T>
-    struct VectorCopier<true, T>: public WTF::FastAllocBase
+    struct VectorCopier<true, T>/*: public WTF::FastAllocBase*/
     {
         static void uninitializedCopy(const T* src, const T* srcEnd, T* dst) 
         {
@@ -199,7 +200,7 @@ namespace WTF {
     class VectorFiller;
 
     template<typename T>
-    struct VectorFiller<false, T>: public WTF::FastAllocBase
+    struct VectorFiller<false, T>/*: public WTF::FastAllocBase*/
     {
         static void uninitializedFill(T* dst, T* dstEnd, const T& val) 
         {
@@ -211,7 +212,7 @@ namespace WTF {
     };
 
     template<typename T>
-    struct VectorFiller<true, T>: public WTF::FastAllocBase
+    struct VectorFiller<true, T>/*: public WTF::FastAllocBase*/
     {
         static void uninitializedFill(T* dst, T* dstEnd, const T& val) 
         {
@@ -224,7 +225,7 @@ namespace WTF {
     class VectorComparer;
     
     template<typename T>
-    struct VectorComparer<false, T>: public WTF::FastAllocBase
+    struct VectorComparer<false, T>/*: public WTF::FastAllocBase*/
     {
         static bool compare(const T* a, const T* b, size_t size)
         {
@@ -236,7 +237,7 @@ namespace WTF {
     };
 
     template<typename T>
-    struct VectorComparer<true, T>: public WTF::FastAllocBase
+    struct VectorComparer<true, T>/*: public WTF::FastAllocBase*/
     {
         static bool compare(const T* a, const T* b, size_t size)
         {
@@ -245,7 +246,7 @@ namespace WTF {
     };
     
     template<typename T>
-    struct VectorTypeOperations: public WTF::FastAllocBase
+    struct VectorTypeOperations/*: public WTF::FastAllocBase*/
     {
         static void destruct(T* begin, T* end)
         {
@@ -285,13 +286,47 @@ namespace WTF {
 
     template<typename T>
     class VectorBufferBase : Noncopyable {
-    public:
+public:
+#if NO_MACRO_NEW
+	// Placement operator new.
+        void* operator new(size_t, void* p) { return p; }
+        void* operator new[](size_t, void* p) { return p; }
+
+        void* operator new(size_t size)
+        {
+            void* p = fastMalloc(size);
+            fastMallocMatchValidateMalloc(p, WTF::Internal::AllocTypeClassNew);
+            return p;
+        }
+
+        void operator delete(void* p)
+        {
+            fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNew);
+            fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
+        }
+
+        void* operator new[](size_t size)
+        {
+            void* p = fastMalloc(size);
+            fastMallocMatchValidateMalloc(p, WTF::Internal::AllocTypeClassNewArray);
+            return p;
+        }
+
+        void operator delete[](void* p)
+        {
+            fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
+            fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
+        }
+#endif //NO_MACRO_NEW
+	public:
         void allocateBuffer(size_t newCapacity)
         {
             m_capacity = newCapacity;
             if (newCapacity > std::numeric_limits<size_t>::max() / sizeof(T))
                 CRASH();
-            m_buffer = static_cast<T*>(fastMalloc(newCapacity * sizeof(T)));
+			size_t n = newCapacity * sizeof(T);
+			if(n)//Note by Arpit Baldeva: Don't call allocation if no size.
+				m_buffer = static_cast<T*>(fastMalloc(n));
             if(!m_buffer)   // 7/8/09 CSidhall - Added fail handling
                 m_capacity = 0;
         }
@@ -440,7 +475,7 @@ namespace WTF {
     };
 
     template<typename T, size_t inlineCapacity = 0>
-    class Vector: public WTF::FastAllocBase {
+    class Vector/*: public WTF::FastAllocBase*/ {
     private:
         typedef VectorBuffer<T, inlineCapacity> Buffer;
         typedef VectorTypeOperations<T> TypeOperations;
@@ -602,9 +637,10 @@ namespace WTF {
             if (!begin())
                 return *this;
         }
-        
-        std::copy(other.begin(), other.begin() + size(), begin());
+        if(size() > 0)  // 5/20/10 Chris Sidhall - Added for assert fix.
+            std::copy(other.begin(), other.begin() + size(), begin());
         TypeOperations::uninitializedCopy(other.begin() + size(), other.end(), end());
+        
         m_size = other.size();
 
         return *this;
@@ -626,7 +662,8 @@ namespace WTF {
                 return *this;
         }
         
-        std::copy(other.begin(), other.begin() + size(), begin());
+        if(size() > 0)  // 5/20/10 Chris Sidhall - Added for assert fix.
+            std::copy(other.begin(), other.begin() + size(), begin());
         TypeOperations::uninitializedCopy(other.begin() + size(), other.end(), end());
         m_size = other.size();
 
@@ -661,7 +698,7 @@ namespace WTF {
     template<typename T, size_t inlineCapacity>
     void Vector<T, inlineCapacity>::expandCapacity(size_t newMinCapacity)
     {
-        reserveCapacity(max(newMinCapacity, max(static_cast<size_t>(16), capacity() + capacity() / 4 + 1)));
+        reserveCapacity(max(newMinCapacity, max(static_cast<size_t>(8), capacity() + capacity() / 4 + 1)));
     }
     
     template<typename T, size_t inlineCapacity>

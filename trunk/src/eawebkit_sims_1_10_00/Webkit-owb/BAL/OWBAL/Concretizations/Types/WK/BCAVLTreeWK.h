@@ -30,7 +30,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef KJS_AVL_TREE_H_
@@ -68,7 +68,7 @@ namespace KJS {
 //   };
 
 template<unsigned maxDepth>
-class AVLTreeDefaultBSet: public WTF::FastAllocBase {
+class AVLTreeDefaultBSet/*: public WTF::FastAllocBase*/ {
 public:
     bool& operator[](unsigned i) { ASSERT(i < maxDepth); return m_data[i]; }
     void set() { for (unsigned i = 0; i < maxDepth; ++i) m_data[i] = true; }
@@ -129,7 +129,7 @@ private:
 // You pick 28 because MN(28) is 832,039, which is less than or equal to 1,000,000, and MN(29) is 1,346,268, which is strictly greater than 1,000,000.
 
 template <class Abstractor, unsigned maxDepth = 32, class BSet = AVLTreeDefaultBSet<maxDepth> >
-class AVLTree: public WTF::FastAllocBase {
+class AVLTree/*: public WTF::FastAllocBase*/ {
 public:
 
     typedef typename Abstractor::key key;
@@ -163,7 +163,7 @@ public:
 
     AVLTree() { abs.root = null(); }
 
-    class Iterator: public WTF::FastAllocBase {
+    class Iterator/*: public WTF::FastAllocBase*/ {
     public:
 
         // Initialize depth to invalid value, to indicate iterator is

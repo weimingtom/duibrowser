@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -45,7 +45,7 @@ static inline float distanceLine(const FloatPoint& start, const FloatPoint& end)
 }
 #include <wtf/FastAllocBase.h>
 
-struct QuadraticBezier: public WTF::FastAllocBase {
+struct QuadraticBezier/*: public WTF::FastAllocBase*/ {
     QuadraticBezier() { }
     QuadraticBezier(const FloatPoint& s, const FloatPoint& c, const FloatPoint& e)
         : start(s)
@@ -77,7 +77,7 @@ struct QuadraticBezier: public WTF::FastAllocBase {
     FloatPoint end;
 };
 
-struct CubicBezier: public WTF::FastAllocBase {
+struct CubicBezier/*: public WTF::FastAllocBase*/ {
     CubicBezier() { }
     CubicBezier(const FloatPoint& s, const FloatPoint& c1, const FloatPoint& c2, const FloatPoint& e)
         : start(s)

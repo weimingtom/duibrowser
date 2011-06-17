@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef DeprecatedValueList_h
@@ -45,7 +45,7 @@ public:
     friend class DeprecatedValueList<T>;
 };
 
-template<class T> class DeprecatedValueListIterator: public WTF::FastAllocBase {
+template<class T> class DeprecatedValueListIterator/*: public WTF::FastAllocBase*/ {
 public: 
     DeprecatedValueListIterator() { }
 
@@ -67,7 +67,7 @@ private:
     friend class DeprecatedValueListConstIterator<T>;
 };
 
-template<class T> class DeprecatedValueListConstIterator: public WTF::FastAllocBase {
+template<class T> class DeprecatedValueListConstIterator/*: public WTF::FastAllocBase*/ {
 public:
     DeprecatedValueListConstIterator() { }
     DeprecatedValueListConstIterator(const DeprecatedValueListIterator<T> &it) : impl(it.impl) { }
@@ -91,7 +91,7 @@ private:
 
 template<class T> bool operator==(const DeprecatedValueList<T> &a, const DeprecatedValueList<T> &b);
 
-template <class T> class DeprecatedValueList: public WTF::FastAllocBase {
+template <class T> class DeprecatedValueList/*: public WTF::FastAllocBase*/ {
 public:
     typedef DeprecatedValueListIterator<T> Iterator;
     typedef DeprecatedValueListIterator<T> iterator;

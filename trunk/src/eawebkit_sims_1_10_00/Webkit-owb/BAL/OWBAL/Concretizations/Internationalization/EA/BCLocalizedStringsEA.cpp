@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2004,2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2004,2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -38,7 +38,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PlatformString.h"
 #include "IntSize.h"
 #include <EAWebKit/EAWebKit.h>
-
+#include <EAWebKit/internal/EAWebKitViewHelper.h> // For multiview support
 
 namespace OWBAL {
 
@@ -50,7 +50,8 @@ String getLocalizedString(LocalizedStringType type)
 
     if(pVN)
     {
-        EA::WebKit::StringInfo si = { type }; si.mString16[0] = 0; si.mString8[0] = 0;
+        EA::WebKit::View* pView = EA::WebKit::AutoSetActiveView::GetActiveView();
+        EA::WebKit::StringInfo si = { pView, type }; si.mString16[0] = 0; si.mString8[0] = 0;
         bHandled = pVN->GetString(si);
 
         if(bHandled)

@@ -36,6 +36,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //////////////////////////////////////////////////////////////////////////////
 
 #include "StreamDecompressor.h"
+#if (ENABLE_PAYLOAD_DECOMPRESSION)
 #include <EAWebKit/EAWebKit.h>
 #include <EAAssert/eaassert.h>
 
@@ -64,10 +65,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //Smaller numbers fail inexplicably. Since we receive data in 1K chunks,we end up allocating a 16K buffer for decompression.
 const int kDecompressionBufferFactor = 16;
-
-#ifndef BUILDING_EAWEBKIT_DLL
-extern EA::WebKit::IEAWebkit* gEAWebkitInstance;
-#endif
 
 extern "C" voidpf EAWEBKIT_ZLIB_ALLOC(voidpf pOpaque, uInt items, uInt size)
 {
@@ -448,3 +445,4 @@ namespace EA
 	
 }
 
+#endif //ENABLE_PAYLOAD_DECOMPRESSION

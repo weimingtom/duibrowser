@@ -84,7 +84,7 @@ void Pasteboard::staticFinalize()
 }
 
 // Read from the clipboard
-String Pasteboard::plainText(Frame* /*frame*/)
+String Pasteboard::plainText(Frame* pFrame)
 {
     WebCore::String retVal;
 
@@ -94,12 +94,13 @@ String Pasteboard::plainText(Frame* /*frame*/)
     {
         EA::WebKit::ClipboardEventInfo cei;
 
+        cei.mpView = EA::WebKit::GetView(pFrame);
         cei.mReadFromClipboard = true;
 
         pVN->ClipboardEvent(cei); // We can ignore the return value and just look at cei.mText.
 
-        if(!GET_FIXEDSTRING16(cei.mText)->empty())
-            retVal = GET_FIXEDSTRING16(cei.mText)->c_str();
+        if(!GetFixedString(cei.mText)->empty())
+            retVal = GetFixedString(cei.mText)->c_str();
     }
 
     return retVal;
@@ -113,11 +114,15 @@ void Pasteboard::writeSelection(Range* /*selectedRange*/, bool /*canSmartCopyOrD
     if(pVN) // This should always be true.
     {
         EA::WebKit::ClipboardEventInfo cei;
-
+        EA::WebKit::View*   pView= NULL;
+        if(frame)
+            pView = EA::WebKit::GetView(frame);
+        
+        cei.mpView = pView;
         cei.mReadFromClipboard = false;
 
         const String str = frame->selectedText();
-        GET_FIXEDSTRING16(cei.mText)->assign(str.characters(), str.length());
+        GetFixedString(cei.mText)->assign(str.characters(), str.length());
 
         pVN->ClipboardEvent(cei);
     }

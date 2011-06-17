@@ -23,7 +23,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -53,7 +53,7 @@ namespace OWBAL {
 
 static inline UChar* newUCharVector(unsigned n)
 {
-    return static_cast<UChar*>(fastMalloc(sizeof(UChar) * n));
+	return static_cast<UChar*>(fastMalloc(sizeof(UChar) * n, 0, "BCStringImplWK:newUCharVector"));
 }
 
 static inline void deleteUCharVector(const UChar* p)
@@ -1041,7 +1041,7 @@ PassRefPtr<StringImpl> StringImpl::adopt(StringBuffer& buffer)
     unsigned length = buffer.length();
     if (length == 0)
         return empty();
-    return adoptRef(new StringImpl(buffer.release(), length, AdoptBuffer()));
+    return adoptRef(EAWEBKIT_NEW("StringImpl") StringImpl(buffer.release(), length, AdoptBuffer()));
 }
 
 PassRefPtr<StringImpl> StringImpl::adopt(Vector<UChar>& vector)
@@ -1049,21 +1049,21 @@ PassRefPtr<StringImpl> StringImpl::adopt(Vector<UChar>& vector)
     size_t size = vector.size();
     if (size == 0)
         return empty();
-    return adoptRef(new StringImpl(vector.releaseBuffer(), size, AdoptBuffer()));
+    return adoptRef(EAWEBKIT_NEW("StringImpl") StringImpl(vector.releaseBuffer(), size, AdoptBuffer()));
 }
 
 PassRefPtr<StringImpl> StringImpl::create(const UChar* characters, unsigned length)
 {
     if (!characters || !length)
         return empty();
-    return adoptRef(new StringImpl(characters, length));
+    return adoptRef(EAWEBKIT_NEW("StringImpl") StringImpl(characters, length));
 }
 
 PassRefPtr<StringImpl> StringImpl::create(const char* characters, unsigned length)
 {
     if (!characters || !length)
         return empty();
-    return adoptRef(new StringImpl(characters, length));
+    return adoptRef(EAWEBKIT_NEW("StringImpl") StringImpl(characters, length));
 }
 
 PassRefPtr<StringImpl> StringImpl::create(const char* string)
@@ -1073,17 +1073,17 @@ PassRefPtr<StringImpl> StringImpl::create(const char* string)
     unsigned length = strlen(string);
     if (!length)
         return empty();
-    return adoptRef(new StringImpl(string, length));
+    return adoptRef(EAWEBKIT_NEW("StringImpl") StringImpl(string, length));
 }
 
 PassRefPtr<StringImpl> StringImpl::createWithTerminatingNullCharacter(const StringImpl& string)
 {
-    return adoptRef(new StringImpl(string, WithTerminatingNullCharacter()));
+    return adoptRef(EAWEBKIT_NEW("StringImpl") StringImpl(string, WithTerminatingNullCharacter()));
 }
 
 PassRefPtr<StringImpl> StringImpl::copy()
 {
-    return adoptRef(new StringImpl(m_data, m_length));
+    return adoptRef(EAWEBKIT_NEW("StringImpl") StringImpl(m_data, m_length));
 }
 
 } // namespace WebCore
