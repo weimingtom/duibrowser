@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ContextMenuClient_h
@@ -41,7 +41,7 @@ namespace WebCore {
     class KURL;
     class String;
 
-    class ContextMenuClient: public WTF::FastAllocBase {
+    class ContextMenuClient/*: public WTF::FastAllocBase*/ {
     public:
         virtual ~ContextMenuClient() {  }
         virtual void contextMenuDestroyed() = 0;

@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef RenderThemeQt_H
@@ -146,7 +146,7 @@ private:
     QStyle* fallbackStyle();
 };
 
-class StylePainter: public WTF::FastAllocBase
+class StylePainter/*: public WTF::FastAllocBase*/
 {
 public:
     explicit StylePainter(const RenderObject::PaintInfo& paintInfo);

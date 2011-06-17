@@ -19,7 +19,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef StringHash_h
@@ -37,7 +37,7 @@ namespace WebCore {
     // currently a member function of StringImpl into this file so we can be a little
     // closer to having all the nearly-identical hash functions in one place.
 
-    struct StringHash: public WTF::FastAllocBase {
+    struct StringHash/*: public WTF::FastAllocBase*/ {
         static unsigned hash(StringImpl* key) { return key->hash(); }
         static bool equal(StringImpl* a, StringImpl* b)
         {
@@ -80,7 +80,7 @@ namespace WebCore {
         static const bool safeToCompareToEmptyOrDeleted = false;
     };
 
-    class CaseFoldingHash: public WTF::FastAllocBase {
+    class CaseFoldingHash/*: public WTF::FastAllocBase*/ {
     private:
         // Golden ratio - arbitrary start value to avoid mapping all 0's to all 0's
         static const unsigned PHI = 0x9e3779b9U;

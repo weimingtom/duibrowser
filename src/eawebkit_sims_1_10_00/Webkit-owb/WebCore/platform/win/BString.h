@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef BString_h
@@ -47,7 +47,7 @@ namespace WebCore {
     class KURL;
     class String;
 
-    class BString: public WTF::FastAllocBase {
+    class BString/*: public WTF::FastAllocBase*/ {
     public:
         BString();
         BString(const wchar_t*);

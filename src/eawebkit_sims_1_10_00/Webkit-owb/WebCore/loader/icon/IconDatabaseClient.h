@@ -27,7 +27,7 @@
  */
  
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef IconDatabaseClient_h
@@ -41,7 +41,7 @@ namespace WebCore {
 
 class String;
 
-class IconDatabaseClient: public WTF::FastAllocBase {
+class IconDatabaseClient/*: public WTF::FastAllocBase*/ {
 public:
     virtual ~IconDatabaseClient() { }
     virtual bool performImport() { return true; }

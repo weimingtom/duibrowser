@@ -28,7 +28,7 @@
  */
  
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef FileSystem_h
@@ -62,7 +62,7 @@ typedef HANDLE PlatformFileHandle;
 typedef HMODULE PlatformModule;
 const PlatformFileHandle invalidPlatformFileHandle = INVALID_HANDLE_VALUE;
 
-struct PlatformModuleVersion: public WTF::FastAllocBase {
+struct PlatformModuleVersion/*: public WTF::FastAllocBase*/ {
     unsigned leastSig;
     unsigned mostSig;
 
@@ -88,7 +88,7 @@ typedef QLibrary* PlatformModule;
 typedef unsigned PlatformModuleVersion;
 #elif defined(Q_OS_WIN32)
 typedef HMODULE PlatformModule;
-struct PlatformModuleVersion: public WTF::FastAllocBase {
+struct PlatformModuleVersion/*: public WTF::FastAllocBase*/ {
     unsigned leastSig;
     unsigned mostSig;
 

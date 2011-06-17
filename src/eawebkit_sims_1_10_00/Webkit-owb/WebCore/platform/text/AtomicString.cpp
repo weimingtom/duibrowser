@@ -21,7 +21,6 @@
 /*
 * This file was modified by Electronic Arts Inc Copyright © 2009
 */
-
 #include "config.h"
 
 #ifdef AVOID_STATIC_CONSTRUCTORS
@@ -43,7 +42,7 @@ namespace WebCore {
 static HashSet<StringImpl*>* stringTable;
 #include <wtf/FastAllocBase.h>
 
-struct CStringTranslator: public WTF::FastAllocBase {
+struct CStringTranslator/*: public WTF::FastAllocBase*/ {
     static unsigned hash(const char* c)
     {
         return StringImpl::computeHash(c);
@@ -63,7 +62,7 @@ struct CStringTranslator: public WTF::FastAllocBase {
 
     static void translate(StringImpl*& location, const char* const& c, unsigned hash)
     {
-        location = new StringImpl(c, strlen(c), hash); 
+        location = EAWEBKIT_NEW("StringImplTranslate") StringImpl(c, strlen(c), hash); 
     }
 };
 

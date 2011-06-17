@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ResourceHandleClient_h
@@ -63,7 +63,7 @@ namespace WebCore {
         StorageNotAllowed,
     };
     
-    class ResourceHandleClient: public WTF::FastAllocBase {
+    class ResourceHandleClient/*: public WTF::FastAllocBase*/ {
     public:
         virtual ~ResourceHandleClient() { }
 

@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef TextEncoding_h
@@ -39,7 +39,7 @@ namespace WebCore {
     class CString;
     class String;
 
-    class TextEncoding: public WTF::FastAllocBase {
+    class TextEncoding/*: public WTF::FastAllocBase*/ {
     public:
         TextEncoding() : m_name(0) { }
         TextEncoding(const char* name);

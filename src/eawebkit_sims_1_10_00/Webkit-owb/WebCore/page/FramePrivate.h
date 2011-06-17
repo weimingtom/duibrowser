@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef FramePrivate_h
@@ -70,7 +70,7 @@ namespace WebCore {
 
     typedef HashMap<void*, RefPtr<KJS::Bindings::RootObject> > RootObjectMap;
     
-    class FramePrivate: public WTF::FastAllocBase {
+    class FramePrivate/*: public WTF::FastAllocBase*/ {
     public:
         FramePrivate(Page*, Frame* parent, Frame* thisFrame, HTMLFrameOwnerElement*, FrameLoaderClient*);
         ~FramePrivate();

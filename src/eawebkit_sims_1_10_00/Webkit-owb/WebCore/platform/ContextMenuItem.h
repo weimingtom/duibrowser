@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ContextMenuItem_h
@@ -140,7 +140,7 @@ namespace WebCore {
 #elif PLATFORM(WIN)
     typedef LPMENUITEMINFO PlatformMenuItemDescription;
 #elif PLATFORM(QT)
-    struct PlatformMenuItemDescription: public WTF::FastAllocBase {
+    struct PlatformMenuItemDescription/*: public WTF::FastAllocBase*/ {
         PlatformMenuItemDescription()
             : type(ActionType),
               action(ContextMenuItemTagNoAction),
@@ -156,7 +156,7 @@ namespace WebCore {
         bool enabled;
     };
 #elif PLATFORM(GTK)
-    struct PlatformMenuItemDescription: public WTF::FastAllocBase {
+    struct PlatformMenuItemDescription/*: public WTF::FastAllocBase*/ {
         PlatformMenuItemDescription()
             : type(ActionType)
             , action(ContextMenuItemTagNoAction)
@@ -176,7 +176,7 @@ namespace WebCore {
     typedef wxMenuItem* PlatformMenuItemDescription;
 #endif
 
-    class ContextMenuItem: public WTF::FastAllocBase {
+    class ContextMenuItem/*: public WTF::FastAllocBase*/ {
     public:
         ContextMenuItem(PlatformMenuItemDescription);
         ContextMenuItem(ContextMenu* subMenu = 0);

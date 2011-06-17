@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef GraphicsContextPrivate_h
@@ -35,7 +35,7 @@
 
 namespace WebCore {
 
-    struct GraphicsContextState: public WTF::FastAllocBase {
+    struct GraphicsContextState/*: public WTF::FastAllocBase*/ {
         GraphicsContextState()
             : strokeStyle(SolidStroke)
             , strokeThickness(0)
@@ -59,7 +59,7 @@ namespace WebCore {
         Color shadowColor;
     };
 
-    class GraphicsContextPrivate: public WTF::FastAllocBase {
+    class GraphicsContextPrivate/*: public WTF::FastAllocBase*/ {
     public:
         GraphicsContextPrivate()
             : m_focusRingWidth(0)

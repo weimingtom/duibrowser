@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef DragController_h
@@ -52,7 +52,7 @@ namespace WebCore {
     class Range;
     class SelectionController;
     
-    class DragController: public WTF::FastAllocBase {
+    class DragController/*: public WTF::FastAllocBase*/ {
     public:
         DragController(Page*, DragClient*);
         ~DragController();

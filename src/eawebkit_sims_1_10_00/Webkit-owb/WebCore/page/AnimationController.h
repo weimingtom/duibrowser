@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef AnimationController_h
@@ -42,7 +42,7 @@ class Frame;
 class RenderObject;
 class RenderStyle;
 
-class AnimationController: public WTF::FastAllocBase
+class AnimationController/*: public WTF::FastAllocBase*/
 {
 public:
     AnimationController(Frame*);

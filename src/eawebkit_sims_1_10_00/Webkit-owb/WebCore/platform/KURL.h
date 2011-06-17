@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef KURL_h
@@ -60,7 +60,7 @@ class TextEncoding;
 // We should fix the terminology to match the URL and URI RFCs as closely
 // as possible to resolve this.
 
-class KURL: public WTF::FastAllocBase {
+class KURL/*: public WTF::FastAllocBase*/ {
 public:
     // Generates a URL which contains a null string.
     KURL() { invalidate(); }

@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef CString_h
@@ -55,7 +55,7 @@ namespace WebCore {
 
     // A container for a null-terminated char array supporting copy-on-write
     // assignment.  The contained char array may be null.
-    class CString: public WTF::FastAllocBase {
+    class CString/*: public WTF::FastAllocBase*/ {
     public:
         CString() { }
         CString(const char*);

@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -51,7 +51,7 @@ static const double finalProgressValue = 0.9; // 1.0 - initialProgressValue
 static const int progressItemDefaultEstimatedLength = 1024 * 16;
 #include <wtf/FastAllocBase.h>
 
-struct ProgressItem: public WTF::FastAllocBase {
+struct ProgressItem/*: public WTF::FastAllocBase*/ {
     ProgressItem(long long length) 
         : bytesReceived(0)
         , estimatedLength(length) { }

@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef GDIObjectCounter_h
@@ -46,7 +46,7 @@
 
 namespace WebCore {
 
-    class GDIObjectCounter: public WTF::FastAllocBase {
+    class GDIObjectCounter/*: public WTF::FastAllocBase*/ {
     public:
         GDIObjectCounter(const String& identifier);
         GDIObjectCounter(const String& className, void* instance);

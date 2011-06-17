@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef FontCache_h
@@ -54,7 +54,7 @@ class FontDescription;
 class FontSelector;
 class SimpleFontData;
 
-class FontCache: public WTF::FastAllocBase {
+class FontCache/*: public WTF::FastAllocBase*/ {
 public:
     static const FontData* getFontData(const Font&, int& familyIndex, FontSelector*);
     static void releaseFontData(const SimpleFontData*);

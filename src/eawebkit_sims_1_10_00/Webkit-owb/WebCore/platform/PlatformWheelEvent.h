@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef PlatformWheelEvent_h
@@ -64,7 +64,7 @@ class wxPoint;
 
 namespace WebCore {
 
-    class PlatformWheelEvent: public WTF::FastAllocBase {
+    class PlatformWheelEvent/*: public WTF::FastAllocBase*/ {
     public:
         const IntPoint& pos() const { return m_position; }
         const IntPoint& globalPos() const { return m_globalPosition; }

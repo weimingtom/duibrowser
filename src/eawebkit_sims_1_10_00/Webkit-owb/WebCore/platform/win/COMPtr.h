@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef COMPtr_h
@@ -47,7 +47,7 @@ enum AdoptCOMTag { AdoptCOM };
 enum QueryTag { Query };
 enum CreateTag { Create };
 
-template <typename T> class COMPtr: public WTF::FastAllocBase {
+template <typename T> class COMPtr/*: public WTF::FastAllocBase*/ {
 public:
     COMPtr() : m_ptr(0) { }
     COMPtr(T* ptr) : m_ptr(ptr) { if (m_ptr) m_ptr->AddRef(); }

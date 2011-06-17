@@ -25,7 +25,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Cache_h
@@ -64,7 +64,8 @@ class KURL;
 
 class Cache : Noncopyable {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -93,6 +94,7 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
+#endif //NO_MACRO_NEW
 private:
     static Cache* staticCache;
 public:
@@ -106,13 +108,13 @@ public:
 
     typedef HashMap<String, CachedResource*> CachedResourceMap;
 
-    struct LRUList: public WTF::FastAllocBase {
+    struct LRUList/*: public WTF::FastAllocBase*/ {
         CachedResource* m_head;
         CachedResource* m_tail;
         LRUList() : m_head(0), m_tail(0) { }
     };
 
-    struct TypeStatistic: public WTF::FastAllocBase {
+    struct TypeStatistic/*: public WTF::FastAllocBase*/ {
         int count;
         int size;
         int liveSize;
@@ -120,7 +122,7 @@ public:
         TypeStatistic() : count(0), size(0), liveSize(0), decodedSize(0) { }
     };
     
-    struct Statistics: public WTF::FastAllocBase {
+    struct Statistics/*: public WTF::FastAllocBase*/ {
         TypeStatistic images;
         TypeStatistic cssStyleSheets;
         TypeStatistic scripts;

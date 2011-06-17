@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef FrameLoaderClient_h
@@ -73,7 +73,7 @@ namespace WebCore {
 
     typedef void (FrameLoader::*FramePolicyFunction)(PolicyAction);
 
-    class FrameLoaderClient: public WTF::FastAllocBase {
+    class FrameLoaderClient/*: public WTF::FastAllocBase*/ {
     public:
         virtual ~FrameLoaderClient() { }
         virtual void frameLoaderDestroyed() = 0;

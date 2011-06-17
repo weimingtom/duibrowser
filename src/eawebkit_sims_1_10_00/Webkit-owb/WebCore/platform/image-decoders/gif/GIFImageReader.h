@@ -36,7 +36,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef _GIF_H_
@@ -81,7 +81,7 @@ typedef enum {
     gif_consume_comment
 } gstate;
 
-struct GIFFrameReader: public WTF::FastAllocBase {
+struct GIFFrameReader/*: public WTF::FastAllocBase*/ {
     /* LZW decoder state machine */
     unsigned char *stackp;              /* Current stack pointer */
     int datasize;
@@ -156,7 +156,7 @@ struct GIFFrameReader: public WTF::FastAllocBase {
     }
 };
 
-struct GIFImageReader: public WTF::FastAllocBase {
+struct GIFImageReader/*: public WTF::FastAllocBase*/ {
     WebCore::GIFImageDecoder* clientptr;
     /* Parsing state machine */
     gstate state;                      /* Current decoder master state */

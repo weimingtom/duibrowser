@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 namespace WebCore {
@@ -32,7 +32,7 @@ namespace WebCore {
     #define kTextEncodingISOLatinThai kCFStringEncodingISOLatinThai
 #include <wtf/FastAllocBase.h>
 
-    struct CharsetEntry: public WTF::FastAllocBase {
+    struct CharsetEntry/*: public WTF::FastAllocBase*/ {
         const char* name;
         ::TextEncoding encoding;
     };

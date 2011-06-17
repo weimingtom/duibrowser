@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ResourceHandleWin_h
@@ -35,14 +35,14 @@
 
 namespace WebCore {
 
-struct PlatformDataStruct: public WTF::FastAllocBase
+struct PlatformDataStruct/*: public WTF::FastAllocBase*/
 {
     DWORD   error;
     BOOL    loaded;
     LPTSTR  errorString;
 };
 
-struct PlatformResponseStruct: public WTF::FastAllocBase
+struct PlatformResponseStruct/*: public WTF::FastAllocBase*/
 {
 };
 

@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Pen_h
@@ -39,7 +39,7 @@ class wxPen;
 
 namespace WebCore {
 
-class Pen: public WTF::FastAllocBase {
+class Pen/*: public WTF::FastAllocBase*/ {
 public:
     enum PenStyle {
         NoPen,

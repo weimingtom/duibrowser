@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ManifestParser_h
@@ -42,7 +42,7 @@ namespace WebCore {
 
 class KURL;
 
-struct Manifest: public WTF::FastAllocBase {
+struct Manifest/*: public WTF::FastAllocBase*/ {
     HashSet<String> onlineWhitelistedURLs;
     HashSet<String> explicitURLs;
     HashMap<String, String> fallbackURLs;

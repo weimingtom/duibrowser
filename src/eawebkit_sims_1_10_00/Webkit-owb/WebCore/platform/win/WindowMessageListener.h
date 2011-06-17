@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WindowMessageListener_h
@@ -41,7 +41,7 @@ typedef unsigned WPARAM;
 
 namespace WebCore {
 
-    class WindowMessageListener: public WTF::FastAllocBase {
+    class WindowMessageListener/*: public WTF::FastAllocBase*/ {
     public:
         virtual void windowReceivedMessage(HWND, UINT message, WPARAM, LPARAM) = 0;
     };

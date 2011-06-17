@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef PlatformMouseEvent_h
@@ -74,7 +74,7 @@ namespace WebCore {
     enum MouseButton { NoButton = -1, LeftButton, MiddleButton, RightButton };
     enum MouseEventType { MouseEventMoved, MouseEventPressed, MouseEventReleased, MouseEventScroll };
     
-    class PlatformMouseEvent: public WTF::FastAllocBase {
+    class PlatformMouseEvent/*: public WTF::FastAllocBase*/ {
     public:
         PlatformMouseEvent()
             : m_button(NoButton)

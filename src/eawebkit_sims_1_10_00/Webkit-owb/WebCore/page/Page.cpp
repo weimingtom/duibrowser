@@ -18,7 +18,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -73,7 +73,7 @@ static HashSet<Page*>* allPages;
 WTFLogChannel LogWebCorePageLeaks =  { 0x00000000, "", WTFLogChannelOn };
 
 #include <wtf/FastAllocBase.h>
-struct PageCounter: public WTF::FastAllocBase {
+struct PageCounter/*: public WTF::FastAllocBase*/ {
     static int count; 
     ~PageCounter() 
     { 

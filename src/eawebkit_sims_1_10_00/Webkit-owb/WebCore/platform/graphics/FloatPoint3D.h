@@ -20,7 +20,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef FloatPoint3D_h
@@ -31,7 +31,7 @@
 
 namespace WebCore {
 
-class FloatPoint3D: public WTF::FastAllocBase {
+class FloatPoint3D/*: public WTF::FastAllocBase*/ {
 public:
     FloatPoint3D();
     FloatPoint3D(float x, float y, float z);

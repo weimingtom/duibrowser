@@ -21,7 +21,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef CachedResource_h
@@ -46,7 +46,7 @@ class Request;
 // A resource that is held in the cache. Classes who want to use this object should derive
 // from CachedResourceClient, to get the function calls in case the requested data has arrived.
 // This class also does the actual communication with the loader to obtain the resource from the network.
-class CachedResource: public WTF::FastAllocBase {
+class CachedResource/*: public WTF::FastAllocBase*/ {
     friend class Cache;
     
 public:

@@ -26,7 +26,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -79,6 +79,7 @@
 #include "npruntime_impl.h"
 #include "runtime_root.h"
 #include "visible_units.h"
+#include <EAWebKit/internal/EAWebKitViewHelper.h> // For multiview support
 
 #if FRAME_LOADS_USER_STYLESHEET
 #include "UserStyleSheetLoader.h"
@@ -105,7 +106,7 @@ double Frame::s_currentPaintTimeStamp = 0.0;
 WTFLogChannel LogWebCoreFrameLeaks =  { 0x00000000, "", WTFLogChannelOn };
 
 #include <wtf/FastAllocBase.h>
-struct FrameCounter: public WTF::FastAllocBase {
+struct FrameCounter/*: public WTF::FastAllocBase*/ {
     static int count; 
     ~FrameCounter() 
     { 
@@ -641,8 +642,12 @@ void Frame::selectionLayoutChanged()
 
 void Frame::caretBlinkTimerFired(Timer<Frame>*)
 {
+    EA::WebKit::View* pView = EA::WebKit::GetView(view());
+    SET_AUTO_ACTIVE_VIEW(pView);   // For mutliple view support for could be fired inside another view currently
+
     ASSERT(d->m_caretVisible);
     ASSERT(selection()->isCaret());
+
     bool caretPaint = d->m_caretPaint;
     if (selection()->isCaretBlinkingSuspended() && caretPaint)
         return;

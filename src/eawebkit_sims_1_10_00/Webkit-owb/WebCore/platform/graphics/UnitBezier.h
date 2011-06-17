@@ -24,7 +24,7 @@
  */
  
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef UnitBezier_h
@@ -35,7 +35,7 @@
 
 namespace WebCore {
 
-    struct UnitBezier: public WTF::FastAllocBase {
+    struct UnitBezier/*: public WTF::FastAllocBase*/ {
         UnitBezier(double p1x, double p1y, double p2x, double p2y)
         {
             // Calculate the polynomial coefficients, implicit first and last control points are (0,0) and (1,1).

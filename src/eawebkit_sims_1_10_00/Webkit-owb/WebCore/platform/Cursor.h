@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Cursor_h
@@ -84,7 +84,7 @@ namespace WebCore {
     typedef void* PlatformCursor;
 #endif
 
-    class Cursor: public WTF::FastAllocBase {
+    class Cursor/*: public WTF::FastAllocBase*/ {
     public:
         Cursor()
 #if !PLATFORM(QT)

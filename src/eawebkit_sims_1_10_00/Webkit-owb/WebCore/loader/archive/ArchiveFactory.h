@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ArchiveFactory_h
@@ -43,7 +43,7 @@ namespace WebCore {
 class SharedBuffer;
 class String;
 
-class ArchiveFactory: public WTF::FastAllocBase {
+class ArchiveFactory/*: public WTF::FastAllocBase*/ {
 public:
     static bool isArchiveMimeType(const String&);
     static PassRefPtr<Archive> create(SharedBuffer* data, const String& mimeType);

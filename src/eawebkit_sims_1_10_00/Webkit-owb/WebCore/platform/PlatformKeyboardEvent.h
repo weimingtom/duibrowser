@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef PlatformKeyboardEvent_h
@@ -66,7 +66,7 @@ class wxKeyEvent;
 
 namespace WebCore {
 
-    class PlatformKeyboardEvent: public WTF::FastAllocBase {
+    class PlatformKeyboardEvent/*: public WTF::FastAllocBase*/ {
     public:
         enum Type {
             // KeyDown is sent by platforms such as Mac OS X, gtk and Qt, and has information about both physical pressed key, and its translation.

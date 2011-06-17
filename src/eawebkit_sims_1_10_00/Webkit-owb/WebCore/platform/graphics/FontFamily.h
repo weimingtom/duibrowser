@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef FontFamily_h
@@ -39,7 +39,7 @@ namespace WebCore {
 
 class SharedFontFamily;
 
-class FontFamily: public WTF::FastAllocBase {
+class FontFamily/*: public WTF::FastAllocBase*/ {
 public:
     FontFamily() { }
     FontFamily(const FontFamily&);    

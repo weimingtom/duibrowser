@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ResourceResponseBase_h
@@ -40,7 +40,7 @@ namespace WebCore {
 class ResourceResponse;
 
 // Do not use this class directly, use the class ResponseResponse instead
-class ResourceResponseBase: public WTF::FastAllocBase {
+class ResourceResponseBase/*: public WTF::FastAllocBase*/ {
  public:
 
     bool isNull() const { return m_isNull; }
