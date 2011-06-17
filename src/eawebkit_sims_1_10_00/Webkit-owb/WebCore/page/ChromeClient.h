@@ -27,6 +27,7 @@
 
 #include <wtf/FastAllocBase.h>
 #include "FocusDirection.h"
+#include "IntPoint.h"
 #include <wtf/Forward.h>
 #include <wtf/Vector.h>
 
@@ -118,7 +119,7 @@ namespace WebCore {
 
         virtual void mouseDidMoveOverElement(const HitTestResult&, unsigned modifierFlags) = 0;
 
-        virtual void setToolTip(const String&) = 0;
+        virtual void setToolTip(const String&, WebCore::IntPoint, const int handleID) = 0;   // 6/10/10 CSidhall - Added location info for client.
 
         virtual void print(Frame*) = 0;
 

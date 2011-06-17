@@ -49,7 +49,8 @@
 #include <kjs/interpreter.h>
 #include <math.h>
 #include <stdio.h>
-#include "EARaster.h"
+#include <EARaster/EARaster.h>
+#include <EAWebKit/EAWebKit.h>
 
 #if PLATFORM(QT)
 #include <QPainter>
@@ -169,8 +170,10 @@ CanvasRenderingContext* HTMLCanvasElement::getContext(const String& type)
 
 void HTMLCanvasElement::willDraw(const FloatRect& rect)
 {
-    m_imageBuffer->clearImage();
-    
+    // 7/27/10 CSidhall - Commented out for now as this also can delete the surface but HTMCanvas is unaware of the delete so it will crash later on eventually.
+    // TO DO: Need to review this once we fully support html5 canvas draw.
+    // m_imageBuffer->clearImage();
+
     if (RenderObject* ro = renderer()) {
 #ifdef CANVAS_INCREMENTAL_REPAINT
         // Handle CSS triggered scaling
@@ -271,29 +274,13 @@ void HTMLCanvasElement::createImageBuffer() const
         return;
     m_imageBuffer.set(ImageBuffer::create(size, false).release());
 
-    // 8/10/09 CSidhall Added buffer clear for some canvas draw operations are not supported and would draw a random memory
+    // 8/10/09 CSidhall Added buffer clear for some canvas draw operations are not supported and would draw with random memory filled texture
     ImageBuffer* pB = buffer(); 
     if(pB) {
         BalSurface* pS = pB->surface(); 
         if(pS){
-            void *pData = pS->mpData;
-            if(pData) {
-#ifdef _DEBUG
-                // Fill in with Red for debug to flag problems
-                if(pS->mPixelFormat.mBytesPerPixel == 4){
-                    int value = 0xffff0000; // Red
-                    int *pDest = (int *) pData;
-                    int size = pS->mWidth * pS->mHeight;
-                    while(size--) {
-                        *pDest = value;
-                         pDest++;   
-                    }
-                }
-#else
-                // Fill with transparent in release
-                memset(pData, 0x00, (pS->mStride * pS->mHeight)); 
-#endif
-        }
+            const EA::Raster::Rect rect(0,0, pS->GetWidth(),pS->GetHeight());
+            EA::WebKit::GetEARasterInstance()->FillRectColor(pS, &rect, 0x00);
         }
     }
 }

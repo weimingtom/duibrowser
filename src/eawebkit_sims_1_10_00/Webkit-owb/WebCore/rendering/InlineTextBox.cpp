@@ -519,7 +519,20 @@ void InlineTextBox::paintSelection(GraphicsContext* context, int tx, int ty, Ren
     updateGraphicsContext(context, c, c, 0);  // Don't draw text at all!
     int y = selectionTop();
     int h = selectionHeight();
-    context->clip(IntRect(m_x + tx, y + ty, m_width, h));
+
+    //+ Chris Sidhall 7/20/10 - Clip fix for bug where text highlight extends beyond the text box size
+    // The inline text box needs to use the clip context of the parent so that it does not overflow for the
+    // the text width can be longer than the text box size.
+    FloatRect clipRect = context->getClip();
+    IntSize org =context->origin();
+    FloatRect childRect(IntRect(m_x + tx + org.width(), y + ty + org.height(), m_width, h)); 
+    clipRect.intersect(childRect);
+    // Now that the height and width have been clipped, we need to add in the origin offset again because the clip removes it from the x and y 
+    clipRect.setX( clipRect.x() - org.width());    
+    clipRect.setY( clipRect.y() - org.height());    
+    context->clip(clipRect);
+    //-CS
+
     context->drawHighlightForText(TextRun(textObject()->text()->characters() + m_start, m_len, textObject()->allowTabs(), textPos(), m_toAdd, direction() == RTL, m_dirOverride || style->visuallyOrdered()),
                             IntPoint(m_x + tx, y + ty), h, c, sPos, ePos);
     context->restore();

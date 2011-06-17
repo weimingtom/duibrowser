@@ -624,18 +624,35 @@ bool PluginView::isCallingPlugin()
 
 PluginView* PluginView::create(Frame* parentFrame, const IntSize& size, Element* element, const KURL& url, const Vector<String>& paramNames, const Vector<String>& paramValues, const String& mimeType, bool loadManually)
 {
-    // if we fail to find a plugin for this MIME type, findPlugin will search for
-    // a plugin by the file extension and update the MIME type, so pass a mutable String
-    String mimeTypeCopy = mimeType;
-    PluginPackage* plugin = PluginDatabase::installedPlugins()->findPlugin(url, mimeTypeCopy);
-
-    // No plugin was found, try refreshing the database and searching again
-    if (!plugin && PluginDatabase::installedPlugins()->refresh()) {
-        mimeTypeCopy = mimeType;
-        plugin = PluginDatabase::installedPlugins()->findPlugin(url, mimeTypeCopy);
+    //+ 10/14/10 CSidhall - Added to detect movie MIME type and redirect embebed movie MIME type 
+    // plugin to a generic movie notification API.    
+    const char* kMovieType ="movie";    
+    bool foundMovieMimeType = mimeType.contains(kMovieType, false);
+    
+    // If the embed does not have a movie MIME type, we will search the file extension    
+    if(!foundMovieMimeType) {
+        String extensionType = MIMETypeRegistry::getMIMETypeForPath(url.string());
+        foundMovieMimeType = extensionType.contains(kMovieType, false);
     }
+    if(foundMovieMimeType) {
+        return new MoviePluginView(parentFrame, size, NULL, element, url, paramNames, paramValues, mimeType, loadManually);       
+    }
+    // - CS
+    else {
+        // if we fail to find a plugin for this MIME type, findPlugin will search for
+        // a plugin by the file extension and update the MIME type, so pass a mutable String
+        String mimeTypeCopy = mimeType;
+        
+        PluginPackage* plugin = PluginDatabase::installedPlugins()->findPlugin(url, mimeTypeCopy);
 
-    return new PluginView(parentFrame, size, plugin, element, url, paramNames, paramValues, mimeTypeCopy, loadManually);
+        // No plugin was found, try refreshing the database and searching again
+        if (!plugin && PluginDatabase::installedPlugins()->refresh()) {
+            mimeTypeCopy = mimeType;
+            plugin = PluginDatabase::installedPlugins()->findPlugin(url, mimeTypeCopy);
+        }
+
+        return new PluginView(parentFrame, size, plugin, element, url, paramNames, paramValues, mimeTypeCopy, loadManually);   
+    }
 }
 
 void PluginView::freeStringArray(char** stringArray, int length)

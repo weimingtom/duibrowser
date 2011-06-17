@@ -54,13 +54,15 @@ namespace WebCore {
         bool setInitialFocus(FocusDirection, KeyboardEvent*);
         bool advanceFocus(FocusDirection, KeyboardEvent*, bool initialFocus = false);
         
-        bool setFocusedNode(Node*, PassRefPtr<Frame>);
+        bool setFocusedNode(Node*, PassRefPtr<Frame>, bool userInputCausedFocus = false);
 
         void setActive(bool);
         bool isActive() const { return m_isActive; }
 
     private:
-        Page* m_page;
+		void HandleAutoFocus(Node* node, Frame* newFocusedFramePtr);
+		
+		Page* m_page;
         RefPtr<Frame> m_focusedFrame;
         bool m_isActive;
     };

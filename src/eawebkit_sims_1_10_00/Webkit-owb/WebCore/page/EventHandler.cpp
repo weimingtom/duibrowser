@@ -914,6 +914,22 @@ bool EventHandler::handleMousePressEvent(const PlatformMouseEvent& mouseEvent)
 
     bool swallowEvent = dispatchMouseEvent(eventNames().mousedownEvent, mev.targetNode(), true, m_clickCount, mouseEvent, true);
 
+   //+ 12/10/10 CSidhall - EA
+    // Refresh the mouse scrollbar callback status. The existing system relied on the mouse move event to determine
+    // if the mouse is under a scroll bar however, we now redirect the move events to the modalinput (like a drop down surface select box) so that 
+    // it is possible to move a mouse over the main view without it being notified of movement.    
+    // So we now need to reavaluate the mouse over scrollbar during the button press event since it might have warped there.
+    // TO CONSIDER: Before and after a modal input redirect, have the eventHandler receive notification of lost and gained input focus. 
+    if (!m_lastScrollbarUnderMouse) {
+        // Find if we are under a scroll bar
+        PlatformScrollbar* scrollbar = 0;
+        if (m_frame->view())
+                scrollbar = m_frame->view()->scrollbarUnderMouse(mouseEvent);
+        if (!scrollbar)
+            scrollbar = mev.scrollbar();
+        m_lastScrollbarUnderMouse = scrollbar;
+    }
+
     // If the hit testing originally determined the event was in a scrollbar, refetch the MouseEventWithHitTestResults
     // in case the scrollbar widget was destroyed when the mouse event was handled.
     if (mev.scrollbar()) {
@@ -1352,7 +1368,7 @@ bool EventHandler::dispatchMouseEvent(const AtomicString& eventType, Node* targe
         // If focus shift is blocked, we eat the event.  Note we should never clear swallowEvent
         // if the page already set it (e.g., by canceling default behavior).
         if (node && node->isMouseFocusable()) {
-            if (!m_frame->page()->focusController()->setFocusedNode(node, m_frame))
+            if (!m_frame->page()->focusController()->setFocusedNode(node, m_frame,true))
                 swallowEvent = true;
         } else if (!node || !node->focused()) {
             if (!m_frame->page()->focusController()->setFocusedNode(0, m_frame))
