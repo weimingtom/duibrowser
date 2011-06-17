@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -37,6 +37,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <EABase/EABase.h>
 #include <CoreAllocator/icoreallocator_interface.h>
 #include <string.h>     // For memset
+#include <EAIO/EAFileStream.h>
 
 namespace EA
 {
@@ -345,6 +346,7 @@ namespace EA
             virtual uint32_t EnumerateFonts(FontDescription* pFontDescriptionArray, uint32_t nCount) = 0;
 			virtual uint32_t AddDirectory(const char16_t* pFaceDirectory, const char16_t* pFilter = NULL) = 0;
 			virtual bool AddSubstitution(const char16_t* pFamily, const char16_t* pFamilySubstitution) = 0;
+            virtual uint32_t AddFace(IO::IStream* pStream, FontType fontType) = 0;
 
             // Various font related interfaces
             virtual int32_t GetCombiningClass(Char c) = 0;
@@ -353,7 +355,7 @@ namespace EA
             virtual BidiClass GetBidiClass(Char c) = 0;
             virtual uint32_t GetFamilyNameArrayCapacity() = 0;
             virtual uint32_t GetFamilyNameCapacity() = 0;
-      
+            
             virtual IFontStyle* CreateTextStyle() = 0;
  
             // Text break iterator

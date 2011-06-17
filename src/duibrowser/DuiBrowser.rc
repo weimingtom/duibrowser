@@ -69,6 +69,7 @@ BEGIN
     BEGIN
         BLOCK "080404b0"
         BEGIN
+            VALUE "Comments", "Based EAWebKit 1.14.01"
             VALUE "FileDescription", "DuiBrowser"
             VALUE "FileVersion", "0, 0, 1, 2"
             VALUE "InternalName", "DuiBrowser"

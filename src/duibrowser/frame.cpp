@@ -446,6 +446,14 @@ void MainFrame::Init()
 
 void MainFrame::OnPrepare(TNotifyUI& msg)
 {
+	CButtonUI* back_button = static_cast<CButtonUI*>(paint_manager_.FindControl(kBackButtonControlName));
+	CButtonUI* forward_button = static_cast<CButtonUI*>(paint_manager_.FindControl(kForwardButtonControlName));
+	if ((back_button != NULL) && (forward_button != NULL))
+	{
+		back_button->SetEnabled(false);
+		forward_button->SetEnabled(false);
+	}
+
 	CControlUI* app_title = paint_manager_.FindControl(kTitleControlName);
 	CWebkitUI* webkit_control = static_cast<CWebkitUI*>(paint_manager_.FindControl(kWebkitControlName));
 	if ((webkit_control != NULL) && (app_title != NULL))
@@ -462,8 +470,6 @@ void MainFrame::UpdateNavigatingButtonStatus()
 {
 	if (view_ != NULL)
 	{
-		LoadInfo& load_info = view_->GetLoadInfo();
-
 		CButtonUI* refresh_button = static_cast<CButtonUI*>(paint_manager_.FindControl(kRefreshButtonControlName));
 		CButtonUI* stop_button = static_cast<CButtonUI*>(paint_manager_.FindControl(kStopButtonControlName));
 		if (stop_button != NULL)
@@ -485,7 +491,10 @@ void MainFrame::UpdateNavigatingButtonStatus()
 		CButtonUI* back_button = static_cast<CButtonUI*>(paint_manager_.FindControl(kBackButtonControlName));
 		CButtonUI* forward_button = static_cast<CButtonUI*>(paint_manager_.FindControl(kForwardButtonControlName));
 		if ((back_button != NULL) && (forward_button != NULL))
-		{}
+		{
+			back_button->SetEnabled(view_->CanGoBack());
+			forward_button->SetEnabled(view_->CanGoForward());
+		}
 	}
 }
 
@@ -592,6 +601,12 @@ bool MainFrame::ViewUpdate(ViewUpdateInfo& view_update_info)
 	if (webkit_control != NULL)
 		webkit_control->LayoutChanged();
 	return true;
+}
+
+bool MainFrame::UriHistoryChanged(UriHistoryChangedInfo&)
+{
+	UpdateNavigatingButtonStatus();
+	return false;
 }
 
 bool MainFrame::LoadUpdate(LoadInfo& load_info)

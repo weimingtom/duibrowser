@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -81,7 +81,7 @@ namespace EA
         // DirectX applications.
         struct CursorChangeInfo
         {
-            //View* mpView;         // WebKit doesn't provide a WebView context for cursor management. We could modify WebKit to do this, but we'd rather not.
+            View* mpView;         // WebKit doesn't provide a WebView context for cursor management. 
             int     mNewCursorId;   // See enum CursorId, currently located in EAWebKitGraphics.h
         };
 
@@ -93,6 +93,7 @@ namespace EA
         {
             enum ScrollbarPart { None, BackBtn, ThumbBtn, ForwardBtn };
 
+            View*                mpView;                // The associated view.
             EA::Raster::Surface* mpSurface;             // 
             EA::Raster::Rect     mDirtyRect;            // The View/Surface dirty rectangle that needs to be updated.
             bool                 mIsVertical;           // Vertical vs. horizontal scroll bar.
@@ -110,6 +111,7 @@ namespace EA
         // which indicates that it has focus in the view.
         struct FocusRingDrawInfo
         {
+            View*                mpView;
             EA::Raster::Surface* mpSurface;
             EA::Raster::Rect     mFocusRect;
             EA::Raster::Color    mSuggestedColor;
@@ -124,6 +126,7 @@ namespace EA
         {
             enum ButtonType { None, Button, Checkbox, Radio, DropDown };
 
+            View*                mpView;                // The associated view.
             EA::Raster::Surface* mpSurface;             // 
             EA::Raster::Rect     mDirtyRect;            // The View/Surface dirty rectangle that needs to be updated.
             EA::Raster::Rect     mButtonRect;           // Rectangle that the button encompasses.
@@ -136,6 +139,7 @@ namespace EA
         // TextFieldDrawInfo
         struct TextFieldDrawInfo
         {
+            View*                mpView;                // The associated view.
             EA::Raster::Surface* mpSurface;             // 
             EA::Raster::Rect     mDirtyRect;            // The View/Surface dirty rectangle that needs to be updated.
             EA::Raster::Rect     mTextRect;             // Rectangle that the text editing area encompasses.
@@ -146,6 +150,7 @@ namespace EA
         // Typically this involves a text area on the left and a arrow-down button on the right.
         struct PopupMenuDrawInfo
         {
+            View*                mpView;
             EA::Raster::Surface* mpSurface;             // 
             EA::Raster::Rect     mDirtyRect;            // The View/Surface dirty rectangle that needs to be updated.
             EA::Raster::Rect     mMenuRect;             // Rectangle of the top line of the popup menu, which is always visible whether it's activated or not.
@@ -191,6 +196,7 @@ namespace EA
         // EAW_ASSERT for more information.
         struct AssertionFailureInfo
         {
+            View*		mpView;   
             const char* mpFailureText;
         };
 
@@ -200,9 +206,23 @@ namespace EA
         // some underlying equivalent within WebKit. This trace is not something to 
         // show an end-user and is typically enabled in debug builds only. 
         // See the documentation for EAW_TRACE for more information.
+
+        // Type flags for the log info so it can be filtered if needed
+        enum DebugLogType
+		{
+            kDebugLogGeneral,
+            kDebugLogJavascript,
+            kDebugLogAssertion,
+            kDebugLogNetwork,
+			kDebugLogGraphics,
+   			kDebugLogMemory
+		};
+        
         struct DebugLogInfo
         {
+            View*		mpView;                  
             const char* mpLogText;
+            DebugLogType mType;     // Type of debugLog Info.  This can be used to filter or redirect certain logs.
         };
 
 
@@ -212,7 +232,8 @@ namespace EA
         {
             View*							mpView;                 // 
             bool							mbURIIntercepted;       // If set to true then EAWebKit does nothing more and doesn't attempt to follow the link. The application is assumed to take ownership of the event.
-            EASTLFixedString16Wrapper		mOriginalURI;           // 
+            bool							mbURIInterceptedByDomainFiltering;// If set to true, EAWebKit auto-intercepted this link and would not navigate. The application may want to do something with this link (For example, open in an external browser if available).
+			EASTLFixedString16Wrapper		mOriginalURI;           // 
             EASTLFixedString16Wrapper		mModifiedURI;           // If this is set to anything but empty, then it is used instead of mOriginalURI.
             EASTLHeaderMapWrapper			mpOriginalHeaderMap;    // This will always point to a valid non-empty header map.
             EASTLHeaderMapWrapper			mpModifiedHeaderMap;    // This will always point to a valid but intially empty header map. If this is set to anything but empty, then it is used intead of mpOriginalHeaderMap.
@@ -265,7 +286,7 @@ namespace EA
         // This is used to tell the application to display a file load or save dialog box.
         struct FileChooserInfo
         {
-            //View*  mpView;            // WebKit doesn't provide a WebView context for cursor management. We could modify WebKit to do this, but we'd rather not.
+            View*  mpView;              // WebKit doesn't provide a WebView context for cursor management.
             bool     mbIsLoad;          // If true, the dialog is for loading an existing file on disk. If false it is for saving to a new or existing file on disk.
             char16_t mFilePath[256];    // The user writes to mFilePath and sets mbSucces to true or false.
             bool     mbSuccess;         // The user should set this to true or false, depending on the outcome.
@@ -277,7 +298,7 @@ namespace EA
         // See WebCore::LocalizedStringType for an enumeration of all string ids.
         struct StringInfo
         {
-            //View*  mpView;            // WebKit doesn't provide a WebView context for localized strings.
+            View*  mpView;            // WebKit doesn't provide a WebView context for localized strings but we can set it if the active view is known.
             int      mStringId;         // EAWebKit sets the mStringId value, and the app fills in either the 
             char8_t  mString8[256];     // mString8 or mString16 string with the localized version of that string.
             char16_t mString16[256];
@@ -337,11 +358,12 @@ namespace EA
         // TextInput form control is gains or loses focus activation.
         struct TextInputStateInfo
         {
+            View*           mpView;             // The associated View.
             bool            mIsActivated;       // If keyboard input is active = true
             bool            mIsPasswordField;   // If a text password input field = true
             bool            mIsSearchField;     // If is a text seach field
-
-            TextInputStateInfo();
+           
+            TextInputStateInfo() : mpView(0), mIsActivated(false), mIsPasswordField(false), mIsSearchField(false) {}
         };
 
 
@@ -350,6 +372,7 @@ namespace EA
         // Return true from the ViewNotification function to indicate success.
         struct ClipboardEventInfo
         {
+            View*                        mpView;               // The associated View when found for there is no view context here normally.
             bool				         mReadFromClipboard;   // If true, then this is a request to read text from the system clipboard into mText. If false then this is a request to write mText to the system clipboard. 
             EASTLFixedString16Wrapper	 mText;                // This is to be written if mReadFromClipboard is true, and read if mReadFromClipboard is false.
         };
@@ -430,6 +453,8 @@ namespace EA
 		// Things like URI and job information are kept in this structure to make things less complicated.
 		struct ViewProcessInfo
 		{
+            View*                               mpView;             // The associated View.
+
             // Variables
             VProcessType						mProcessType;
             VProcessStatus						mProcessStatus;
@@ -440,13 +465,13 @@ namespace EA
 			int									mJobId;						// Job Id of this process, if any.						
 			// Constructors
             ViewProcessInfo();
-            ViewProcessInfo(VProcessType,VProcessStatus);
+            ViewProcessInfo(VProcessType,VProcessStatus, View* pView = NULL);
 			void ResetTime();
         };
 
 		// Note by Arpit Baldeva: Use this function to notify an event change in state of a process found in the global array that keeps track of the 
 		// predefined processes. This is what you would want to use most of the times.
-		void NOTIFY_PROCESS_STATUS(VProcessType processType, VProcessStatus processStatus);
+        void NOTIFY_PROCESS_STATUS(VProcessType processType, VProcessStatus processStatus, EA::WebKit::View *pView = NULL);
 		// Note by Arpit Baldeva: Use this function to notify an event change associated with jobs. Each job has a ViewProcessInfo attached with it.
 		void NOTIFY_PROCESS_STATUS(ViewProcessInfo& process,  VProcessStatus processStatus);
 
@@ -454,7 +479,8 @@ namespace EA
 		struct JavascriptMethodInvokedInfo
 		{
 			static const unsigned MAX_ARGUMENTS = 10;
-
+            
+            View*                           mpView;    
 			const char*						mMethodName;
 			unsigned						mArgumentCount;
 			JavascriptValue					mArguments[MAX_ARGUMENTS];
@@ -464,9 +490,40 @@ namespace EA
 		// Used to carry the state of a custom javascript property
 		struct JavascriptPropertyInfo
 		{
-			const char*						mPropertyName;
+			View*                           mpView;    
+            const char*						mPropertyName;
 			JavascriptValue					mValue;		
 		};
+
+		//At the time of writing, we don't have a way to figure out network error other than Timeout. We'll be able to do so with future enhancement in 
+		//DirtySDK.
+		enum NetworkErrorType
+		{
+			kNetworkErrorUnknown = 0,
+			kNetworkErrorTimeOut,
+			kNetworkErrorSSLCert
+		};
+
+		struct NetworkErrorInfo
+		{
+			NetworkErrorType	mNetworkErrorType;
+			int32_t				mNetworkErrorCode;//This is the code that we get from DirtySDK. This would depend on the NetworkErrorType. We just pass it along.
+			NetworkErrorInfo(NetworkErrorType networkErrorType = kNetworkErrorUnknown)
+				: mNetworkErrorType(networkErrorType)
+				, mNetworkErrorCode(0)
+			{
+
+			}
+		};
+
+        // UriHistoryChanged notification info       
+        // To notify when an item has been added/removed to the back/forward history       
+        struct UriHistoryChangedInfo
+        {
+            View*							mpView;                 // View context
+			EASTLFixedString16Wrapper		mURI;                   // URI that is being added 
+            bool                            mIsAdded;               // true if added and false if removed
+        };
 
         // The user can provide an instance of this interface to the View class.
         // The user should return true if the user handled the notification, 
@@ -500,9 +557,11 @@ namespace EA
             virtual bool ClipboardEvent  		(ClipboardEventInfo&)   	{ return false; }
 			virtual bool XMLHttpRequestEvent	(XMLHttpRequestEventInfo&)	{ return false; }
             virtual bool ViewProcessStatus      (ViewProcessInfo&)          { return false; } // To notify for start and end of certain key processes
+			virtual bool NetworkError			(NetworkErrorInfo&)			{ return false; }
 			virtual bool JavascriptMethodInvoked	(JavascriptMethodInvokedInfo&)	{ return false; }
 			virtual bool GetJavascriptProperty		(JavascriptPropertyInfo&)		{ return false; }
 			virtual bool SetJavascriptProperty		(JavascriptPropertyInfo&)		{ return false; }
+   			virtual bool UriHistoryChanged 	        (UriHistoryChangedInfo&)		{ return false; } 
         };
 
         // This is called by the user so that the user is notified of significant
@@ -512,6 +571,13 @@ namespace EA
         EAWEBKIT_API void              SetViewNotification(ViewNotification* pViewNotification);
         EAWEBKIT_API ViewNotification* GetViewNotification();
 
+
+        ///////////////////////////////////////////////////////////////////////
+        // Javascript Value
+        ///////////////////////////////////////////////////////////////////////
+        // Use these when you want a return value from EvaluateJavaScript().  Make sure to destroy the pointer when no longer needed.
+        EAWEBKIT_API EA::WebKit::JavascriptValue* CreateJavaScriptValue(); 
+        EAWEBKIT_API void DestroyJavaScriptValue(EA::WebKit::JavascriptValue* pValue);  
 
 
         ///////////////////////////////////////////////////////////////////////
@@ -631,15 +697,16 @@ namespace EA
             virtual void CancelLoad();
             virtual bool GoBack();
             virtual bool GoForward();
-			virtual void Refresh();
-
-
+            virtual void Refresh();
+            virtual bool CanGoBack(uint32_t count=1);       // Count is how many items to go back, default to 1, returns true if can go back the requested count.
+            virtual bool CanGoForward(uint32_t count=1);    // Count is how many items it can go forward, default to 1, returns true if can go forward the requested count.
+            
             ///////////////////////////////
             // Misc
             ///////////////////////////////
 
             virtual LoadInfo&						GetLoadInfo();
-            virtual EA::WebKit::JavascriptValue		EvaluateJavaScript(const char* pScriptSource, size_t length);
+            virtual bool                            EvaluateJavaScript(const char* pScriptSource, size_t length, EA::WebKit::JavascriptValue* pReturnValue = NULL ); // Returns true if it found a valid return type and stored it in the pReturnValue
             virtual TextInputStateInfo&				GetTextInputStateInfo();            
             virtual void							GetCursorPosition(int& x, int& y) const; // Access the current cursor position (mouse, pointer, etc)
 

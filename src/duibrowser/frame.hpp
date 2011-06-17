@@ -34,6 +34,7 @@ namespace EA {
 		struct LoadInfo;
 		struct ViewUpdateInfo;
 		struct StringInfo;
+		struct UriHistoryChangedInfo;
 
 		struct Parameters;
 		struct ViewParameters;
@@ -103,6 +104,7 @@ protected:
 
 	virtual bool LoadUpdate(LoadInfo&);
 	virtual bool ViewUpdate(ViewUpdateInfo&);
+	virtual bool UriHistoryChanged(UriHistoryChangedInfo&);
 
 	std::string GetUserAgent();
 

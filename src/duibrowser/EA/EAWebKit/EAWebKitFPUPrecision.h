@@ -69,7 +69,7 @@ namespace EA
 	}
 }
 
-//We use SET_AUTOFPUPRECISION macro so that we don't pay for object creation and destruction.
+//We use SET_AUTOFPUPRECISION macro so that we don't pay for object creation and destruction on PS3 and Xbox 360.
 #if defined(EA_PLATFORM_WINDOWS)
 #define SET_AUTOFPUPRECISION(fpuPrecision) EA::WebKit::AutoFPUPrecision autoFpuPrecision(fpuPrecision)
 #else

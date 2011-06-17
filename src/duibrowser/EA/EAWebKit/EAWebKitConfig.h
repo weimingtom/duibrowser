@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -58,8 +58,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
 #ifndef EAWEBKIT_VERSION
-    #define EAWEBKIT_VERSION   "1.10.00"
-    #define EAWEBKIT_VERSION_N  11000
+    #define EAWEBKIT_VERSION   "1.14.01"
+    #define EAWEBKIT_VERSION_N  11401
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
@@ -67,11 +67,18 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // This is similar to the package version above but gives some more detail. 
 //
 /////////////////////////////////////////////////////////////////////////////
+#if defined (EA_PLATFORM_PS3)
+//    const char gEAWebKitBuildVersion[]="EAWebKit: 1.14.00 PS3_SDK: 270.001-1 VS: 2008 ID: 0001"; 
+    const char gEAWebKitBuildVersion[]="EAWebKit: 1.14.01 PS3_SDK: 330.001 VS: 2008 ID: 0001"; 
+#elif defined (EA_PLATFORM_XENON)
+    const char gEAWebKitBuildVersion[]="EAWebKit: 1.14.01 XENON_SDK: 2.0.11164.3-proxy VS: 2008 ID: 0001"; 
+#else // EA_PLATFORM_WINDOWS
     #if (_MSC_VER < 1500) // this is Visual C++ 2005 or lower since 2008 is 1500
-         const char gEAWebKitBuildVersion[]="EAWebKit: 1.10.00 VS: 2005_SP1 ID: 0001"; 
+         const char gEAWebKitBuildVersion[]="EAWebKit: 1.14.01 VS: 2005_SP1 ID: 0001"; 
     #else
-         const char gEAWebKitBuildVersion[]="EAWebKit: 1.10.00 VS: 2008_SP1 ID: 0001"; 
+         const char gEAWebKitBuildVersion[]="EAWebKit: 1.14.01 VS: 2008_SP1 ID: 0001"; 
     #endif
+#endif
 ///////////////////////////////////////////////////////////////////////////////
 // EAWEBKIT_DEBUG
 //
@@ -88,11 +95,33 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef EAWEBKIT_DEBUG
     #if defined(EA_DEBUG) || defined(_DEBUG)
-        #define EAWEBKIT_DEBUG 1
+        #define EAWEBKIT_DEBUG 0
     #else
         #define EAWEBKIT_DEBUG 0
     #endif
 #endif
+
+///////////////////////////////////////////////////////////////////////////////
+// EAWEBKIT_MEMORY_DEBUG
+//
+// Defined as an integer >= 0. Default is 1 for debug builds and 0 for 
+// release builds. 
+//
+// Example usage:
+//    #if EAWEBKIT_MEMORY_DEBUG
+//       ...
+//    #endif
+//
+///////////////////////////////////////////////////////////////////////////////
+
+#ifndef EAWEBKIT_MEMORY_DEBUG
+    #if defined(EA_DEBUG) || defined(_DEBUG)
+        #define EAWEBKIT_MEMORY_DEBUG 1
+    #else
+        #define EAWEBKIT_MEMORY_DEBUG 0
+    #endif
+#endif
+
 
 
 
@@ -206,6 +235,17 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 //Following defines help in separating the initialization code related to the 3 platforms
+#if defined(EA_DLL) && defined(EA_PLATFORM_PS3)
+	#define EAWEBKIT_PS3_PRX 1
+#else
+	#define EAWEBKIT_PS3_PRX 0
+#endif
+
+#if defined(EA_DLL) && defined(EA_PLATFORM_XENON)
+	#define EAWEBKIT_XENON_DLL 1
+#else
+	#define EAWEBKIT_XENON_DLL 0
+#endif
 
 #if defined(EA_DLL) && defined(EA_PLATFORM_WINDOWS)
 	#define EAWEBKIT_WINDOWS_DLL 1
