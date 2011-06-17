@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef VisiblePosition_h
@@ -52,7 +52,7 @@ namespace WebCore {
 
 class InlineBox;
 
-class VisiblePosition: public WTF::FastAllocBase {
+class VisiblePosition/*: public WTF::FastAllocBase*/ {
 public:
     // NOTE: UPSTREAM affinity will be used only if pos is at end of a wrapped line,
     // otherwise it will be converted to DOWNSTREAM

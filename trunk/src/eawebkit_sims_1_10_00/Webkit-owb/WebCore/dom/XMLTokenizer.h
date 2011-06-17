@@ -22,7 +22,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #error This file shouldn't be compiled in the EAWebKit build. The BCXMLTokenizer.h version in our BAL directory should be used instead. -- Paul Pedriana, December 2008.

@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef EventNames_h
@@ -126,7 +126,7 @@ namespace WebCore {
     \
 // end of DOM_EVENT_NAMES_FOR_EACH
 
-    class EventNames: public WTF::FastAllocBase {
+    class EventNames/*: public WTF::FastAllocBase*/ {
         EventNames();
         int dummy; // Needed to make initialization macro work.
 

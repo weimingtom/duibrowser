@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef DeleteButtonController_h
@@ -41,7 +41,7 @@ class HTMLElement;
 class RenderObject;
 class Selection;
 
-class DeleteButtonController: public WTF::FastAllocBase {
+class DeleteButtonController/*: public WTF::FastAllocBase*/ {
 public:
     DeleteButtonController(Frame*);
 

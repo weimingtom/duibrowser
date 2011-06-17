@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef StyleElement_h
@@ -34,7 +34,7 @@ namespace WebCore {
 
 class Element;
 
-class StyleElement: public WTF::FastAllocBase {
+class StyleElement/*: public WTF::FastAllocBase*/ {
 public:
     StyleElement();
     virtual ~StyleElement() {}

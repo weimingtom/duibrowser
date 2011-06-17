@@ -23,12 +23,22 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
+
+/*
+* This file was modified by Electronic Arts Inc Copyright © 2010
+*/
+
 #include "config.h"
 #include "BackForwardList.h"
 
 #include "HistoryItem.h"
 #include "Logging.h"
 #include "PageCache.h"
+#include <EAWebKit/EAWebKitView.h>
+#include <EAWebKit/internal/EAWebKitViewHelper.h>
+#include <EAWebKit/internal/EAWebKitEASTLHelpers.h>
+#include <page.h>
+
 
 using namespace std;
 
@@ -56,7 +66,20 @@ void BackForwardList::addItem(PassRefPtr<HistoryItem> prpItem)
     ASSERT(prpItem);
     if (m_capacity == 0 || !m_enabled)
         return;
-    
+
+    //+ 4/5/10 CSidhall - Set up the notification info for the callback
+     EA::WebKit::UriHistoryChangedInfo info;
+     if(m_page)
+            info.mpView = EA::WebKit::GetView(m_page->mainFrame());
+        else
+            info.mpView = EA::WebKit::AutoSetActiveView::GetActiveView();
+
+     WebCore::String& uriPath    = (WebCore::String&) prpItem->urlString();
+     const UChar* chars          = uriPath.charactersWithNullTermination();
+     EA::WebKit::GetFixedString(info.mURI)->assign(chars);
+     info.mIsAdded = true;   
+    //-CS
+
     // Toss anything in the forward list    
     if (m_current != NoCurrentItemIndex) {
         unsigned targetSize = m_current + 1;
@@ -81,6 +104,14 @@ void BackForwardList::addItem(PassRefPtr<HistoryItem> prpItem)
     m_entries.append(prpItem);
     m_entryHash.add(m_entries.last());
     m_current++;
+
+     //+ 4/5/10 CSidhall - Notify about added history URI.
+    EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
+    if(pVN)
+        pVN->UriHistoryChanged(info); // We don't take any action on return, leaving the linkSetected callback to hande filtering and redirects.
+    //-CS
+
+
 }
 
 void BackForwardList::goBack()
@@ -241,7 +272,19 @@ void BackForwardList::removeItem(HistoryItem* item)
 {
     if (!item)
         return;
-    
+
+    //+ 4/5/10 CSidhall - Set up the notify info
+    EA::WebKit::UriHistoryChangedInfo info;
+    if(m_page)
+        info.mpView = EA::WebKit::GetView(m_page->mainFrame());
+    else
+        info.mpView = EA::WebKit::AutoSetActiveView::GetActiveView();
+    WebCore::String& uriPath    = (WebCore::String&) item->urlString();
+    const UChar* chars          = uriPath.charactersWithNullTermination();
+    EA::WebKit::GetFixedString(info.mURI)->assign(chars);
+    info.mIsAdded = false;    
+    //-CS
+
     for (unsigned i = 0; i < m_entries.size(); ++i)
         if (m_entries[i] == item) {
             m_entries.remove(i);
@@ -257,6 +300,13 @@ void BackForwardList::removeItem(HistoryItem* item)
             }
             break;
         }
+
+   //+ 4/5/10 CSidhall - Notify about removed history item URI
+    EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
+    if(pVN)
+        pVN->UriHistoryChanged(info);
+    //-CS
+
 }
 
 bool BackForwardList::containsItem(HistoryItem* entry)

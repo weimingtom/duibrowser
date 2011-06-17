@@ -23,7 +23,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Traversal_h
@@ -42,7 +42,7 @@ namespace WebCore {
     class Node;
     class NodeFilter;
 
-    class Traversal: public WTF::FastAllocBase {
+    class Traversal/*: public WTF::FastAllocBase*/ {
     public:
         Node* root() const { return m_root.get(); }
         unsigned whatToShow() const { return m_whatToShow; }

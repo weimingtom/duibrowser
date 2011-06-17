@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Editor_h
@@ -52,7 +52,7 @@ class Pasteboard;
 class SimpleFontData;
 class Text;
 
-struct CompositionUnderline: public WTF::FastAllocBase {
+struct CompositionUnderline/*: public WTF::FastAllocBase*/ {
     CompositionUnderline() 
         : startOffset(0), endOffset(0), thick(false) { }
     CompositionUnderline(unsigned s, unsigned e, const Color& c, bool t) 
@@ -66,7 +66,7 @@ struct CompositionUnderline: public WTF::FastAllocBase {
 enum TriState { FalseTriState, TrueTriState, MixedTriState };
 enum EditorCommandSource { CommandFromMenuOrKeyBinding, CommandFromDOM, CommandFromDOMWithUserInterface };
 
-class Editor: public WTF::FastAllocBase {
+class Editor/*: public WTF::FastAllocBase*/ {
 public:
     Editor(Frame*);
     ~Editor();
@@ -155,7 +155,7 @@ public:
 
     bool clientIsEditable() const;
 
-    class Command: public WTF::FastAllocBase {
+    class Command/*: public WTF::FastAllocBase*/ {
     public:
         Command();
         Command(PassRefPtr<Frame>, const EditorInternalCommand*, EditorCommandSource);

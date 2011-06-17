@@ -24,7 +24,7 @@
  */
  
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
  
 #include "config.h"
@@ -134,7 +134,7 @@ void SelectionController::setSelection(const Selection& s, bool closeTyping, boo
     Selection oldSelection = m_sel;
 
     m_sel = s;
-    invalidateSelectionRect();
+    //invalidateSelectionRect();//Note by Arpit Baldeva - Undo this hack. Causes full screen redraw for every selection change(Mouse click/Drag).
 
     m_needsLayout = true;
     

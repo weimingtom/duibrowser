@@ -22,7 +22,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -41,7 +41,7 @@ namespace WebCore {
 
 using namespace HTMLNames;
 
-struct MappedAttributeKey: public WTF::FastAllocBase {
+struct MappedAttributeKey/*: public WTF::FastAllocBase*/ {
     uint16_t type;
     StringImpl* name;
     StringImpl* value;
@@ -59,7 +59,7 @@ struct MappedAttributeKeyTraits : WTF::GenericHashTraits<MappedAttributeKey> {
     static bool isDeletedValue(const MappedAttributeKey& value) { return value.type == eLastEntry; }
 };
 
-struct MappedAttributeHash: public WTF::FastAllocBase {
+struct MappedAttributeHash/*: public WTF::FastAllocBase*/ {
     static unsigned hash(const MappedAttributeKey&);
     static bool equal(const MappedAttributeKey& a, const MappedAttributeKey& b) { return a == b; }
     static const bool safeToCompareToEmptyOrDeleted = true;

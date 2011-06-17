@@ -22,7 +22,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef DynamicNodeList_h
@@ -41,7 +41,7 @@ namespace WebCore {
 
     class DynamicNodeList : public NodeList {
     public:
-        struct Caches: public WTF::FastAllocBase {
+        struct Caches/*: public WTF::FastAllocBase*/ {
             Caches();
             void reset();
 

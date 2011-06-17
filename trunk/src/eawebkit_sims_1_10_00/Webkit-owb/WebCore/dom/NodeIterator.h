@@ -23,7 +23,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef NodeIterator_h
@@ -63,7 +63,7 @@ namespace WebCore {
     private:
         NodeIterator(PassRefPtr<Node>, unsigned whatToShow, PassRefPtr<NodeFilter>, bool expandEntityReferences);
 
-        struct NodePointer: public WTF::FastAllocBase {
+        struct NodePointer/*: public WTF::FastAllocBase*/ {
             RefPtr<Node> node;
             bool isPointerBeforeNode;
             NodePointer();
