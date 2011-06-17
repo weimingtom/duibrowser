@@ -23,7 +23,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -38,7 +38,7 @@ using namespace std;
 namespace WebCore {
 #include <wtf/FastAllocBase.h>
 
-class FlexBoxIterator: public WTF::FastAllocBase {
+class FlexBoxIterator/*: public WTF::FastAllocBase*/ {
 public:
     FlexBoxIterator(RenderFlexibleBox* parent) {
         box = parent;

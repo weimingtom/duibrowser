@@ -23,7 +23,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGRootInlineBox_h
@@ -40,7 +40,7 @@ class InlineTextBox;
 class RenderSVGRoot;
 class SVGInlineTextBox;
 
-struct LastGlyphInfo: public WTF::FastAllocBase {
+struct LastGlyphInfo/*: public WTF::FastAllocBase*/ {
     LastGlyphInfo() : isValid(false) { }
 
     String unicode;

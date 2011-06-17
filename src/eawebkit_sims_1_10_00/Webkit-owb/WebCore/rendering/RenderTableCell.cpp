@@ -23,7 +23,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -651,7 +651,7 @@ static EBorderStyle collapsedBorderStyle(EBorderStyle style)
     return style;
 }
 
-struct CollapsedBorder: public WTF::FastAllocBase {
+struct CollapsedBorder/*: public WTF::FastAllocBase*/ {
     CollapsedBorderValue borderValue;
     RenderObject::BorderSide side;
     bool shouldPaint;
@@ -663,7 +663,7 @@ struct CollapsedBorder: public WTF::FastAllocBase {
 };
 #include <wtf/FastAllocBase.h>
 
-class CollapsedBorders: public WTF::FastAllocBase {
+class CollapsedBorders/*: public WTF::FastAllocBase*/ {
 public:
     CollapsedBorders()
         : m_count(0)

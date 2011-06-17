@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef RenderThemeWin_h
@@ -38,7 +38,7 @@ typedef HINSTANCE HMODULE;
 
 namespace WebCore {
 
-struct ThemeData: public WTF::FastAllocBase {
+struct ThemeData/*: public WTF::FastAllocBase*/ {
     ThemeData() :m_part(0), m_state(0), m_classicState(0) {}
 
     unsigned m_part;

@@ -23,7 +23,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef GapRects_h
@@ -34,7 +34,7 @@
 
 namespace WebCore {
 
-    struct GapRects: public WTF::FastAllocBase {
+    struct GapRects/*: public WTF::FastAllocBase*/ {
         const IntRect& left() const { return m_left; }
         const IntRect& center() const { return m_center; }
         const IntRect& right() const { return m_right; }

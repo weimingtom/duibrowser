@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef RootInlineBox_h
@@ -140,7 +140,7 @@ protected:
     // below our line (e.g., a child whose font has a huge descent).
         
     // Allocated only when some of these fields have non-default values
-    struct Overflow: public WTF::FastAllocBase {
+    struct Overflow/*: public WTF::FastAllocBase*/ {
         Overflow(RootInlineBox* box) 
             : m_topOverflow(box->m_y)
             , m_bottomOverflow(box->m_y + box->m_height)

@@ -21,7 +21,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef HitTestRequest_h
@@ -30,7 +30,7 @@
 #include <wtf/FastAllocBase.h>
 namespace WebCore {
 
-struct HitTestRequest: public WTF::FastAllocBase {
+struct HitTestRequest/*: public WTF::FastAllocBase*/ {
     HitTestRequest(bool r, bool a, bool m = false, bool u = false)
         : readonly(r)
         , active(a)

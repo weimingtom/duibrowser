@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef PluginView_H
@@ -76,7 +76,7 @@ namespace WebCore {
         PluginStatusLoadedSuccessfully
     };
 
-    class PluginRequest: public WTF::FastAllocBase {
+    class PluginRequest/*: public WTF::FastAllocBase*/ {
     public:
         PluginRequest(const FrameLoadRequest& frameLoadRequest, bool sendNotification, void* notifyData, bool shouldAllowPopups)
             : m_frameLoadRequest(frameLoadRequest)

@@ -18,7 +18,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef PluginData_h
@@ -33,14 +33,14 @@ namespace WebCore {
     class Page;
     struct PluginInfo;
 
-    struct MimeClassInfo: public WTF::FastAllocBase {
+    struct MimeClassInfo/*: public WTF::FastAllocBase*/ {
         String type;
         String desc;
         String suffixes;
         PluginInfo* plugin;
     };
 
-    struct PluginInfo: public WTF::FastAllocBase {
+    struct PluginInfo/*: public WTF::FastAllocBase*/ {
         String name;
         String file;
         String desc;

@@ -20,6 +20,10 @@
  *
  */
 
+/*
+* This file was modified by Electronic Arts Inc Copyright © 2010
+*/
+
 #include "config.h"
 #include "RenderButton.h"
 
@@ -114,9 +118,21 @@ void RenderButton::setText(const String& str)
             m_buttonText = 0;
         }
     } else {
-        if (m_buttonText)
+        if (m_buttonText) {    
             m_buttonText->setText(str.impl());
-        else {
+
+            //+2/4/10 CSidhall - When a style is changed (button is selected), the flex box gets reset because 
+            // it is non inherided. This can cause text to move over to the left even if it should be centered
+            // for it no longer gets a size overide from the parent.  This should be safe do do for if m_inner 
+            // is set, it is an anonymous block that is owned by the RenderButton.
+            // There is a SetStyle() which does it but does not seem to be called when a style is changed and it 
+            // just seems just as effective to simply reset the flex box here when a Text is set.
+            // Also the existing renderMenuList.cpp does something similar in the setText also with 
+            // adjustInnerStyle().
+            if((m_inner) && (m_inner->style()))
+                m_inner->style()->setBoxFlex(1.0f);
+            //-CS
+        } else {
             m_buttonText = new (renderArena()) RenderTextFragment(document(), str.impl());
             m_buttonText->setStyle(style());
             addChild(m_buttonText);

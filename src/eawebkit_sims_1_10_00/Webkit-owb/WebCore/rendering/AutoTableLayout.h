@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef AutoTableLayout_h
@@ -61,7 +61,7 @@ protected:
 
     void insertSpanCell(RenderTableCell*);
 
-    struct Layout: public WTF::FastAllocBase {
+    struct Layout/*: public WTF::FastAllocBase*/ {
         Layout()
             : minWidth(0)
             , maxWidth(0)

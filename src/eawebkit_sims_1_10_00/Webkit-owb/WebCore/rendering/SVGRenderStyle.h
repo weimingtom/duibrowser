@@ -22,7 +22,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGRenderStyle_h
@@ -112,7 +112,7 @@ namespace WebCore {
 
     protected:
         // inherit
-        struct InheritedFlags: public WTF::FastAllocBase {
+        struct InheritedFlags/*: public WTF::FastAllocBase*/ {
             bool operator==(const InheritedFlags& other) const
             {
                 return (_colorRendering == other._colorRendering) &&
@@ -155,7 +155,7 @@ namespace WebCore {
         } svg_inherited_flags;
 
         // don't inherit
-        struct NonInheritedFlags: public WTF::FastAllocBase {
+        struct NonInheritedFlags/*: public WTF::FastAllocBase*/ {
             // 32 bit non-inherited, don't add to the struct, or the operator will break.
             bool operator==(const NonInheritedFlags &other) const { return _niflags == other._niflags; }
             bool operator!=(const NonInheritedFlags &other) const { return _niflags != other._niflags; }

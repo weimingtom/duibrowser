@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef TableLayout_h
@@ -32,7 +32,7 @@ namespace WebCore {
 
 class RenderTable;
 
-class TableLayout: public WTF::FastAllocBase {
+class TableLayout/*: public WTF::FastAllocBase*/ {
 public:
     TableLayout(RenderTable* table)
         : m_table(table)

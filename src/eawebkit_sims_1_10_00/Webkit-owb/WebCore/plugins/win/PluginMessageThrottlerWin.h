@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef PluginMessageThrottlerWin_h
@@ -37,7 +37,7 @@
 namespace WebCore {
     class PluginView;
 
-    struct PluginMessage: public WTF::FastAllocBase {
+    struct PluginMessage/*: public WTF::FastAllocBase*/ {
         HWND hWnd;
         UINT msg;
         WPARAM wParam;
@@ -46,7 +46,7 @@ namespace WebCore {
         struct PluginMessage* next;
     };
 
-    class PluginMessageThrottlerWin: public WTF::FastAllocBase {
+    class PluginMessageThrottlerWin/*: public WTF::FastAllocBase*/ {
     public:
         PluginMessageThrottlerWin(PluginView*);
         ~PluginMessageThrottlerWin();

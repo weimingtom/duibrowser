@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -56,7 +56,7 @@ const int verticalLineClickFudgeFactor= 3;
 
 using namespace HTMLNames;
 
-struct ColumnInfo: public WTF::FastAllocBase {
+struct ColumnInfo/*: public WTF::FastAllocBase*/ {
     ColumnInfo()
         : m_desiredColumnWidth(0)
         , m_desiredColumnCount(1)
@@ -3610,7 +3610,7 @@ void RenderBlock::calcPrefWidths()
     setPrefWidthsDirty(false);
 }
 
-struct InlineMinMaxIterator: public WTF::FastAllocBase
+struct InlineMinMaxIterator/*: public WTF::FastAllocBase*/
 {
 /* InlineMinMaxIterator is a class that will iterate over all render objects that contribute to
    inline min/max width calculations.  Note the following about the way it walks:

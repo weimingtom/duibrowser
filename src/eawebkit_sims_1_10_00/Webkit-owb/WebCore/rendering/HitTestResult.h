@@ -21,7 +21,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef HitTestResult_h
@@ -42,7 +42,7 @@ class Node;
 class PlatformScrollbar;
 class String;
 
-class HitTestResult: public WTF::FastAllocBase {
+class HitTestResult/*: public WTF::FastAllocBase*/ {
 public:
     HitTestResult(const IntPoint&);
     HitTestResult(const HitTestResult&);

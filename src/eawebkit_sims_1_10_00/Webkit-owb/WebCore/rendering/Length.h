@@ -21,7 +21,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Length_h
@@ -38,7 +38,7 @@ namespace WebCore {
 
     enum LengthType { Auto, Relative, Percent, Fixed, Static, Intrinsic, MinIntrinsic };
 
-    struct Length: public WTF::FastAllocBase {
+    struct Length/*: public WTF::FastAllocBase*/ {
         Length()
             : m_value(0)
         {

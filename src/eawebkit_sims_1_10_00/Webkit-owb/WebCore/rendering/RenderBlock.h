@@ -23,7 +23,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef RenderBlock_h
@@ -130,7 +130,7 @@ public:
     virtual RenderObject* layoutLegend(bool relayoutChildren) { return 0; };
 
     // the implementation of the following functions is in bidi.cpp
-    struct FloatWithRect: public WTF::FastAllocBase {
+    struct FloatWithRect/*: public WTF::FastAllocBase*/ {
         FloatWithRect(RenderObject* f)
             : object(f)
             , rect(IntRect(f->xPos() - f->marginLeft(), f->yPos() - f->marginTop(), f->width() + f->marginLeft() + f->marginRight(), f->height() + f->marginTop() + f->marginBottom()))
@@ -246,7 +246,7 @@ public:
     virtual SelectionState selectionState() const { return static_cast<SelectionState>(m_selectionState); }
     virtual void setSelectionState(SelectionState s);
 
-    struct BlockSelectionInfo: public WTF::FastAllocBase {
+    struct BlockSelectionInfo/*: public WTF::FastAllocBase*/ {
         RenderBlock* m_block;
         GapRects m_rects;
         SelectionState m_state;
@@ -330,7 +330,7 @@ private:
     int layoutColumns(int endOfContent = -1);
 
 protected:
-    struct FloatingObject: public WTF::FastAllocBase {
+    struct FloatingObject/*: public WTF::FastAllocBase*/ {
         enum Type {
             FloatLeft,
             FloatRight
@@ -361,7 +361,7 @@ protected:
     };
 
     // The following helper functions and structs are used by layoutBlockChildren.
-    class CompactInfo: public WTF::FastAllocBase {
+    class CompactInfo/*: public WTF::FastAllocBase*/ {
         // A compact child that needs to be collapsed into the margin of the following block.
         RenderObject* m_compact;
 
@@ -379,7 +379,7 @@ protected:
         CompactInfo() { clear(); }
     };
 
-    class MarginInfo: public WTF::FastAllocBase {
+    class MarginInfo/*: public WTF::FastAllocBase*/ {
         // Collapsing flags for whether we can collapse our margins with our children's margins.
         bool m_canCollapseWithChildren : 1;
         bool m_canCollapseTopWithChildren : 1;
@@ -467,7 +467,7 @@ private:
     ListHashSet<RenderObject*>* m_positionedObjects;
          
     // Allocated only when some of these fields have non-default values
-    struct MaxMargin: public WTF::FastAllocBase {
+    struct MaxMargin/*: public WTF::FastAllocBase*/ {
         MaxMargin(const RenderBlock* o) 
             : m_topPos(topPosDefault(o))
             , m_topNeg(topNegDefault(o))

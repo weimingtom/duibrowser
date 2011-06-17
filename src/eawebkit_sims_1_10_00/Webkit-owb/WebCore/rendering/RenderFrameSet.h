@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef RenderFrameSet_h
@@ -37,7 +37,7 @@ class MouseEvent;
 
 enum FrameEdge { LeftFrameEdge, RightFrameEdge, TopFrameEdge, BottomFrameEdge };
 
-struct FrameEdgeInfo: public WTF::FastAllocBase
+struct FrameEdgeInfo/*: public WTF::FastAllocBase*/
 {
     FrameEdgeInfo(bool preventResize = false, bool allowBorder = true)
         : m_preventResize(4)
@@ -86,7 +86,8 @@ private:
 
     class GridAxis : Noncopyable {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -115,7 +116,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    public:
+#endif //NO_MACRO_NEW
+	public:
         GridAxis();
         void resize(int);
         Vector<int> m_sizes;

@@ -22,7 +22,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef DataRef_h
@@ -33,7 +33,7 @@
 
 namespace WebCore {
 
-template <typename T> class DataRef: public WTF::FastAllocBase {
+template <typename T> class DataRef/*: public WTF::FastAllocBase*/ {
 public:
     const T* get() const { return m_data.get(); }
 

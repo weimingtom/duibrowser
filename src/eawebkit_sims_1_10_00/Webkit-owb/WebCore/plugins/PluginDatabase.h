@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef PluginDatabase_H
@@ -48,7 +48,7 @@ namespace WebCore {
 
     typedef HashSet<RefPtr<PluginPackage>, PluginPackageHash> PluginSet;
   
-    class PluginDatabase: public WTF::FastAllocBase {
+    class PluginDatabase/*: public WTF::FastAllocBase*/ {
     public:
         static PluginDatabase* s_plugins;           // 4/27/09 CSidhall - Moved from inside installedPlugins() to fix leak on exit.
         static void staticFinalize();               // 4/27/09 CSidhall - Added for leak fix on exit.

@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef RenderTableSection_h
@@ -63,14 +63,14 @@ public:
 
     RenderTable* table() const { return static_cast<RenderTable*>(parent()); }
 
-    struct CellStruct: public WTF::FastAllocBase {
+    struct CellStruct/*: public WTF::FastAllocBase*/ {
         RenderTableCell* cell;
         bool inColSpan; // true for columns after the first in a colspan
     };
 
     typedef Vector<CellStruct> Row;
 
-    struct RowStruct: public WTF::FastAllocBase {
+    struct RowStruct/*: public WTF::FastAllocBase*/ {
         Row* row;
         RenderObject* rowRenderer;
         int baseline;
