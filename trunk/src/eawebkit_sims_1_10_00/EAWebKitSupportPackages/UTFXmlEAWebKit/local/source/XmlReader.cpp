@@ -458,37 +458,41 @@ int32_t XmlReader::InputStream::ReadCharUTF16LE() {
 //////////////////////////////////////////////////////////////////////////
 int32_t XmlReader::InputStream::ReadChar() {
     for (;;) {
+        // Track how many bytes were read by mpDecoderFunc so that we can advance mByteIndex by that amount.
+        const uint8_t* const pSavedPos = mpInputBufferPos;
         const int32_t nChar = (this->*mpDecoderFunc)();
+        mByteIndex += (ssize_t)(mpInputBufferPos - pSavedPos);
+        
         if (nChar != '\n') {
             if (nChar != '\r') {
-                // Decode the character
-                // A normal character, just update column index and return the
-                // character.
+                // We have a normal character; just update column index and return the character.
                 mLineIndex = mNextLineIndex;
                 mColumnIndex = mNextColumnIndex++;
                 mPrevChar = nChar;
                 return nChar;
             }
-            // Carriage return - do a line break, and return a linefeed
-            //  instead.
+
+            // We have \r; do a line break and return \n instead of \r.
             mColumnIndex = mNextColumnIndex;
             mLineIndex = mNextLineIndex++;
-            mNextColumnIndex = 1;
+            mNextColumnIndex = 0;
             mPrevChar = nChar;
             return '\n';
         }
 
-        // If this is a CRLF pair, then the CR has already
-        // done a line break, so just ignore this character.
-        if (mPrevChar != '\r') {
-            // Otherwise, it's a linefeed by itself, in which case
-            //  we return a linefeed charaxcter and do line break.
+        // If this is a \r\n pair, then the \r has already
+        // done a line break (above), so just ignore this \n char.
+        if (mPrevChar != '\r') { // If we have a lone \n char...
+            // Otherwise, it's a \n by itself, in which case
+            // we return a \n character and do line break.
             mColumnIndex = mNextColumnIndex;
             mLineIndex = mNextLineIndex++;
-            mNextColumnIndex = 1;
+            mNextColumnIndex = 0;
             mPrevChar = '\n';
             return '\n';
         }
+
+        // mPrevChar is \r; change it to \n.
         mPrevChar = '\n';
     }
 }
@@ -506,6 +510,7 @@ XmlReader::XmlReader( Allocator::ICoreAllocator *pAllocator, size_t bufferBlockS
     , mpNamespaceDecls( NULL )
     , mDefaultNS( NULL )
     , mElementNS( NULL )
+    //mBuiltInEntities
     , mEntityDecls( CoreAllocatorAdapter( UTFXML_ALLOC_PREFIX "XmlReader/EntityDecls", mpCoreAllocator ) )
     , mpEntityResolver( NULL )
     , mpEntityResolverContext( NULL )
@@ -524,9 +529,9 @@ XmlReader::XmlReader( Allocator::ICoreAllocator *pAllocator, size_t bufferBlockS
     , mpDocTypeName( NULL )
     , mpSystemId( NULL )
     , mpPublicId( NULL )
-    , mLineIndex( 1 )
+    , mLineIndex( 0 )
     , mColumnIndex( 0 )
-    , mByteIndex( 0 ) 
+    , mByteIndex( 0 )
 {
     Init();
 }
@@ -537,12 +542,34 @@ void XmlReader::Init()
     mAttributeArray.reserve( 16 );
 
     // Built-in entity declarations
-    mEntityDecls[ "amp" ]  = "&";
-    mEntityDecls[ "apos" ] = "'";
-    mEntityDecls[ "quot" ] = "\"";
-    mEntityDecls[ "lt" ]   = "<";
-    mEntityDecls[ "gt" ]   = ">";
+    // We intentionally don't do the following:
+    //    mEntityDecls["amp"] = "&";
+    // The reason why is that user-defined entities also use mEntityDecls (via DefineEntity) and the 
+    // strings for it are allocated by Strdup. So the strings added to mEntityDecls by the user need
+    // to be freed in our Reset function. But the string literals defined below need to not be freed.
+    // So in Reset we free any strings that aren't our constant strings. We are stuck being unable
+    // to use Strdup here for our built-in types because Strdup requires that we have an allocator 
+    // which might not be set by the user until after Init is called. 
+    
+    mBuiltInEntities[0] = "amp";
+    mBuiltInEntities[1] = "&";
+
+    mBuiltInEntities[2] = "apos";
+    mBuiltInEntities[3] = "'";
+
+    mBuiltInEntities[4] = "quot";
+    mBuiltInEntities[5] = "\"";
+
+    mBuiltInEntities[6] = "lt";
+    mBuiltInEntities[7] = "<";
+
+    mBuiltInEntities[8] = "gt";
+    mBuiltInEntities[9] = ">";
+ 
+    for(int i = 0; i < 10; i += 2)
+        mEntityDecls[mBuiltInEntities[i]]  = mBuiltInEntities[i + 1];
 }
+
 
 //////////////////////////////////////////////////////////////////////////
 XmlReader::~XmlReader() {
@@ -578,6 +605,20 @@ void XmlReader::Reset() {
             mpCoreAllocator->Free( (void *)pAlias->mpAlias );
         }
         mpCoreAllocator->Free( pAlias );
+    }
+
+    // We need to free any user-defined strings in mEntityDecls.
+    for(tEntityMap::iterator it = mEntityDecls.begin(); it != mEntityDecls.end(); ++it)
+    {
+        const char*  pKey        = it->first;
+        const char*  pValue      = it->second;
+        const size_t kEntryCount = sizeof(mBuiltInEntities) / sizeof(mBuiltInEntities[0]);
+
+        if(eastl::find(mBuiltInEntities, mBuiltInEntities + kEntryCount, pKey) == mBuiltInEntities + kEntryCount) // If not in our mBuiltInEntityList...
+            mpCoreAllocator->Free((void*)pKey);
+
+        if(eastl::find(mBuiltInEntities, mBuiltInEntities + kEntryCount, pValue) == mBuiltInEntities + kEntryCount) // If not in our mBuiltInEntityList...
+            mpCoreAllocator->Free((void*)pValue);
     }
 
     mEntityDecls.clear();
@@ -698,11 +739,11 @@ void XmlReader::PushInputStream(
 
     istream->mpStreamURI = pStreamURI;
     istream->mPrevChar = 0;
-    istream->mLineIndex = 1;
-    istream->mColumnIndex = 1;
-    istream->mNextLineIndex = 1;
+    istream->mLineIndex = 0;
+    istream->mColumnIndex = 0;
+    istream->mNextLineIndex = 0;
     istream->mNextColumnIndex = 0;
-    istream->mByteIndex = 0;
+    istream->mByteIndex = -1;
 
     istream->FillBuffer();
 
@@ -765,11 +806,11 @@ XmlReader::InputStream* XmlReader::CreateStreamFromBuffer(
         istream->mpNext = NULL;
         istream->mpStreamURI = pStreamURI;
         istream->mPrevChar = 0;
-        istream->mLineIndex = 1;
-        istream->mColumnIndex = 1;
-        istream->mNextLineIndex = 1;
+        istream->mLineIndex = 0;
+        istream->mColumnIndex = 0;
+        istream->mNextLineIndex = 0;
         istream->mNextColumnIndex = 0;
-        istream->mByteIndex = 0;
+        istream->mByteIndex = -1;
 
         // Auto-detect encoding logic
         if (istream->mEncoding == kReadEncodingUnknown) {
@@ -1713,13 +1754,6 @@ bool XmlReader::ParseElement() {
             return true;
         } else if (IsNameStartChar( mChar )) {            // Start of an attribute
 
-            // Bookmark the location of this token
-            /*if (mpTopNamedStream) {
-                mLineIndex = mpTopNamedStream->mLineIndex;
-                mColumnIndex = mpTopNamedStream->mColumnIndex;
-                mByteIndex = mpTopNamedStream->mByteIndex;
-            }*/
-
             // Parse the attribute name
             const char * pAttrName = ParseName();
             if (!pAttrName) {
@@ -1851,6 +1885,25 @@ next_token:
         mLineIndex   = mpTopNamedStream->mLineIndex;
         mColumnIndex = mpTopNamedStream->mColumnIndex;
         mByteIndex   = mpTopNamedStream->mByteIndex;
+
+        // Due to some assymmetry in the state algorithm below, upon exiting
+        // State_Text, we will have 
+        // already read one-past the next node. So mColumnIndex will be referring
+        // to the char -after- the '<' char of an element instead of the '<' char itself.
+        if((mNodeType == CharacterData) && !mIsCData)
+        {
+            --mColumnIndex;
+            --mByteIndex;
+        }
+        else if(mState == State_CDATA)
+        {
+            // mColumnIndex and mByteIndex currently point to the first character
+            // of the CDATA string, which is 9 characters into the CDATA node. 
+            // In order to be consistent, we subtract 9 so that these values refer
+            // to the beginning of the CDATA node <![CDATA[blah]]>.
+            mColumnIndex -= 9;
+            mByteIndex   -= 9;
+        }
     }
 
     /// Free everything in the current token buffer up to the last bookmark
@@ -2059,7 +2112,7 @@ const char * XmlReader::GetLocalName() const {
 //////////////////////////////////////////////////////////////////////////
 /// Returns the complete, expanded namespace of this element.
 const char * XmlReader::GetNamespaceURI() const {
-    if (mElementNS && (mNodeType == Element) || (mNodeType == EndElement))
+    if (mElementNS && ((mNodeType == Element) || (mNodeType == EndElement)))
         return mElementNS->mpNamespace;
     return NULL;
 }

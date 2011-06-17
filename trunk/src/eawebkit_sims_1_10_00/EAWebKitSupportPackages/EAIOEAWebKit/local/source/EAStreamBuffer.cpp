@@ -136,7 +136,7 @@ void StreamBuffer::FreeBuffers()
     if(mpReadBuffer)
     {
         if(mpAllocator)
-            mpAllocator->Free(mpReadBuffer);
+            mpAllocator->Free(mpReadBuffer, mnReadBufferSize);
 
         mpReadBuffer = NULL;
 
@@ -150,7 +150,7 @@ void StreamBuffer::FreeBuffers()
     if(mpWriteBuffer)
     {
         if(mpAllocator)
-            mpAllocator->Free(mpWriteBuffer);
+            mpAllocator->Free(mpWriteBuffer, mnWriteBufferSize);
 
         mpWriteBuffer = NULL;
 
@@ -186,14 +186,14 @@ void* StreamBuffer::Realloc(void* p, size_type prevSize, size_type n)
                        n = prevSize;
 
                     memcpy(pReturnValue, p, (size_t)n);
-                    mpAllocator->Free(p);
+                    mpAllocator->Free(p, prevSize);
                 }
             }
             // Not needed because pReturnValue is NULL by default.
             //else // In this case the standard calls for the same behaviour as free.
             //    pReturnValue = NULL;
         }
-        else
+        else if(n)
         {
             // The C Standard calls for realloc to exhibit the same behaviour as malloc, including for a size of zero.
             pReturnValue = mpAllocator->Alloc((size_t)n, EAIO_ALLOC_PREFIX "StreamBuffer", 0);

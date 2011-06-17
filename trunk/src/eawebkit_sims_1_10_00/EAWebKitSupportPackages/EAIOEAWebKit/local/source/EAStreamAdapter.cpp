@@ -89,10 +89,37 @@ namespace {
         //const uint32_t low32Bits  = EASwizzleUint32((uint32_t)(x >> 32));
         //return ((uint64_t)high32Bits << 32) | low32Bits;
     }
+} // namespace
+
+
+
+bool EA::IO::StreamAdapter::VerifyArraySize(uint32_t elementCount, uint32_t elementSize)
+{
+    const uint64_t          elementDataSize = (uint64_t)elementCount * elementSize;
+    const EA::IO::off_type  currentPos      = mpStream->GetPosition();
+    const EA::IO::size_type streamSize      = mpStream->GetSize();
+
+    // It's possible to seek beyond the end of a stream and not
+    // get an error -- this is frequently done to extend a stream.
+    if((EA::IO::size_type)currentPos > streamSize)
+    {
+        VerifyIO(false);  // It's not clear that we should unilaterally do this, as the user hasn't actually tried to read something.
+        return false;
+    }
+
+    const uint64_t sizeRemaining = (uint64_t)streamSize - (uint64_t)currentPos;
+
+    if(sizeRemaining < elementDataSize)
+    {
+        VerifyIO(false);  // It's not clear that we should unilaterally do this, as the user hasn't actually tried to read something.
+        return false;
+    }
+
+    return true;
 }
 
 
-EA::IO::size_type EA::IO::CopyStream(IStream* pSource, IStream* pDestination, size_type nSize)
+EAIO_API EA::IO::size_type EA::IO::CopyStream(IStream* pSource, IStream* pDestination, size_type nSize)
 {
     char            buffer[2048];
     size_type       nCurrentCount, nRemaining;
@@ -120,7 +147,7 @@ EA::IO::size_type EA::IO::CopyStream(IStream* pSource, IStream* pDestination, si
 
 
 
-bool EA::IO::ReadBool8(IStream* pIS, bool& value)
+EAIO_API bool EA::IO::ReadBool8(IStream* pIS, bool& value)
 {
     bool8_t n;
 
@@ -133,31 +160,37 @@ bool EA::IO::ReadBool8(IStream* pIS, bool& value)
 }
 
 
-bool EA::IO::ReadInt8(IStream* pIS, int8_t& value)
-{
-    return pIS->Read(&value, sizeof(value)) == sizeof(value);
-}
-
-
-bool EA::IO::ReadInt8(IStream* pIS, int8_t* value, size_type count )
+EAIO_API bool EA::IO::ReadBool8(IStream* pIS, bool* value, size_type count )
 {
     return pIS->Read(value, count * sizeof(*value)) == count * sizeof(*value);
 }
 
 
-bool EA::IO::ReadUint8(IStream* pIS, uint8_t& value)
+EAIO_API bool EA::IO::ReadInt8(IStream* pIS, int8_t& value)
 {
     return pIS->Read(&value, sizeof(value)) == sizeof(value);
 }
 
 
-bool EA::IO::ReadUint8(IStream* pIS, uint8_t* value, size_type count )
+EAIO_API bool EA::IO::ReadInt8(IStream* pIS, int8_t* value, size_type count )
 {
     return pIS->Read(value, count * sizeof(*value)) == count * sizeof(*value);
 }
 
 
-bool EA::IO::ReadUint16(IStream* pIS, uint16_t& value, Endian endianSource)
+EAIO_API bool EA::IO::ReadUint8(IStream* pIS, uint8_t& value)
+{
+    return pIS->Read(&value, sizeof(value)) == sizeof(value);
+}
+
+
+EAIO_API bool EA::IO::ReadUint8(IStream* pIS, uint8_t* value, size_type count )
+{
+    return pIS->Read(value, count * sizeof(*value)) == count * sizeof(*value);
+}
+
+
+EAIO_API bool EA::IO::ReadUint16(IStream* pIS, uint16_t& value, Endian endianSource)
 {
     if(pIS->Read(&value, sizeof(value)) == sizeof(value))
     {
@@ -169,7 +202,7 @@ bool EA::IO::ReadUint16(IStream* pIS, uint16_t& value, Endian endianSource)
 }
 
 
-bool EA::IO::ReadUint16(IStream* pIS, uint16_t* value, size_type count, Endian endianSource)
+EAIO_API bool EA::IO::ReadUint16(IStream* pIS, uint16_t* value, size_type count, Endian endianSource)
 {
     if(pIS->Read( value, count * sizeof(*value)) == count * sizeof(*value))
     {
@@ -188,19 +221,19 @@ bool EA::IO::ReadUint16(IStream* pIS, uint16_t* value, size_type count, Endian e
 }
 
 
-bool EA::IO::ReadInt16(IStream* pIS, int16_t& value, Endian endianSource)
+EAIO_API bool EA::IO::ReadInt16(IStream* pIS, int16_t& value, Endian endianSource)
 {
     return ReadUint16(pIS, (uint16_t&)value, endianSource);
 }
 
 
-bool EA::IO::ReadInt16(IStream* pIS, int16_t* value, size_type count, Endian endianSource)
+EAIO_API bool EA::IO::ReadInt16(IStream* pIS, int16_t* value, size_type count, Endian endianSource)
 {
     return ReadUint16(pIS, (uint16_t*)value, count, endianSource);
 }
 
 
-bool EA::IO::ReadUint32(IStream* pIS, uint32_t& value, Endian endianSource)
+EAIO_API bool EA::IO::ReadUint32(IStream* pIS, uint32_t& value, Endian endianSource)
 {
     if(pIS->Read(&value, sizeof(value)) == sizeof(value))
     {
@@ -212,7 +245,7 @@ bool EA::IO::ReadUint32(IStream* pIS, uint32_t& value, Endian endianSource)
 }
 
 
-bool EA::IO::ReadUint32(IStream* pIS, uint32_t* value, size_type count, Endian endianSource)
+EAIO_API bool EA::IO::ReadUint32(IStream* pIS, uint32_t* value, size_type count, Endian endianSource)
 {
     if(pIS->Read(value, count * sizeof(*value)) == count * sizeof(*value))
     {
@@ -231,19 +264,19 @@ bool EA::IO::ReadUint32(IStream* pIS, uint32_t* value, size_type count, Endian e
 }
 
 
-bool EA::IO::ReadInt32(IStream* pIS, int32_t& value, Endian endianSource)
+EAIO_API bool EA::IO::ReadInt32(IStream* pIS, int32_t& value, Endian endianSource)
 {
     return ReadUint32(pIS, (uint32_t&)value, endianSource);
 }
 
 
-bool EA::IO::ReadInt32(IStream* pIS, int32_t* value, size_type count, Endian endianSource)
+EAIO_API bool EA::IO::ReadInt32(IStream* pIS, int32_t* value, size_type count, Endian endianSource)
 {
     return ReadUint32(pIS, (uint32_t*)value, count, endianSource);
 }
 
 
-bool EA::IO::ReadUint64(IStream* pIS, uint64_t& value, Endian endianSource)
+EAIO_API bool EA::IO::ReadUint64(IStream* pIS, uint64_t& value, Endian endianSource)
 {
     if(pIS->Read(&value, sizeof(value)) == sizeof(value))
     {
@@ -255,7 +288,7 @@ bool EA::IO::ReadUint64(IStream* pIS, uint64_t& value, Endian endianSource)
 }
 
 
-bool EA::IO::ReadUint64(IStream* pIS, uint64_t* value, size_type count, Endian endianSource)
+EAIO_API bool EA::IO::ReadUint64(IStream* pIS, uint64_t* value, size_type count, Endian endianSource)
 {
     if(pIS->Read(value, count * sizeof(*value)) == count * sizeof(*value))
     {
@@ -274,19 +307,19 @@ bool EA::IO::ReadUint64(IStream* pIS, uint64_t* value, size_type count, Endian e
 }
 
 
-bool EA::IO::ReadInt64(IStream* pIS, int64_t& value, Endian endianSource)
+EAIO_API bool EA::IO::ReadInt64(IStream* pIS, int64_t& value, Endian endianSource)
 {
    return ReadUint64(pIS, (uint64_t&)value, endianSource);
 }
 
 
-bool EA::IO::ReadInt64(IStream* pIS, int64_t* value, size_type count, Endian endianSource)
+EAIO_API bool EA::IO::ReadInt64(IStream* pIS, int64_t* value, size_type count, Endian endianSource)
 {
     return ReadUint64(pIS, (uint64_t*)value, count, endianSource);
 }
 
 
-//bool EA::IO::ReadUint128(IStream* pIS, uint128_t& value, Endian endianSource)
+//EAIO_API bool EA::IO::ReadUint128(IStream* pIS, uint128_t& value, Endian endianSource)
 //{
 //    if(pIS->Read(&value, sizeof(value)) == sizeof(value))
 //    {
@@ -298,37 +331,37 @@ bool EA::IO::ReadInt64(IStream* pIS, int64_t* value, size_type count, Endian end
 //}
 
 
-//bool EA::IO::ReadInt128(IStream* pIS, int128_t& value, Endian endianSource)
+//EAIO_API bool EA::IO::ReadInt128(IStream* pIS, int128_t& value, Endian endianSource)
 //{
 //   return ReadUint128(pIS, (uint128_t&)value, endianSource);
 //}
 
 
-bool EA::IO::ReadFloat(IStream* pIS, float& value, Endian endianSource)
+EAIO_API bool EA::IO::ReadFloat(IStream* pIS, float& value, Endian endianSource)
 {
     return ReadUint32(pIS, (uint32_t&)value, endianSource);
 }
 
 
-bool EA::IO::ReadFloat(IStream* pIS, float* value, size_type count, Endian endianSource)
+EAIO_API bool EA::IO::ReadFloat(IStream* pIS, float* value, size_type count, Endian endianSource)
 {
     return ReadUint32(pIS, (uint32_t*)value, count, endianSource);
 }
 
 
-bool EA::IO::ReadDouble(IStream* pIS, double_t& value, Endian endianSource)
+EAIO_API bool EA::IO::ReadDouble(IStream* pIS, double& value, Endian endianSource)
 {
     return ReadUint64(pIS, (uint64_t&)value, endianSource);
 }
 
 
-bool EA::IO::ReadDouble(IStream* pIS, double_t* value, size_type count, Endian endianSource)
+EAIO_API bool EA::IO::ReadDouble(IStream* pIS, double* value, size_type count, Endian endianSource)
 {
     return ReadUint64(pIS, (uint64_t*)value, count, endianSource);
 }
 
 
-EA::IO::size_type EA::IO::ReadString(IStream* pIS, char8_t* pBuffer, size_type nMaxCount, EA::IO::Endian endianSource)
+EAIO_API EA::IO::size_type EA::IO::ReadString(IStream* pIS, char8_t* pBuffer, size_type nMaxCount, EA::IO::Endian endianSource)
 {
     const off_type nInitialPosition(pIS->GetPosition());
 
@@ -374,7 +407,7 @@ EA::IO::size_type EA::IO::ReadString(IStream* pIS, char8_t* pBuffer, size_type n
 }
 
 
-EA::IO::size_type EA::IO::ReadString(IStream* pIS, char16_t* pBuffer, size_type nMaxCount, EA::IO::Endian endianSource)
+EAIO_API EA::IO::size_type EA::IO::ReadString(IStream* pIS, char16_t* pBuffer, size_type nMaxCount, EA::IO::Endian endianSource)
 {
     const off_type nInitialPosition(pIS->GetPosition());
 
@@ -417,7 +450,7 @@ EA::IO::size_type EA::IO::ReadString(IStream* pIS, char16_t* pBuffer, size_type 
 }
 
 
-EA::IO::size_type EA::IO::ReadLine(IStream* pIS, char8_t* pLine, size_type nMaxCount)
+EAIO_API EA::IO::size_type EA::IO::ReadLine(IStream* pIS, char8_t* pLine, size_type nMaxCount)
 {
     char8_t   cCurrent;
     size_type nCount(0); // Number of chars in the line, not including the line end characters(s).
@@ -489,7 +522,7 @@ EA::IO::size_type EA::IO::ReadLine(IStream* pIS, char8_t* pLine, size_type nMaxC
 }
 
 
-EA::IO::size_type EA::IO::ReadLine(IStream* pIS, char16_t* pLine, size_type nMaxCount, Endian endianSource)
+EAIO_API EA::IO::size_type EA::IO::ReadLine(IStream* pIS, char16_t* pLine, size_type nMaxCount, Endian endianSource)
 {
     char16_t  cCurrent;
     size_type nCount(0); // Number of chars in the line, not including the line end characters(s).
@@ -578,38 +611,44 @@ EA::IO::size_type EA::IO::ReadLine(IStream* pIS, char16_t* pLine, size_type nMax
 }
 
 
-bool EA::IO::WriteBool8(IStream* pOS, bool value)
+EAIO_API bool EA::IO::WriteBool8(IStream* pOS, bool value)
 {
     const uint8_t n(value ? 1u : 0u);
     return pOS->Write(&n, sizeof(n)) == sizeof(n);
 }
 
 
-bool EA::IO::WriteInt8(IStream* pOS, int8_t value)
-{
-    return pOS->Write(&value, sizeof(value)) == sizeof(value);
-}
-
-
-bool EA::IO::WriteInt8(IStream* pOS, const int8_t* value, size_type count)
+EAIO_API bool EA::IO::WriteBool8(IStream* pOS, const bool* value, size_type count)
 {
     return pOS->Write(value, count * sizeof(*value));
 }
 
 
-bool EA::IO::WriteUint8(IStream* pOS, uint8_t value)
+EAIO_API bool EA::IO::WriteInt8(IStream* pOS, int8_t value)
 {
     return pOS->Write(&value, sizeof(value)) == sizeof(value);
 }
 
 
-bool EA::IO::WriteUint8(IStream* pOS, const uint8_t* value, size_type count)
+EAIO_API bool EA::IO::WriteInt8(IStream* pOS, const int8_t* value, size_type count)
 {
     return pOS->Write(value, count * sizeof(*value));
 }
 
 
-bool EA::IO::WriteUint16(IStream* pOS, uint16_t value, Endian endianDestination)
+EAIO_API bool EA::IO::WriteUint8(IStream* pOS, uint8_t value)
+{
+    return pOS->Write(&value, sizeof(value)) == sizeof(value);
+}
+
+
+EAIO_API bool EA::IO::WriteUint8(IStream* pOS, const uint8_t* value, size_type count)
+{
+    return pOS->Write(value, count * sizeof(*value));
+}
+
+
+EAIO_API bool EA::IO::WriteUint16(IStream* pOS, uint16_t value, Endian endianDestination)
 {
     if(endianDestination != kEndianLocal)
         value = SwizzleUint16(value);
@@ -618,7 +657,7 @@ bool EA::IO::WriteUint16(IStream* pOS, uint16_t value, Endian endianDestination)
 }
 
 
-bool EA::IO::WriteUint16(IStream* pOS, const uint16_t* value, size_type count, Endian endianDestination)
+EAIO_API bool EA::IO::WriteUint16(IStream* pOS, const uint16_t* value, size_type count, Endian endianDestination)
 {
     if(endianDestination != kEndianLocal)
     {
@@ -640,19 +679,19 @@ bool EA::IO::WriteUint16(IStream* pOS, const uint16_t* value, size_type count, E
 }
 
 
-bool EA::IO::WriteInt16(IStream* pOS, int16_t value, Endian endianDestination)
+EAIO_API bool EA::IO::WriteInt16(IStream* pOS, int16_t value, Endian endianDestination)
 {
    return WriteUint16(pOS, (uint16_t)value, endianDestination);
 }
 
 
-bool EA::IO::WriteInt16(IStream* pOS, const int16_t* value, size_type count, Endian endianDestination)
+EAIO_API bool EA::IO::WriteInt16(IStream* pOS, const int16_t* value, size_type count, Endian endianDestination)
 {
     return WriteUint16(pOS, (uint16_t*)value, count, endianDestination);
 }
 
 
-bool EA::IO::WriteUint32(IStream* pOS, uint32_t value, Endian endianDestination)
+EAIO_API bool EA::IO::WriteUint32(IStream* pOS, uint32_t value, Endian endianDestination)
 {
     if(endianDestination != kEndianLocal)
         value = SwizzleUint32(value);
@@ -661,7 +700,7 @@ bool EA::IO::WriteUint32(IStream* pOS, uint32_t value, Endian endianDestination)
 }
 
 
-bool EA::IO::WriteUint32(IStream* pOS, const uint32_t* value, size_type count, Endian endianDestination)
+EAIO_API bool EA::IO::WriteUint32(IStream* pOS, const uint32_t* value, size_type count, Endian endianDestination)
 {
     if(endianDestination != kEndianLocal)
     {
@@ -683,19 +722,19 @@ bool EA::IO::WriteUint32(IStream* pOS, const uint32_t* value, size_type count, E
 }
 
 
-bool EA::IO::WriteInt32(IStream* pOS, int32_t value, Endian endianDestination)
+EAIO_API bool EA::IO::WriteInt32(IStream* pOS, int32_t value, Endian endianDestination)
 {
    return WriteUint32(pOS, (uint32_t)value, endianDestination);
 }
 
 
-bool EA::IO::WriteInt32(IStream* pOS, const int32_t* value, size_type count, Endian endianDestination)
+EAIO_API bool EA::IO::WriteInt32(IStream* pOS, const int32_t* value, size_type count, Endian endianDestination)
 {
     return WriteUint32(pOS, (uint32_t*)value, count, endianDestination);
 }
 
 
-bool EA::IO::WriteUint64(IStream* pOS, uint64_t value, Endian endianDestination)
+EAIO_API bool EA::IO::WriteUint64(IStream* pOS, uint64_t value, Endian endianDestination)
 {
     if(endianDestination != kEndianLocal)
         value = SwizzleUint64(value);
@@ -704,7 +743,7 @@ bool EA::IO::WriteUint64(IStream* pOS, uint64_t value, Endian endianDestination)
 }
 
 
-bool EA::IO::WriteUint64(IStream* pOS, const uint64_t* value, size_type count, Endian endianDestination)
+EAIO_API bool EA::IO::WriteUint64(IStream* pOS, const uint64_t* value, size_type count, Endian endianDestination)
 {
     if(endianDestination != kEndianLocal)
     {
@@ -726,19 +765,19 @@ bool EA::IO::WriteUint64(IStream* pOS, const uint64_t* value, size_type count, E
 }
 
 
-bool EA::IO::WriteInt64(IStream* pOS, int64_t value, Endian endianDestination)
+EAIO_API bool EA::IO::WriteInt64(IStream* pOS, int64_t value, Endian endianDestination)
 {
    return WriteUint64(pOS, (uint64_t)value, endianDestination);
 }
 
 
-bool EA::IO::WriteInt64(IStream* pOS, const int64_t* value, size_type count, Endian endianDestination)
+EAIO_API bool EA::IO::WriteInt64(IStream* pOS, const int64_t* value, size_type count, Endian endianDestination)
 {
     return WriteUint64(pOS, (uint64_t*)value, count, endianDestination);
 }
 
 
-//bool EA::IO::WriteUint128(IStream* pOS, uint128_t value, Endian endianDestination)
+//EAIO_API bool EA::IO::WriteUint128(IStream* pOS, uint128_t value, Endian endianDestination)
 //{
 //    if(endianDestination != kEndianLocal)
 //       value = SwizzleUint128(value);
@@ -746,37 +785,37 @@ bool EA::IO::WriteInt64(IStream* pOS, const int64_t* value, size_type count, End
 //
 
 
-//bool EA::IO::WriteInt128(IStream* pOS, int128_t value, Endian endianDestination)
+//EAIO_API bool EA::IO::WriteInt128(IStream* pOS, int128_t value, Endian endianDestination)
 //{
 //    return WriteUint128(pOS, (uint128_t)value, endianDestination);
 //}
 
 
-bool EA::IO::WriteFloat(IStream* pOS, float value, Endian endianDestination)
+EAIO_API bool EA::IO::WriteFloat(IStream* pOS, float value, Endian endianDestination)
 {
     return WriteFloat(pOS, &value, 1, endianDestination);
 }
 
 
-bool EA::IO::WriteFloat(IStream* pOS, const float* value, size_type count, Endian endianDestination)
+EAIO_API bool EA::IO::WriteFloat(IStream* pOS, const float* value, size_type count, Endian endianDestination)
 {
     return WriteUint32(pOS, (const uint32_t*)(const char*)value, count, endianDestination);
 }
 
 
-bool EA::IO::WriteDouble(IStream* pOS, double_t value, Endian endianDestination)
+EAIO_API bool EA::IO::WriteDouble(IStream* pOS, double value, Endian endianDestination)
 {
     return WriteDouble(pOS, &value, 1, endianDestination);
 }
 
 
-bool EA::IO::WriteDouble(IStream* pOS, const double_t* value, size_type count, Endian endianDestination)
+EAIO_API bool EA::IO::WriteDouble(IStream* pOS, const double* value, size_type count, Endian endianDestination)
 {
     return WriteUint64(pOS, (const uint64_t*)(const char*)value, count, endianDestination);
 }
 
 
-bool EA::IO::WriteString(IStream* pOS, const char8_t* pBuffer, size_t nCount, Endian endianSource)
+EAIO_API bool EA::IO::WriteString(IStream* pOS, const char8_t* pBuffer, size_t nCount, Endian endianSource)
 {
     bool bResult(true);
 
@@ -800,7 +839,7 @@ bool EA::IO::WriteString(IStream* pOS, const char8_t* pBuffer, size_t nCount, En
 }
 
 
-bool EA::IO::WriteString(IStream* pOS, const char16_t* pBuffer, size_t nCount, Endian endianSource)
+EAIO_API bool EA::IO::WriteString(IStream* pOS, const char16_t* pBuffer, size_t nCount, Endian endianSource)
 {
     bool bResult(true);
 
@@ -824,7 +863,7 @@ bool EA::IO::WriteString(IStream* pOS, const char16_t* pBuffer, size_t nCount, E
 }
 
 
-bool EA::IO::WriteLine(IStream* pOS, const char8_t* pLine, size_type nCount, LineEnd lineEndToUse)
+EAIO_API bool EA::IO::WriteLine(IStream* pOS, const char8_t* pLine, size_type nCount, LineEnd lineEndToUse)
 {
     bool bResult(true);
 
@@ -866,7 +905,7 @@ bool EA::IO::WriteLine(IStream* pOS, const char8_t* pLine, size_type nCount, Lin
 }
 
 
-bool EA::IO::WriteLine(IStream* pOS, const char16_t* pLine, size_type nCount, LineEnd lineEndToUse, Endian endianDestination)
+EAIO_API bool EA::IO::WriteLine(IStream* pOS, const char16_t* pLine, size_type nCount, LineEnd lineEndToUse, Endian endianDestination)
 {
     bool bResult(true);
 
@@ -906,20 +945,4 @@ bool EA::IO::WriteLine(IStream* pOS, const char16_t* pLine, size_type nCount, Li
 
     return bResult;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

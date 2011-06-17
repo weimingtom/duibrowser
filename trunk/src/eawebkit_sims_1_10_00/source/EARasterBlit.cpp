@@ -53,7 +53,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
 
-#include "EARaster.h" 
+#include <EARaster/EARaster.h> 
 #include "EARaster/internal/EARasterUtils.h"
 #include <EAWebKit/internal/EAWebKitAssert.h>
 #include <math.h>
@@ -423,7 +423,7 @@ do {                                                    \
 } while(0)
 
 
-EARASTER_API bool ClipForBlit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, 
+EARASTER_API bool ClipForBlit(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, 
                     Rect& rectSourceResult, Rect& rectDestResult)
 {
     int srcX, srcY, w, h;
@@ -453,7 +453,7 @@ EARASTER_API bool ClipForBlit(Surface* pSource, const Rect* pRectSource, Surface
             srcX = 0;
         }
 
-        int maxW = pSource->mWidth - srcX;
+        int maxW = pSource->GetWidth() - srcX;
 
         if(maxW < w)
             w = maxW;
@@ -468,7 +468,7 @@ EARASTER_API bool ClipForBlit(Surface* pSource, const Rect* pRectSource, Surface
             srcY = 0;
         }
 
-        int maxH = pSource->mHeight - srcY;
+        int maxH = pSource->GetHeight() - srcY;
 
         if(maxH < h)
             h = maxH;
@@ -477,13 +477,13 @@ EARASTER_API bool ClipForBlit(Surface* pSource, const Rect* pRectSource, Surface
     {
         srcX = 0;
         srcY = 0;
-        w    = pSource->mWidth;
-        h    = pSource->mHeight;
+        w    = pSource->GetWidth();
+        h    = pSource->GetHeight();
     }
 
     // Clip the destination rectangle against the clip rectangle
     {
-        const Rect& rectClip = pDest->mClipRect;
+        const Rect& rectClip = pDest->GetClipRect();
 
         int dx = rectClip.x - rectDestResult.x;
 
@@ -535,7 +535,7 @@ EARASTER_API bool ClipForBlit(Surface* pSource, const Rect* pRectSource, Surface
 }
 
 
-EARASTER_API int BlitTiled(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, int offsetX, int offsetY)
+EARASTER_API int BlitTiled(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, int offsetX, int offsetY)
 {
     Rect rectSource;  // Used if pRectSource is NULL.
     Rect rectDest;
@@ -544,8 +544,8 @@ EARASTER_API int BlitTiled(Surface* pSource, const Rect* pRectSource, Surface* p
     {
         rectSource.x = 0;
         rectSource.y = 0;
-        rectSource.w = pSource->mWidth;
-        rectSource.h = pSource->mHeight;
+        rectSource.w = pSource->GetWidth();
+        rectSource.h = pSource->GetHeight();
 
         pRectSource = &rectSource;
     }
@@ -554,8 +554,8 @@ EARASTER_API int BlitTiled(Surface* pSource, const Rect* pRectSource, Surface* p
     {
         rectDest.x = 0;
         rectDest.y = 0;
-        rectDest.w = pDest->mWidth;
-        rectDest.h = pDest->mHeight;
+        rectDest.w = pDest->GetWidth();
+        rectDest.h = pDest->GetHeight();
 
         pRectDest = &rectDest;
     }
@@ -586,7 +586,7 @@ EARASTER_API int BlitTiled(Surface* pSource, const Rect* pRectSource, Surface* p
 }
 
 
-EARASTER_API int BlitEdgeTiled(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pRectSourceCenter)
+EARASTER_API int BlitEdgeTiled(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, const Rect* pRectSourceCenter)
 {
     Rect rectSource;  // Used if pRectSource is NULL.
     Rect rectDest;
@@ -596,8 +596,8 @@ EARASTER_API int BlitEdgeTiled(Surface* pSource, const Rect* pRectSource, Surfac
     {
         rectSource.x = 0;
         rectSource.y = 0;
-        rectSource.w = pSource->mWidth;
-        rectSource.h = pSource->mHeight;
+        rectSource.w = pSource->GetWidth();
+        rectSource.h = pSource->GetHeight();
 
         pRectSource = &rectSource;
     }
@@ -606,8 +606,8 @@ EARASTER_API int BlitEdgeTiled(Surface* pSource, const Rect* pRectSource, Surfac
     {
         rectDest.x = 0;
         rectDest.y = 0;
-        rectDest.w = pDest->mWidth;
-        rectDest.h = pDest->mHeight;
+        rectDest.w = pDest->GetWidth();
+        rectDest.h = pDest->GetHeight();
 
         pRectDest = &rectDest;
     }
@@ -710,7 +710,7 @@ EARASTER_API int BlitEdgeTiled(Surface* pSource, const Rect* pRectSource, Surfac
 }
 
 
-EARASTER_API int Blit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pDestClipRect)
+EARASTER_API int Blit(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, const Rect* pDestClipRect)
 {
     EAW_ASSERT(pSource && pDest);
 
@@ -771,7 +771,7 @@ EARASTER_API int Blit(Surface* pSource, const Rect* pRectSource, Surface* pDest,
         //Nicki Vankoughnett Stomp Fix:  
         //it appears that it is possible at this piont for the pRectDest to cause us to attempt to draw out
         //of bounds.  So lets constrain our pRectDest to the pDest surface mWidth and mHeight values.
-        EA::Raster::Rect destSurfaceConstraint(0,0,pDest->mWidth, pDest->mHeight);
+        EA::Raster::Rect destSurfaceConstraint(0,0,pDest->GetWidth(), pDest->GetHeight());
         destSurfaceConstraint.constrainRect(rectDestResult);
         if(rectDestResult.w <= 0 || rectDestResult.h <= 0)
             return 0;
@@ -783,7 +783,7 @@ EARASTER_API int Blit(Surface* pSource, const Rect* pRectSource, Surface* pDest,
 }
 
 
-EARASTER_API int BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest)
+EARASTER_API int BlitNoClip(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest)
 {
     Rect rectSource; // Used if pRectSource is NULL.
     Rect rectDest;   // Used if pRectDest is NULL.
@@ -791,7 +791,7 @@ EARASTER_API int BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* 
     // See if we need to set up the blit function.
     // If we add the ability for the source or dest pixel format to change, 
     // then we'll need to add a change detection mechanism.
-    if((pSource->mpBlitDest != pDest) || !pSource->mpBlitFunction)
+    if((pSource->GetBlitDest() != pDest) || !pSource->GetBlitFunction())
     {
         if(!SetupBlitFunction(pSource, pDest))
             return -1;
@@ -804,8 +804,8 @@ EARASTER_API int BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* 
     {
         rectSource.x = 0;
         rectSource.y = 0;
-        rectSource.w = pSource->mWidth;
-        rectSource.h = pSource->mHeight;
+        rectSource.w = pSource->GetWidth();
+        rectSource.h = pSource->GetHeight();
 
         pRectSource = &rectSource;
     }
@@ -814,35 +814,38 @@ EARASTER_API int BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* 
     {
         rectDest.x = 0;
         rectDest.y = 0;
-        rectDest.w = pDest->mWidth;     // To do: Define the the behaviour for the case of (pRectSource->w != pRectDest->w).
-        rectDest.h = pDest->mHeight;
+        rectDest.w = pDest->GetWidth();     // To do: Define the the behaviour for the case of (pRectSource->w != pRectDest->w).
+        rectDest.h = pDest->GetHeight();
 
         pRectDest = &rectDest;
     }
 
     //Nicki Vankoughnett:
     //Avoid any chance of having a dest rect that cannot fit on the dest surface.
-    EAW_ASSERT(pRectDest->x >=  0 && pRectDest->x <= pDest->mWidth);
-    EAW_ASSERT((pRectDest->x + pRectDest->w) >=  0 && (pRectDest->x + pRectDest->w) <= pDest->mWidth);
-    EAW_ASSERT(pRectDest->y >=  0 && pRectDest->y <= pDest->mHeight);    // 3/10/09 CSidhall - Typo fix to mHeight instead of mWidth
-    EAW_ASSERT((pRectDest->y + pRectDest->h) >=  0 && (pRectDest->y + pRectDest->h) <= pDest->mHeight);
+    EAW_ASSERT(pRectDest->x >=  0 && pRectDest->x <= pDest->GetWidth());
+    EAW_ASSERT((pRectDest->x + pRectDest->w) >=  0 && (pRectDest->x + pRectDest->w) <= pDest->GetWidth());
+    EAW_ASSERT(pRectDest->y >=  0 && pRectDest->y <= pDest->GetHeight());    // 3/10/09 CSidhall - Typo fix to mHeight instead of mWidth
+    EAW_ASSERT((pRectDest->y + pRectDest->h) >=  0 && (pRectDest->y + pRectDest->h) <= pDest->GetHeight());
 
     // Blits are done through a BlitFunction pointer. 
     // The blit function takes a BlitInfo struct to encapsulate all parameters.
     BlitInfo blitInfo;
 
     blitInfo.mpSource  = pSource;
-    blitInfo.mpSPixels = (uint8_t*)pSource->mpData + (pRectSource->y * pSource->mStride) + (pRectSource->x * pSource->mPixelFormat.mBytesPerPixel);
+    blitInfo.mpSPixels = (uint8_t*)pSource->GetData() + (pRectSource->y * pSource->GetStride()) + (pRectSource->x * pSource->GetPixelFormat().mBytesPerPixel);
     blitInfo.mnSWidth  = pRectSource->w;
     blitInfo.mnSHeight = pRectSource->h;
-    blitInfo.mnSSkip   = pSource->mStride - (blitInfo.mnSWidth * pSource->mPixelFormat.mBytesPerPixel);
+    blitInfo.mnSSkip   = pSource->GetStride() - (blitInfo.mnSWidth * pSource->GetPixelFormat().mBytesPerPixel);
 
     blitInfo.mpDest    = pDest;
-    blitInfo.mpDPixels = (uint8_t*)pDest->mpData + (pRectDest->y * pDest->mStride) + (pRectDest->x * pDest->mPixelFormat.mBytesPerPixel);
+    blitInfo.mpDPixels = (uint8_t*)pDest->GetData() + (pRectDest->y * pDest->GetStride()) + ( pRectDest->x * pDest->GetPixelFormat().mBytesPerPixel);
     blitInfo.mnDWidth  = pRectDest->w;
     blitInfo.mnDHeight = pRectDest->h;
-    blitInfo.mnDSkip   = pDest->mStride - (blitInfo.mnDWidth * pDest->mPixelFormat.mBytesPerPixel);
-    pSource->mpBlitFunction(blitInfo);
+    blitInfo.mnDSkip   = pDest->GetStride() - (blitInfo.mnDWidth * pDest->GetPixelFormat().mBytesPerPixel);
+   
+    pDest->Lock();
+    pSource->GetBlitFunction()(blitInfo);
+    pDest->Unlock();
 
 	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeDrawRaster, EA::WebKit::kVProcessStatusEnded);
 
@@ -850,36 +853,36 @@ EARASTER_API int BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* 
 }
 
 
-EARASTER_API bool SetupBlitFunction(Surface* pSource, Surface* pDest)
+EARASTER_API bool SetupBlitFunction(ISurface* pSource, ISurface* pDest)
 {
-    pSource->mpBlitDest     = pDest;
-    pSource->mDrawFlags     = 0;
-    pSource->mpBlitFunction = BlitNtoN;  // Initial default.
+    pSource->SetBlitDest(pDest);
+    pSource->SetDrawFlags(0);
+    pSource->SetBlitFunction(BlitNtoN);  // Initial default.
 
-    const bool bIdenticalFormats = (pSource->mPixelFormat.mPixelFormatType == pDest->mPixelFormat.mPixelFormatType);
-    const bool bSourceHasAlpha   = (pSource->mPixelFormat.mAMask != 0);
-    const bool bDestHasAlpha     = (pDest->mPixelFormat.mAMask != 0);
-    const bool bEnableAlphaBlend = (pSource->mSurfaceFlags & kFlagDisableAlpha) == 0;
-    const bool bSurfaceAlpha     = (pSource->mPixelFormat.mSurfaceAlpha != 0xff);
+    const bool bIdenticalFormats = (pSource->GetPixelFormat().mPixelFormatType == pDest->GetPixelFormat().mPixelFormatType);
+    const bool bSourceHasAlpha   = (pSource->GetPixelFormat().mAMask != 0);
+    const bool bDestHasAlpha     = (pDest->GetPixelFormat().mAMask != 0);
+    const bool bEnableAlphaBlend = (pSource->GetSurfaceFlags() & kFlagDisableAlpha) == 0;
+    const bool bSurfaceAlpha     = (pSource->GetPixelFormat().mSurfaceAlpha != 0xff);
     const bool bBlitAlpha        = (bEnableAlphaBlend && (bSourceHasAlpha || bSurfaceAlpha));
 
     if(bIdenticalFormats)
-        pSource->mDrawFlags |= kDrawFlagIdenticalFormats;
+        pSource->SetDrawFlags(pSource->GetDrawFlags() | kDrawFlagIdenticalFormats);
 
     // If we are using a non-alpha copy between identical pixel formats, use a copy blit.
     if(!bBlitAlpha && bIdenticalFormats)
     {
-        pSource->mpBlitFunction = BlitCopy;
+        pSource->SetBlitFunction(BlitCopy);
 
         if (pSource == pDest)
-            pSource->mpBlitFunction = BlitCopyOverlap;
+            pSource->SetBlitFunction(BlitCopyOverlap);
     }
     else
     {
         if(bBlitAlpha)
         {
-            const PixelFormat& sf = pSource->mPixelFormat;
-            const PixelFormat& df = pDest->mPixelFormat;
+            const PixelFormat& sf = pSource->GetPixelFormat();
+            const PixelFormat& df = pDest->GetPixelFormat();
 
             if(sf.mAMask == 0)  // If source doesn't have alpha...
             {
@@ -896,7 +899,7 @@ EARASTER_API bool SetupBlitFunction(Surface* pSource, Surface* pDest)
                             #if MMX_ASMBLIT
                                 if(HaveMMX())
                                 {
-                                    pSource->mpBlitFunction = BlitRGBtoRGBSurfaceAlphaMMX;
+                                    pSource->SetBlitFunction(BlitRGBtoRGBSurfaceAlphaMMX);
                                     break;
                                 }
                             #endif
@@ -905,26 +908,26 @@ EARASTER_API bool SetupBlitFunction(Surface* pSource, Surface* pDest)
                             {
                                 #if ALTIVEC_BLIT
                                     if(HaveAltiVec())
-                                        pSource->mpBlitFunction = BlitRGBtoRGBSurfaceAlphaAltivec;
+                                        pSource->SetBlitFunction(BlitRGBtoRGBSurfaceAlphaAltivec);
                                     else
                                 #endif
-                                        pSource->mpBlitFunction = BlitRGBtoRGBSurfaceAlpha;
+                                        pSource->SetBlitFunction(BlitRGBtoRGBSurfaceAlpha);
                                 break;
                             }
                         }
 
                         #if ALTIVEC_BLIT
                             if(HaveAltiVec())
-                                pSource->mpBlitFunction = Blit32to32SurfaceAlphaAltivec;
+                                pSource->SetBlitFunction(Blit32to32SurfaceAlphaAltivec);
                             else
                         #endif
-                                pSource->mpBlitFunction = BlitNtoNSurfaceAlpha;
+                                pSource->SetBlitFunction(BlitNtoNSurfaceAlpha);
                         break;
                     }
 
                     case 3:
                     default:
-                        pSource->mpBlitFunction = BlitNtoNSurfaceAlpha;
+                        pSource->SetBlitFunction(BlitNtoNSurfaceAlpha);
                         break;
                 }
             }
@@ -942,13 +945,13 @@ EARASTER_API bool SetupBlitFunction(Surface* pSource, Surface* pDest)
                             #if MMX_ASMBLIT
                                 if(Have3DNow())
                                 {
-                                    pSource->mpBlitFunction = BlitRGBtoRGBPixelAlphaMMX3DNOW;
+                                    pSource->SetBlitFunction(BlitRGBtoRGBPixelAlphaMMX3DNOW);
                                     break;
                                 }
 
                                 if(HaveMMX())
                                 {
-                                    pSource->mpBlitFunction = BlitRGBtoRGBPixelAlphaMMX;
+                                    pSource->SetBlitFunction(BlitRGBtoRGBPixelAlphaMMX);
                                     break;
                                 }
                             #endif
@@ -957,10 +960,10 @@ EARASTER_API bool SetupBlitFunction(Surface* pSource, Surface* pDest)
                             {
                                 #if ALTIVEC_BLIT
                                     if(HaveAltiVec())
-                                        pSource->mpBlitFunction = BlitRGBtoRGBPixelAlphaAltivec;
+                                        pSource->SetBlitFunction(BlitRGBtoRGBPixelAlphaAltivec);
                                     else
                                 #endif
-                                        pSource->mpBlitFunction = BlitRGBtoRGBPixelAlpha;
+                                        pSource->SetBlitFunction(BlitRGBtoRGBPixelAlpha);
 
                                 break;
                             }
@@ -968,15 +971,15 @@ EARASTER_API bool SetupBlitFunction(Surface* pSource, Surface* pDest)
 
                         #if ALTIVEC_BLIT
                             if(HaveAltiVec())
-                                pSource->mpBlitFunction = Blit32to32PixelAlphaAltivec;
+                                pSource->SetBlitFunction(Blit32to32PixelAlphaAltivec);
                             else
                         #endif
-                                pSource->mpBlitFunction = BlitNtoNPixelAlpha;
+                                pSource->SetBlitFunction(BlitNtoNPixelAlpha);
                         break;
 
                     case 3:
                     default:
-                        pSource->mpBlitFunction = BlitNtoNPixelAlpha;
+                        pSource->SetBlitFunction(BlitNtoNPixelAlpha);
                         break;
                 }
             }
@@ -984,21 +987,21 @@ EARASTER_API bool SetupBlitFunction(Surface* pSource, Surface* pDest)
         else
         {
             // To do: Come up with a better default value.
-            pSource->mpBlitFunction = BlitNtoN;
+            pSource->SetBlitFunction(BlitNtoN);
 
-            if(pSource->mpBlitFunction == BlitNtoN)
+            if(pSource->GetBlitFunction() == BlitNtoN)
             {
                 // Fastpath C fallback: 32bit RGB<->RGBA blit with matching RGB.
-                if ((pSource->mPixelFormat.mBytesPerPixel == 4) && 
-                    (pDest->mPixelFormat.mBytesPerPixel == 4) &&
-                    (pSource->mPixelFormat.mRMask == pDest->mPixelFormat.mRMask) &&
-                    (pSource->mPixelFormat.mGMask == pDest->mPixelFormat.mGMask) &&
-                    (pSource->mPixelFormat.mBMask == pDest->mPixelFormat.mBMask) )
+                if ((pSource->GetPixelFormat().mBytesPerPixel == 4) && 
+                    (pDest->GetPixelFormat().mBytesPerPixel == 4) &&
+                    (pSource->GetPixelFormat().mRMask == pDest->GetPixelFormat().mRMask) &&
+                    (pSource->GetPixelFormat().mGMask == pDest->GetPixelFormat().mGMask) &&
+                    (pSource->GetPixelFormat().mBMask == pDest->GetPixelFormat().mBMask) )
                 {
-                    pSource->mpBlitFunction = Blit4to4MaskAlpha;
+                    pSource->SetBlitFunction(Blit4to4MaskAlpha);
                 }
                 else if (bDestHasAlpha)
-                    pSource->mpBlitFunction = BlitNtoNCopyAlpha;
+                    pSource->SetBlitFunction(BlitNtoNCopyAlpha);
             }
         }
     }
@@ -1016,8 +1019,8 @@ static void Blit4to4MaskAlpha(const BlitInfo& info)
     const int           srcskip = info.mnSSkip;
     uint32_t*           pDest   = (uint32_t*)info.mpDPixels;
     const int           dstskip = info.mnDSkip;
-    const PixelFormat&  srcfmt  = info.mpSource->mPixelFormat;
-    const PixelFormat&  dstfmt  = info.mpDest->mPixelFormat;
+    const PixelFormat&  srcfmt  = info.mpSource->GetPixelFormat();
+    const PixelFormat&  dstfmt  = info.mpDest->GetPixelFormat();
 
     if (dstfmt.mAMask)
     {
@@ -1069,9 +1072,9 @@ static void BlitNtoN(const BlitInfo& info)
     const int           srcskip = info.mnSSkip;
     uint8_t*            pDest   = info.mpDPixels;
     const int           dstskip = info.mnDSkip;
-    const PixelFormat&  srcfmt  = info.mpSource->mPixelFormat;
+    const PixelFormat&  srcfmt  = info.mpSource->GetPixelFormat();
     const int           srcbpp  = srcfmt.mBytesPerPixel;
-    const PixelFormat&  dstfmt  = info.mpDest->mPixelFormat;
+    const PixelFormat&  dstfmt  = info.mpDest->GetPixelFormat();
     const int           dstbpp  = dstfmt.mBytesPerPixel;
     const unsigned      alpha   = (dstfmt.mPixelFormatType == kPixelFormatTypeRGB) ? 0 : srcfmt.mSurfaceAlpha;
 
@@ -1105,9 +1108,9 @@ static void BlitNtoNCopyAlpha(const BlitInfo& info)
     const int           srcskip = info.mnSSkip;
     uint8_t*            pDest   = info.mpDPixels;
     const int           dstskip = info.mnDSkip;
-    const PixelFormat&  srcfmt  = info.mpSource->mPixelFormat;
+    const PixelFormat&  srcfmt  = info.mpSource->GetPixelFormat();
     const int           srcbpp  = srcfmt.mBytesPerPixel;
-    const PixelFormat&  dstfmt  = info.mpDest->mPixelFormat;
+    const PixelFormat&  dstfmt  = info.mpDest->GetPixelFormat();
     const int           dstbpp  = dstfmt.mBytesPerPixel;
 
     // To do: Should map alpha to [0..255] correctly.
@@ -1134,7 +1137,7 @@ static void BlitNtoNCopyAlpha(const BlitInfo& info)
 // Non-alpha-blending blit of equivalent source/dest format.
 static void BlitCopy(const BlitInfo& info)
 {
-    int            w       = info.mnDWidth * info.mpDest->mPixelFormat.mBytesPerPixel;
+    int            w       = info.mnDWidth * info.mpDest->GetPixelFormat().mBytesPerPixel;
     int            h       = info.mnDHeight;
     const uint8_t* pSource = info.mpSPixels;
     uint8_t*       pDest   = info.mpDPixels;
@@ -1154,7 +1157,7 @@ static void BlitCopy(const BlitInfo& info)
 // Non-alpha-blending blit of equivalent source/dest format of a surface to itself.
 static void BlitCopyOverlap(const BlitInfo& info)
 {
-    int            w       = info.mnDWidth * info.mpDest->mPixelFormat.mBytesPerPixel;
+    int            w       = info.mnDWidth * info.mpDest->GetPixelFormat().mBytesPerPixel;
     int            h       = info.mnDHeight;
     const uint8_t* pSource = info.mpSPixels;
     uint8_t*       pDest   = info.mpDPixels;
@@ -1192,7 +1195,7 @@ static void BlitCopyOverlap(const BlitInfo& info)
 // fast RGB888->(A)RGB888 blending with surface alpha
 static void BlitRGBtoRGBSurfaceAlpha(const BlitInfo& info)
 {
-    unsigned        alpha   = info.mpSource->mPixelFormat.mSurfaceAlpha;
+    unsigned        alpha   = info.mpSource->GetPixelFormat().mSurfaceAlpha;
     int             width   = info.mnDWidth;
     int             height  = info.mnDHeight;
     const uint32_t* pSrc    = (uint32_t*)info.mpSPixels;
@@ -1272,8 +1275,8 @@ static void BlitNtoNSurfaceAlpha(const BlitInfo& info)
     const int            srcskip = info.mnSSkip;
     uint8_t*             pDest   = info.mpDPixels;
     const int            dstskip = info.mnDSkip;
-    const PixelFormat&   srcfmt  = info.mpSource->mPixelFormat;
-    const PixelFormat&   dstfmt  = info.mpDest->mPixelFormat;
+    const PixelFormat&   srcfmt  = info.mpSource->GetPixelFormat();
+    const PixelFormat&   dstfmt  = info.mpDest->GetPixelFormat();
     const int            srcbpp  = srcfmt.mBytesPerPixel;
     const int            dstbpp  = dstfmt.mBytesPerPixel;
     const unsigned       sA      = srcfmt.mSurfaceAlpha;
@@ -1319,8 +1322,8 @@ static void BlitNtoNPixelAlpha(const BlitInfo& info)
     const int            srcskip = info.mnSSkip;
     uint8_t*             pDest   = info.mpDPixels;
     const int            dstskip = info.mnDSkip;
-    const PixelFormat&   srcfmt  = info.mpSource->mPixelFormat;
-    const PixelFormat&   dstfmt  = info.mpDest->mPixelFormat;
+    const PixelFormat&   srcfmt  = info.mpSource->GetPixelFormat();
+    const PixelFormat&   dstfmt  = info.mpDest->GetPixelFormat();
     const int            srcbpp  = srcfmt.mBytesPerPixel;
     const int            dstbpp  = dstfmt.mBytesPerPixel;
     
@@ -1377,10 +1380,10 @@ static void BlitNtoNPixelAlpha(const BlitInfo& info)
 // Fast XRGB -> XRGB/ARGB with source surface alpha.
 static void BlitRGBtoRGBSurfaceAlphaMMX(const BlitInfo& info)
 {
-    const PixelFormat&  df       = info.mpDest->mPixelFormat;
+    const PixelFormat&  df       = info.mpDest->GetPixelFormat();
     const uint32_t      chanmask = df.mRMask | df.mGMask | df.mBMask;
     const uint32_t      amask    = df.mAMask;
-    const unsigned      alpha    = info.mpSource->mPixelFormat.mSurfaceAlpha;
+    const unsigned      alpha    = info.mpSource->GetPixelFormat().mSurfaceAlpha;
     const int           width    = info.mnDWidth;
     int                 height   = info.mnDHeight;
     const uint32_t*     pSrc     = (const uint32_t*)info.mpSPixels;
@@ -1474,7 +1477,7 @@ static void BlitRGBtoRGBPixelAlphaMMX(const BlitInfo& info)
     const int           srcskip  = info.mnSSkip >> 2;
     uint32_t*           pDst     = (uint32_t*)info.mpDPixels;
     const int           dstskip  = info.mnDSkip >> 2;
-    const PixelFormat&  sf       = info.mpSource->mPixelFormat;
+    const PixelFormat&  sf       = info.mpSource->GetPixelFormat();
     const uint32_t      chanmask = sf.mRMask | sf.mGMask | sf.mBMask;
     const uint32_t      amask    = sf.mAMask;
     const uint32_t      ashift   = sf.mAShift;
@@ -1551,7 +1554,7 @@ static void BlitRGBtoRGBPixelAlphaMMX3DNOW(const BlitInfo& info)
     const int           srcskip  = info.mnSSkip >> 2;
     uint32_t*           pDst     = (uint32_t*)info.mpDPixels;
     const int           dstskip  = info.mnDSkip >> 2;
-    const PixelFormat&  sf       = info.mpSource->mPixelFormat;
+    const PixelFormat&  sf       = info.mpSource->GetPixelFormat();
     const uint32_t      chanmask = sf.mRMask | sf.mGMask | sf.mBMask;
     const uint32_t      amask    = sf.mAMask;
     const uint32_t      ashift   = sf.mAShift;
@@ -1847,8 +1850,8 @@ static void Blit32to32PixelAlphaAltivec(const BlitInfo& info)
     int          srcskip = info.mnSSkip >> 2;
     uint32_t*    pDst    = (uint32_t*)info.mpDPixels;
     int          dstskip = info.mnDSkip >> 2;
-    PixelFormat& srcfmt  = info.mpSource->mPixelFormat;
-    PixelFormat& dstfmt  = info.mpDest->mPixelFormat;
+    PixelFormat& srcfmt  = info.mpSource->GetPixelFormat();
+    PixelFormat& dstfmt  = info.mpDest->GetPixelFormat();
 
     vector unsigned char  mergePermute;
     vector unsigned char  valphaPermute;
@@ -1985,8 +1988,8 @@ static void BlitRGBtoRGBPixelAlphaAltivec(const BlitInfo& info)
     // so that we can index lower 8 bits of each short
     mergePermute = vec_add(mergePermute, v1);
     
-    PixelFormat& srcfmt  = info.mpSource->mPixelFormat;
-    PixelFormat& dstfmt  = info.mpDest->mPixelFormat;
+    PixelFormat& srcfmt  = info.mpSource->GetPixelFormat();
+    PixelFormat& dstfmt  = info.mpDest->GetPixelFormat();
 
     while(height--)
     {
@@ -2063,14 +2066,14 @@ static void Blit32to32SurfaceAlphaAltivec(const BlitInfo& info)
 {
   
     // XXX : 6
-    unsigned     alpha   = info.mpSource->mPixelFormat.mSurfaceAlpha;
+    unsigned     alpha   = info.mpSource->GetPixelFormat().mSurfaceAlpha;
     int          height  = info.mnDHeight;
     uint32_t*    pSrc    = (uint32_t*)info.mpSPixels;
     int          srcskip = info.mnSSkip >> 2;
     uint32_t*    pDst    = (uint32_t*)info.mpDPixels;
     int          dstskip = info.mnDSkip >> 2;
-    PixelFormat& srcfmt  = info.mpSource->mPixelFormat;
-    PixelFormat& dstfmt  = info.mpDest->mPixelFormat;
+    PixelFormat& srcfmt  = info.mpSource->GetPixelFormat();
+    PixelFormat& dstfmt  = info.mpDest->GetPixelFormat();
 
     vector unsigned char mergePermute;
     vector unsigned char vsrcPermute;
@@ -2175,7 +2178,7 @@ static void Blit32to32SurfaceAlphaAltivec(const BlitInfo& info)
 // Fast RGB888->(A)RGB888 blending
 static void BlitRGBtoRGBSurfaceAlphaAltivec(const BlitInfo& info)
 {
-    unsigned  alpha   = info.mpSource->mPixelFormat.mSurfaceAlpha;
+    unsigned  alpha   = info.mpSource->GetPixelFormat().mSurfaceAlpha;
     int       height  = info.mnDHeight;
     uint32_t* pSrc    = (uint32_t*)info.mpSPixels;
     int       srcskip = info.mnSSkip >> 2;
@@ -2204,8 +2207,8 @@ static void BlitRGBtoRGBSurfaceAlphaAltivec(const BlitInfo& info)
 
     vector unsigned char v1 = vec_splat_u8(1);
     
-    PixelFormat& srcfmt  = info.mpSource->mPixelFormat;
-    PixelFormat& dstfmt  = info.mpDest->mPixelFormat;
+    PixelFormat& srcfmt  = info.mpSource->GetPixelFormat();
+    PixelFormat& dstfmt  = info.mpDest->GetPixelFormat();
 
     // For the additive blend we use a different permute index (+1 basically)
     // so that we can index lower 8 bits of each short

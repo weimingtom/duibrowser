@@ -33,7 +33,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Created by Paul Pedriana
 //
 // Provides a file stream for Microsoft-derived platforms. These include
-// Win32, Win64, XBox, and XBox2.
+// Win32, Win64, XBox, WinCE.
 //
 /////////////////////////////////////////////////////////////////////////////
 
@@ -43,7 +43,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef EAIO_EAFILESTREAM_H
     #include <EAIO/EAFileStream.h>
 #endif
-#if defined(EA_PLATFORM_XBOX) || defined(EA_PLATFORM_XENON)
+#if defined(EA_PLATFORM_XENON)
     #pragma warning(push, 1)
     #include <comdecl.h>
     #pragma warning(pop)
@@ -250,7 +250,7 @@ bool FileStream::Open(int nAccessFlags, int nCreationDisposition, int nSharing, 
         else if(nUsageHints & kUsageHintRandom)
             dwFlagsAndAttributes |= FILE_FLAG_RANDOM_ACCESS;
 
-        #if defined(EA_PLATFORM_XBOX) || defined(EA_PLATFORM_XENON)
+        #if defined(EA_PLATFORM_XENON)
             // There aren't any W file APIs for XBox and Xenon (XBox 360)
             char pPath8[_MAX_PATH];
             WideCharToMultiByte(CP_UTF8, 0, mpPath16, -1, pPath8, _MAX_PATH, 0, 0);

@@ -174,7 +174,7 @@ namespace EA
 
             #if defined(EA_PLATFORM_WINDOWS)
                 kFileSystemDefault = kFileSystemFAT32  /// Used to refer to whatever the default least-common demoninator file system for the platform is.
-            #elif defined(EA_PLATFORM_XBOX) || defined(EA_PLATFORM_XENON)
+            #elif defined(EA_PLATFORM_XENON)
                 kFileSystemDefault = kFileSystemUDFX   /// Used to refer to whatever the default least-common demoninator file system for the platform is.
             #elif defined(EA_PLATFORM_UNIX) || defined(EA_PLATFORM_PS3)
                 kFileSystemDefault = kFileSystemUnix   /// Used to refer to whatever the default least-common demoninator file system for the platform is.
@@ -283,7 +283,7 @@ namespace EA
         // Functions which recognize current and parent directories use them as defined here.
         // Functions which return current and parent directories return them as defined here.
 
-        #if defined(_MSC_VER) || defined(EA_PLATFORM_WINDOWS) || defined(EA_PLATFORM_XBOX) || defined(EA_PLATFORM_XENON)
+        #if defined(_MSC_VER) || defined(EA_PLATFORM_WINDOWS) || defined(EA_PLATFORM_XENON)
             #define EA_DIRECTORY_CURRENT_8    ".\\"
             #define EA_DIRECTORY_CURRENT_16  L".\\"
 
@@ -373,7 +373,7 @@ namespace EA
         // to work with directories and makes the specification of what a directory 
         // path is be more concise.
         //
-        #if defined(_MSC_VER) || defined(EA_PLATFORM_WINDOWS) || defined(EA_PLATFORM_XBOX) || defined(EA_PLATFORM_XENON)
+        #if defined(_MSC_VER) || defined(EA_PLATFORM_WINDOWS) || defined(EA_PLATFORM_XENON)
             #define                EA_FILE_PATH_SEPARATOR_TYPE_WINDOWS    1
             #define                EA_FILE_PATH_SEPARATOR_8               '\\'
             #define                EA_FILE_PATH_SEPARATOR_STRING_8        "\\"

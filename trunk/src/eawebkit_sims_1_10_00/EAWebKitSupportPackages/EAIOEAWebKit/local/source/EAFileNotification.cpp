@@ -869,7 +869,7 @@ void FileChangeNotification::Poll(int timeoutMS)
                 EA_ASSERT(!pFSEntry->mbDirectory && pFSEntry->mpParentEntry);
                 GetEntryPath(pFSEntry->mpParentEntry, pDirectoryPath);
 
-                #if defined(EA_TRACE_ENABLED) // If EATrace is available and we aren't instead using something else...
+                #if defined(EA_TRACE_ENABLED) && EA_TRACE_ENABLED // If EATrace is available and we aren't instead using something else...
                     EA_TRACE_FORMATTED(("FileChangeNotification: File changed: %d \"%ls%ls\"\n", pFSEntry->mnChangeFlags, pDirectoryPath, pFSEntry->msName.c_str()));
                 #endif
 
@@ -913,7 +913,7 @@ bool FileChangeNotification::PollInternal(FSEntry* pFSEntryBase, int timeoutAbso
             // We ignore the case of this directory having been removed.
             if(EntryExists(pFSEntryTemp))
             {
-                #if EA_TRACE_ENABLED && FCN_POLL_TRACE_ENABLED
+                #if defined(EA_TRACE_ENABLED) && EA_TRACE_ENABLED && FCN_POLL_TRACE_ENABLED
                     char16_t pPath[EA::IO::kMaxPathLength]; // Will be a directory path ending in directory separator or will be a file path.
                     GetEntryPath(pFSEntryTemp, pPath);
                     EA_TRACE_FORMATTED(("FileChangeNotification: Polling directory: \"%ls\"...\n", pPath));
@@ -926,7 +926,7 @@ bool FileChangeNotification::PollInternal(FSEntry* pFSEntryBase, int timeoutAbso
         }
         else
         {
-            #if EA_TRACE_ENABLED && FCN_POLL_TRACE_ENABLED
+            #if defined(EA_TRACE_ENABLED) && EA_TRACE_ENABLED && FCN_POLL_TRACE_ENABLED
                 char16_t pPath[EA::IO::kMaxPathLength]; // Will be a directory path ending in directory separator or will be a file path.
                 GetEntryPath(pFSEntryTemp, pPath);
                 EA_TRACE_FORMATTED(("FileChangeNotification: Polling file: \"%ls\"\n", pPath));
@@ -1225,7 +1225,7 @@ void FileChangeNotification::BuildEntry(FSEntry* pFSEntryBase, const char16_t* p
 //
 void FileChangeNotification::TraceEntryTree(const FSEntry* pFSEntry, int nCurrentDepth)
 {
-    #if defined(EA_TRACE_ENABLED)
+    #if defined(EA_TRACE_ENABLED) && EA_TRACE_ENABLED
         Path::PathString8 path8;
         const int  kSpaceSize = 3;
         const int  kMaxDepth  = 32;
@@ -1237,7 +1237,7 @@ void FileChangeNotification::TraceEntryTree(const FSEntry* pFSEntry, int nCurren
         {
             ConvertPathUTF16ToUTF8(path8, pFSEntry->msName.c_str());
 
-            #if defined(EA_TRACE_ENABLED) // If EATrace is available and we aren't instead using something else...
+            #if defined(EA_TRACE_ENABLED) && EA_TRACE_ENABLED // If EATrace is available and we aren't instead using something else...
                 if(pFSEntry->mbDirectory)
                     EA_TRACE_FORMATTED(("%s%c", path8.c_str(), EA::IO::kFilePathSeparatorString8));
                 else
@@ -1260,7 +1260,7 @@ void FileChangeNotification::TraceEntryTree(const FSEntry* pFSEntry, int nCurren
             const FSEntry* const pFSEntry = *it;
             ConvertPathUTF16ToUTF8(path8, pFSEntry->msName.c_str());
 
-            #if defined(EA_TRACE_ENABLED) // If EATrace is available and we aren't instead using something else...
+            #if defined(EA_TRACE_ENABLED) && EA_TRACE_ENABLED // If EATrace is available and we aren't instead using something else...
                 if(pFSEntry->mbDirectory)
                     EA_TRACE_FORMATTED(("%s%s%c", leadingSpace, path8.c_str(), EA::IO::kFilePathSeparatorString8));
                 else

@@ -71,21 +71,20 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // allocation systems.
 //
 
-#define PPM_ENABLED 0
 
 #ifndef PPM_ENABLED
-    #define PPM_ENABLED 1
+    #define PPM_ENABLED 0
 #endif
 #if PPM_ENABLED
     #include <PPMalloc/EAGeneralAllocator.h>
-    #if EA_MEMORY_DEBUG_ENABLED
+    #if defined(EA_MEMORY_DEBUG_ENABLED) && EA_MEMORY_DEBUG_ENABLED
         #include <PPMalloc/EAGeneralAllocatorDebug.h>
     #endif
 
     namespace EA{
         namespace Allocator{
             extern PPM_API GeneralAllocator* gpEAGeneralAllocator;
-            #if EA_MEMORY_DEBUG_ENABLED
+            #if defined(EA_MEMORY_DEBUG_ENABLED) && EA_MEMORY_DEBUG_ENABLED
                 extern PPM_API GeneralAllocatorDebug* gpEAGeneralAllocatorDebug;
             #endif
         }
@@ -147,7 +146,7 @@ namespace EA
         {
             (void)pContext;
             #if PPM_ENABLED
-                #if EA_MEMORY_DEBUG_ENABLED
+                #if defined(EA_MEMORY_DEBUG_ENABLED) && EA_MEMORY_DEBUG_ENABLED
                      void* const pReturnValue = EA::Allocator::gpEAGeneralAllocatorDebug->MallocDebug( nSize, 0, 0, (const char8_t *)pContext );
                 #else
                      void* const pReturnValue = EA::Allocator::gpEAGeneralAllocator->Malloc(nSize);

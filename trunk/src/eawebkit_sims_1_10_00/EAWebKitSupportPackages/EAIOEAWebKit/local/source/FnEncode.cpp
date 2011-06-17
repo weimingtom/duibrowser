@@ -198,9 +198,8 @@ namespace EA
                         break;
 
                     if (pDest && destCount + 1 < nDestLength)
-                    {
                         *pDest++ = static_cast<char16_t>(c);
-                    }
+
                     destCount += 1;
                 }
                 else
@@ -227,22 +226,19 @@ namespace EA
                         c = (c << 6) + nByte;   // Preserve control bits (don't OR)
                     }
 
-                    nSrcLength -= (nLength - 1);                      // We've just processed all remaining bytes for this multi-byte character
+                    nSrcLength -= (nLength - 1);                // We've just processed all remaining bytes for this multi-byte character
                     c -= utf8DecodingOffsetTable[ nLength ];    // Subtract accumulated control bits just once
 
                     // Check for canonical encoding.
                     if ((c >= utf8MinimumValueTable[nLength]) && (c < utf8MaximumValueTable[nLength]))
                     {
                         if (pDest && destCount + 1 < nDestLength)
-                        {
                             *pDest++ = static_cast<char16_t>(c);
-                        }
+
                         destCount += 1;
                     }
                     else
-                    {
                         break;
-                    }
                 }
             }
 
@@ -290,6 +286,18 @@ namespace EA
                 str2++;
             }
             return false;
+        }
+
+
+        ///////////////////////////////////////////////////////////////////////////////
+        // EAIOStrlen8
+        //
+        EAIO_API size_t EAIOStrlen8(const char8_t* str)
+        {
+            size_t result = 0;
+            while (*str++)
+                result++;
+            return result;
         }
 
 

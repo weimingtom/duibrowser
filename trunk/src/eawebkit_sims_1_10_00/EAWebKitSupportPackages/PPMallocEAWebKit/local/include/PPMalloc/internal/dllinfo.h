@@ -26,41 +26,20 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef PPMALLOC_DLLINFO_H
-#define PPMALLOC_DLLINFO_H
-
-
-#ifdef _MSC_VER
-    #pragma once
-#endif
-
-
 ///////////////////////////////////////////////////////////////////////////////
-// Version
+// dllinfo.h
 //
-// The version is a 5 digit number: Major:MinorMinor:PatchPatch.
-// A value of 11005 refers to version 1.10.05.
-//
-#define PPM_GENERAL_ALLOCATOR_VERSION       11100
-#define PPM_GENERAL_ALLOCATOR_DEBUG_VERSION 11100
+// Copyright (c) 2007, Electronic Arts. All Rights Reserved.
+// By Paul Pedriana
+///////////////////////////////////////////////////////////////////////////////
 
 
+#ifndef PPMALLOC_INTERNAL_DLLINFO_H
+#define PPMALLOC_INTERNAL_DLLINFO_H
 
-#if (defined(EA_DLL) || defined(PPMALLOC_DLL)) && defined(_MSC_VER)
-    // If PPM_API is not defined, assume this package is being
-    // included by something else. When PPMalloc is built as a DLL, 
-    // PPM_API is defined to __declspec(dllexport) by the
-    // package build script.
-    #if !defined(PPM_API)
-        #define PPM_API          __declspec(dllimport)
-        #define PPM_TEMPLATE_API
-    #endif
-#else
-    // PPM_API has no meaning except for DLL builds.
-    #define PPM_API
-    #define PPM_TEMPLATE_API
+
+#include <PPMalloc/internal/config.h>
+
+
 #endif
-
-
-#endif  // include guard
 

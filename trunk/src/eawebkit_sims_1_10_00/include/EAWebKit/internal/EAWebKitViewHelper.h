@@ -47,7 +47,6 @@ namespace EA
 {
     namespace WebKit
     {
-        static View* spActiveView = NULL;   
 
         // Auto active view class.
         // This helps setting an active view for notifications that don't have a view context.
@@ -72,6 +71,7 @@ namespace EA
 
             private:
                 View*   mpSavedView;
+				static View* spActiveView;
         };
 
 

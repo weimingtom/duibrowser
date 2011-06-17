@@ -80,12 +80,12 @@ namespace eastl
     ///     Allocator              Overflow allocator, which is only used if bEnableOverflow == true. Defaults to the global heap.
     ///
     template <typename Key, size_t nodeCount, bool bEnableOverflow = true, typename Compare = eastl::less<Key>, typename Allocator = EASTLAllocatorType>
-    class fixed_set : public set<Key, Compare, fixed_node_pool<sizeof(typename set<Key>::node_type), 
+    class fixed_set : public set<Key, Compare, fixed_node_allocator<sizeof(typename set<Key>::node_type), 
                                  nodeCount, set<Key>::kValueAlignment, set<Key>::kValueAlignmentOffset, bEnableOverflow, Allocator> >
     {
     public:
         typedef fixed_set<Key, nodeCount, bEnableOverflow, Compare, Allocator>                              this_type;
-        typedef fixed_node_pool<sizeof(typename set<Key>::node_type), nodeCount, 
+        typedef fixed_node_allocator<sizeof(typename set<Key>::node_type), nodeCount, 
                     set<Key>::kValueAlignment, set<Key>::kValueAlignmentOffset, bEnableOverflow, Allocator> fixed_allocator_type;
         typedef set<Key, Compare, fixed_allocator_type>                                                     base_type;
         typedef typename base_type::node_type                                                               node_type;
@@ -221,12 +221,12 @@ namespace eastl
     ///     Allocator              Overflow allocator, which is only used if bEnableOverflow == true. Defaults to the global heap.
     ///
     template <typename Key, size_t nodeCount, bool bEnableOverflow = true, typename Compare = eastl::less<Key>, typename Allocator = EASTLAllocatorType>
-    class fixed_multiset : public multiset<Key, Compare, fixed_node_pool<sizeof(typename multiset<Key>::node_type), 
+    class fixed_multiset : public multiset<Key, Compare, fixed_node_allocator<sizeof(typename multiset<Key>::node_type), 
                                            nodeCount, multiset<Key>::kValueAlignment, multiset<Key>::kValueAlignmentOffset, bEnableOverflow, Allocator> >
     {
     public:
         typedef fixed_multiset<Key, nodeCount, bEnableOverflow, Compare, Allocator>                                     this_type;
-        typedef fixed_node_pool<sizeof(typename multiset<Key>::node_type), nodeCount, 
+        typedef fixed_node_allocator<sizeof(typename multiset<Key>::node_type), nodeCount, 
                      multiset<Key>::kValueAlignment, multiset<Key>::kValueAlignmentOffset, bEnableOverflow, Allocator>  fixed_allocator_type;
         typedef multiset<Key, Compare, fixed_allocator_type>                                                            base_type;
         typedef typename base_type::node_type                                                                           node_type;

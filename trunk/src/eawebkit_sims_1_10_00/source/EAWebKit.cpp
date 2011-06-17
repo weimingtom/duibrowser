@@ -35,6 +35,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <EAWebKit/EAWebKitGraphics.h>
 #include <EARaster/EARaster.h>
 #include <EAIO/FnEncode.h> 
+#include <EAIO/PathString.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -52,8 +53,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <EAWebKit/internal/EAWebKitAssert.h>
 #include <EAAssert/eaassert.h>
 #include "JavascriptCore/kjs/interpreter.h"
+#include "WebCore/bridge/bal/bal_class.h"
+#include "xml/XMLHttpRequest.h"
 
 #include <EAWebKit/internal/EAWebKitDomainFilter.h>
+#include <EAWebKit/internal/InputBinding/EAWebKitEventListener.h>
+#include <EAWebKit/internal/EAWebkitEASTLHelpers.h>
 
 #if USE(DIRTYSDK)
 
@@ -80,6 +85,10 @@ EAWebKitTimerCallback gTimerCallback = NULL;
 
 // User supplied stack base callback
 EAWebKitStackBaseCallback gStackBaseCallback = NULL;
+
+//Note by Arpit Baldeva: Moved it here instead of EAWebKitView. Destroying the listener in View::Shutdown won't be good in case of more than 1 EA::WebKit::View. We could possibly have it ref-counted inside
+//EA::WebKit::View but moving it to the EAWebKit Init/Shutdown should solve the problem easily.
+XMLHttpRequestEventListener* gpXMLHttpRequestEventListener = NULL;
 
 // Temporary assertion while we figure out the best way to define cursor ids.
 // See the definition of EA::WebKit::CursorId for a discussion of this.
@@ -163,61 +172,106 @@ EAWEBKIT_API Allocator* GetAllocator()
 // Font / Text
 ///////////////////////////////////////////////////////////////////////
 
-EA::Internal::IGlyphCache* gpGlyphCache = NULL;
+EA::WebKit::IGlyphCache* gpGlyphCache = NULL;
 
-EAWEBKIT_API EA::Internal::IGlyphCache* GetGlyphCache()
+EAWEBKIT_API void SetGlyphCache(EA::WebKit::IGlyphCache* pGlyphCache)
 {
-    EAW_ASSERT_MSG(gpGlyphCache, "Please set the text glyph cache using CreateGlyphCacheWrapperInterface()!");
-    
-    return gpGlyphCache;
-}
-
-EAWEBKIT_API void SetGlyphCache(EA::Internal::IGlyphCache* pGlyphCache)
-{
-    EAW_ASSERT(pGlyphCache);
     gpGlyphCache = pGlyphCache;
 }
 
-EAWEBKIT_API EA::Internal::IGlyphCache* CreateGlyphCacheWrapperInterface(void* pGlyphCache)
+EAWEBKIT_API EA::WebKit::IGlyphCache* GetGlyphCache()
 {
+    EAW_ASSERT_MSG(gpGlyphCache, "Please set the text glyph cache using SetGlyphCache()!");
+    return gpGlyphCache;
+}
+
+EAWEBKIT_API EA::WebKit::IGlyphCache* CreateGlyphCacheWrapperInterface(void* pGlyphCache)
+{
+    EAW_ASSERT_MSG(false, "DEPRECATED: CreateGlyphCacheWrapperInterface(). Please pass the glygh wrapper directly down to SetGlyphCache()."); 
     EAW_ASSERT(pGlyphCache);
-	EA::TextWrapper::GlyphCacheProxy* pProxy = EAWEBKIT_NEW("GlyphCacheProxy")EA::TextWrapper::GlyphCacheProxy(pGlyphCache);//WTF::fastNew<EA::TextWrapper::GlyphCacheProxy, void*>(pGlyphCache); 
+	EA::TextWrapper::GlyphCacheProxy* pProxy = EAWEBKIT_NEW("GlyphCacheProxy")EA::TextWrapper::GlyphCacheProxy( (EA::Text::GlyphCache*) pGlyphCache);//WTF::fastNew<EA::TextWrapper::GlyphCacheProxy, void*>(pGlyphCache); 
     EAW_ASSERT(pProxy);
     SetGlyphCache(pProxy);
     return pProxy;  
 }
 
-EAWEBKIT_API void DestroyGlyphCacheWrapperInterface(EA::Internal::IGlyphCache* pGlyphCacheInterface)
+EAWEBKIT_API void DestroyGlyphCacheWrapperInterface(EA::WebKit::IGlyphCache* pGlyphCacheInterface)
 {
-    EAWEBKIT_DELETE pGlyphCacheInterface;//WTF::fastDelete<EA::Internal::IGlyphCache>(pGlyphCacheInterface);
+    EAW_ASSERT_MSG(false, "DEPRECATED: DestroyGlyphCacheWrapperInterface() for should be created by the app."); 
+    EAWEBKIT_DELETE pGlyphCacheInterface;//WTF::fastDelete<EA::WebKit::IGlyphCache>(pGlyphCacheInterface);
 }
 
-EA::Internal::IFontServer* gpFontServer = NULL;
+EA::WebKit::IFontServer* gpFontServer = NULL;
 
-EAWEBKIT_API void SetFontServer(EA::Internal::IFontServer* pFontServer) 
+EAWEBKIT_API void SetFontServer(EA::WebKit::IFontServer* pFontServer) 
 {
-    EAW_ASSERT(pFontServer);
     gpFontServer = pFontServer;
 }
 
-EAWEBKIT_API EA::Internal::IFontServer* GetFontServer()
+EAWEBKIT_API EA::WebKit::IFontServer* GetFontServer()
 {
-    EAW_ASSERT_MSG(gpGlyphCache, "Please set the font server using CreateFontServerWrapperInterface()!");
+    EAW_ASSERT_MSG(gpFontServer, "Please set the font server using SetFontServer()!");
     return gpFontServer;
 }
 
-EAWEBKIT_API EA::Internal::IFontServer* CreateFontServerWrapperInterface(void* pFontServer)
+EAWEBKIT_API EA::WebKit::IFontServer* CreateFontServerWrapperInterface(void* pFontServer)
 {
+    EAW_ASSERT_MSG(false, "DEPRECATED: CreateFontServerWrapperInterface(). Please pass the font wrapper directly down to SetFontServer()");
     EAW_ASSERT(pFontServer);
-	EA::TextWrapper::FontServerProxy* pProxy = EAWEBKIT_NEW("FontServerProxy") EA::TextWrapper::FontServerProxy(pFontServer);//WTF::fastNew<EA::TextWrapper::FontServerProxy, void*>(pFontServer); 
+    EA::TextWrapper::FontServerProxy* pProxy = EAWEBKIT_NEW("FontServerProxy") EA::TextWrapper::FontServerProxy((EA::Text::FontServer*)pFontServer);//WTF::fastNew<EA::TextWrapper::FontServerProxy, void*>(pFontServer); 
     EAW_ASSERT(pProxy);
     SetFontServer(pProxy);
     return pProxy;
 }
 
-EAWEBKIT_API void DestroyFontServerWrapperInterface(EA::Internal::IFontServer* pFontServerInterface)
+EAWEBKIT_API void DestroyFontServerWrapperInterface(EA::WebKit::IFontServer* pFontServerInterface)
 {
-    EAWEBKIT_DELETE pFontServerInterface; //WTF::fastDelete<EA::Internal::IFontServer>(pFontServerInterface);
+    EAW_ASSERT_MSG(false, "DEPRECATED: DestroyFontServerWrapperInterface() for should be created by the app."); 
+    EAWEBKIT_DELETE pFontServerInterface; //WTF::fastDelete<EA::WebKit::IFontServer>(pFontServerInterface);
+}
+
+//
+// This function returns a valid full path if 
+// 1. Base directory is specified.
+// 2. RelativePath is correctly specified.
+// Otherwise, it will return a default/empty pathstring.
+//
+EA::IO::Path::PathString8 GetFullPath(const char8_t* pRelativePath)
+{
+	// This function is written in such a manner is that if the GetBaseDirectory() does not return a valid path, it bypasses the code.
+	// This ensures that we are backward compatible. 
+
+	char baseDir[EA::IO::kMaxDirectoryLength];
+	memset(baseDir, 0, EA::IO::kMaxDirectoryLength); 
+	if(EA::WebKit::GetFileSystem()->GetBaseDirectory(baseDir, EA::IO::kMaxDirectoryLength - 1))
+	{
+		EA::IO::Path::PathString8 fullPath;
+		if(baseDir[0])
+		{
+			EA::IO::Path::PathString8 relativePath(pRelativePath);
+			if(EA::IO::Path::IsRelative(relativePath))
+			{
+				fullPath.assign(baseDir);
+				EA::IO::Path::Append(fullPath, relativePath);
+
+				return fullPath;
+			}
+			else
+			{
+				EAW_ASSERT_FORMATTED(false , "Base directory specified but %s path is not relative. Base directory is ignored\n", pRelativePath);
+			}
+		}
+		else //Just some safety code
+		{
+			EA::IO::Path::PathString8 relativePath(pRelativePath);
+			if(EA::IO::Path::IsRelative(relativePath))
+			{
+				EAW_ASSERT_FORMATTED(false , "Base directory not specified but %s path is relative. \n", pRelativePath);
+			}
+		}
+	}
+	
+	return EA::IO::Path::PathString8();
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -252,7 +306,20 @@ EAWEBKIT_API bool SetDiskCacheUsage(const EA::WebKit::DiskCacheInfo& diskCacheIn
 	if (!diskCacheInfo.mCacheDiskDirectory) //If there is no disk cache directory, simply return.
 		return false;
 	
-	pRHM->SetCacheDirectory(diskCacheInfo.mCacheDiskDirectory);
+	const char8_t* pDiskCacheDir = diskCacheInfo.mCacheDiskDirectory;
+	EA::IO::Path::PathString8 fullPath = GetFullPath(pDiskCacheDir);
+	if(!fullPath.empty())
+	{
+		pDiskCacheDir = fullPath.c_str();
+	}
+	
+	if(!EA::WebKit::GetFileSystem()->MakeDirectory(pDiskCacheDir))
+	{
+		EAW_ASSERT_FORMATTED(false , "Coult not create directory for %s disk cache direcotry path \n",pDiskCacheDir);
+		return false;
+	}
+
+	pRHM->SetCacheDirectory(pDiskCacheDir);
     pRHM->SetMaxCacheSize(diskCacheInfo.mDiskCacheSize);
     pRHM->SetMaxNumberOfCachedFiles(diskCacheInfo.mMaxNumberOfCachedFiles);
     pRHM->SetMaxNumberOfOpenFiles(diskCacheInfo.mMaxNumberOfOpenFiles);
@@ -276,6 +343,10 @@ EAWEBKIT_API void GetRAMCacheUsage(EA::WebKit::RAMCacheInfo& ramCacheInfo)
     ramCacheInfo.mRAMLiveSize = cacheStats.liveSize;
     ramCacheInfo.mRAMDeadSize = cacheStats.deadSize;
     ramCacheInfo.mRAMCacheMaxUsedSize = cacheStats.maxUsedSize;
+    
+    ramCacheInfo.mCSS = cacheStats.cssStyleSheets.size;
+    ramCacheInfo.mImages = cacheStats.images.size;
+    ramCacheInfo.mScripts = cacheStats.scripts.size;
 
 
     // RAM page cache:
@@ -367,8 +438,23 @@ EAWEBKIT_API void SetCookieUsage(const EA::WebKit::CookieInfo& cookieInfo)
     WebCore::ResourceHandleManager* pRHM = WebCore::ResourceHandleManager::sharedInstance();
     EAW_ASSERT(pRHM);
 
-    EA::WebKit::CookieManager* pCM = pRHM->GetCookieManager();   
-    CookieManagerParameters    params(cookieInfo.mCookieFilePath, cookieInfo.mMaxIndividualCookieSize, 
+	const char8_t* pCookieFilePath = cookieInfo.mCookieFilePath;
+	
+	EA::IO::Path::PathString8 fullPath;
+	if(pCookieFilePath)
+	{
+		fullPath.assign(GetFullPath(pCookieFilePath));
+		if(!fullPath.empty())
+		{
+			pCookieFilePath = fullPath.c_str();
+		}
+	}
+
+	// If the user has set a temp directory, make sure that the cookie file path is relative.
+	// Otherwise, we go through the old path. This maintains backward compatibility bug free.
+	
+	EA::WebKit::CookieManager* pCM = pRHM->GetCookieManager();   
+    CookieManagerParameters    params(pCookieFilePath, cookieInfo.mMaxIndividualCookieSize, 
                                       cookieInfo.mDiskCookieStorageSize, cookieInfo.mMaxCookieCount);
     pCM->SetParametersAndInitialize(params);
 }
@@ -453,9 +539,12 @@ EAWEBKIT_API void SetDebugFileDumpStatus(const bool enabled)
 Parameters::Parameters()
 :	mLogChannelFlags(kLogChannelNotYetImplemented | kLogChannelPopupBlocking | kLogChannelEvents),
 	mpLocale(NULL),
+	mpAcceptLanguageHttpHeaderValue(NULL),
 	mpApplicationName(NULL),
 	mpUserAgent(NULL),
 	mMaxTransportJobs(32),
+	mMaxTransportJobsSynchronous(2),
+	mHttpRequestResponseBufferSize(4096),
 	mTransportPollTimeSeconds(0.05),
 	mPageTimeoutSeconds(kPageTimeoutDefault),
 	mbEnableHttpPipelining(false),
@@ -489,8 +578,8 @@ Parameters::Parameters()
 	mbEnableUTFTransport(true),
 	mbEnableImageCompression(false),
 	mJavaScriptStackSize(128 * 1024), //128 KB
-	mEnableSmoothText(false), 
-	mbEnableImageAdditiveAlphaBlending(false),
+	mEnableSmoothText(false),
+    mSmoothDefaultTextSize(18.0f),  
 	mbEnableProfiling(false),
 	mbEnableGammaCorrection(true),
 	#if defined(_DEBUG)
@@ -498,8 +587,9 @@ Parameters::Parameters()
 	#else
 	mbEnableJavaScriptDebugOutput(false),
 	#endif
-	
-	mFireTimerRate(kFireTimerRate60Hz)
+	mFireTimerRate(kFireTimerRate60Hz),
+    mbEnableDefaultToolTip(false),
+	mbEnableCrossDomainScripting(false)
 	{
 		mColors[kColorActiveSelectionBack]         .setRGB(0xff3875d7);
 		mColors[kColorActiveSelectionFore]         .setRGB(0xffd4d4d4);
@@ -518,6 +608,7 @@ Parameters::Parameters()
 struct ParametersEx : public Parameters
 {
     eastl::fixed_string<char, 16>  msLocale;
+	eastl::fixed_string<char, 32>  msAcceptLanguageHttpHeaderValue;
     eastl::fixed_string<char, 16>  msApplicationName;
     eastl::fixed_string<char, 160> msUserAgent;
 
@@ -553,6 +644,12 @@ EAWEBKIT_API void SetParameters(const Parameters& parameters)
     else
         sParametersEx().msLocale.clear();
     sParametersEx().mpLocale = sParametersEx().msLocale.c_str();
+
+	if(parameters.mpAcceptLanguageHttpHeaderValue)
+		sParametersEx().msAcceptLanguageHttpHeaderValue = parameters.mpAcceptLanguageHttpHeaderValue;
+	else
+		sParametersEx().msAcceptLanguageHttpHeaderValue.clear();
+	sParametersEx().mpAcceptLanguageHttpHeaderValue = sParametersEx().msAcceptLanguageHttpHeaderValue.c_str();
 
     if(parameters.mpApplicationName)
         sParametersEx().msApplicationName = parameters.mpApplicationName;
@@ -631,9 +728,6 @@ EAWEBKIT_API void SetParameters(const Parameters& parameters)
 	KJS::Interpreter::setShouldPrintExceptions(parameters.mbEnableJavaScriptDebugOutput);
 
     OWBAL::setFireTimerRate(parameters.mFireTimerRate);
-
-    // Deprecated: This is to be removed in an upcoming version after 1.12.00 or later
-    EAW_ASSERT_MSG(!parameters.mbEnableImageAdditiveAlphaBlending, "DEPRECATED: mbEnableImageAdditiveAlphaBlending no longer needs to be set");
 }
 
 
@@ -679,13 +773,19 @@ EAWEBKIT_API bool Init(Allocator* pAllocator)
 	SetWebKitStatus(kWebKitStatusInitializing);
     extern void SetPackageAllocators();
     SetPackageAllocators();
-    EA::TextWrapper::InitFontSystem();
 
     // DeepSee is the macro-based trace system that the OWB people made. It is similar to EAAssert and EATrace.
     DS_INIT_DEEPSEE_FRAMEWORK();
 
-		
+	
+	gpXMLHttpRequestEventListener = new XMLHttpRequestEventListener();
+	WebCore::XMLHttpRequest::setStaticOnAbortListener(gpXMLHttpRequestEventListener); 
+	WebCore::XMLHttpRequest::setStaticOnErrorListener(gpXMLHttpRequestEventListener);
+	WebCore::XMLHttpRequest::setStaticOnLoadListener(gpXMLHttpRequestEventListener);
+	WebCore::XMLHttpRequest::setStaticOnLoadStartListener(gpXMLHttpRequestEventListener);
+	WebCore::XMLHttpRequest::setStaticOnProgressListener(gpXMLHttpRequestEventListener);	
     
+	
 	SetWebKitStatus(kWebKitStatusActive);
     return true;
 }
@@ -696,7 +796,16 @@ EAWEBKIT_API void Shutdown()
     EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Init() needs to have been called or Shutdown() was called twice");
     
     SetWebKitStatus(kWebKitStatusShuttingDown);
-    
+	
+	WebCore::XMLHttpRequest::removeStaticEventListeners();
+	if(gpXMLHttpRequestEventListener)
+	{
+		delete gpXMLHttpRequestEventListener;
+		gpXMLHttpRequestEventListener = NULL;
+	}
+	//abaldeva: Moved here as a temporary measure in case the game team has more than 1 view. Otherwise, it would crash when shutting down one view.
+	KJS::Bindings::BalClass::cleanup();
+
     // We may want to do some kind of assertions here.
     sParametersEx().Shutdown();
 
@@ -708,7 +817,6 @@ EAWEBKIT_API void Shutdown()
     WebView::staticFinalizePart1();  
     WebView::unInitPart2();
     WebView::staticFinalizePart2();
-    EA::TextWrapper::ShutDownFontSystem();
     
     SetWebKitStatus(kWebKitStatusInactive);
 }
@@ -740,6 +848,117 @@ EAWEBKIT_API void SetCharacters(const char8_t* chars, EASTLFixedString8Wrapper& 
 
 	GetFixedString(str)->assign(chars);
 }
+
+EAWEBKIT_API void GetJavaScriptValues(const EASTLVectorJavaScriptValueWrapper& wrapper, EA::WebKit::JavascriptValue** ppValues, int* pSize)
+{
+    EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+
+    VectorJavaScriptValue* valueVector = GetVectorJavaScriptValue(wrapper);
+    *pSize = valueVector->size();
+    *ppValues = valueVector->data();
+}
+
+EAWEBKIT_API void SetJavaScriptValues(const EA::WebKit::JavascriptValue* pValues, int size, EASTLVectorJavaScriptValueWrapper& wrapper)
+{
+    EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+
+    GetVectorJavaScriptValue(wrapper)->assign(pValues, pValues + size);
+}
+
+EAWEBKIT_API EASTLJavascriptValueHashMapIteratorWrapper* CreateJavascriptValueHashMapIterator(void)
+{
+    EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+    
+    return EAWEBKIT_NEW("EASTLJavascriptValueHashMapIteratorWrapper") EASTLJavascriptValueHashMapIteratorWrapper();
+}
+
+EAWEBKIT_API void DestroyHashMapIterator(EASTLJavascriptValueHashMapIteratorWrapper* i) 
+{
+    EAWEBKIT_DELETE i;
+}
+
+EAWEBKIT_API EA::WebKit::JavascriptValue* GetJavascriptValue(const EASTLJavascriptValueHashMapWrapper& wrapper, const char16_t* key, bool createIfMissing)
+{
+    EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+
+    HashMapJavaScriptValue* hashMap = GetHashMap(wrapper);
+    
+    if (!createIfMissing) {
+        HashMapJavaScriptValue::iterator iValue = hashMap->find(key);
+        if (iValue == hashMap->end()) {
+            return NULL;
+        }
+
+        return &iValue->second;
+    }
+    else {
+        return &(*hashMap)[key];
+    }
+}
+
+EAWEBKIT_API void SetHashMapIteratorToMapBegin(const EASTLJavascriptValueHashMapWrapper& wrapper, EASTLJavascriptValueHashMapIteratorWrapper* i) 
+{
+    EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+    HashMapJavaScriptValue* hashMap = GetHashMap(wrapper);
+    
+    HashMapJavaScriptValue::iterator itr = hashMap->begin();
+    *i = *reinterpret_cast<EASTLJavascriptValueHashMapIteratorWrapper*>(&itr);
+}
+
+EAWEBKIT_API EA::WebKit::JavascriptValue* GetNextJavascriptValue(const EASTLJavascriptValueHashMapWrapper& wrapper, EASTLJavascriptValueHashMapIteratorWrapper* iteratorWrapper, EA::WebKit::JavascriptValue** valueOut, const char16_t** keyOut)
+{
+    EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+    
+    HashMapJavaScriptValue* hashMap = GetHashMap(wrapper);
+    HashMapJavaScriptValue::iterator* itr = GetHashMapIterator(*iteratorWrapper);
+
+    EA::WebKit::JavascriptValue* value = NULL;
+	const char16_t* key = NULL;
+    
+	if (*itr != hashMap->end())
+    {
+        value = &(*itr)->second;
+        key = (*itr)->first.c_str();
+
+        (*itr)++;
+    }
+
+    if (valueOut != NULL) {
+        *valueOut = value;
+    }
+
+    if (keyOut != NULL) {
+        *keyOut = key;
+    }
+
+    return value;
+}
+
+EAWEBKIT_API void RemoveJavascriptValue(const EASTLJavascriptValueHashMapWrapper& wrapper, const char16_t *key) 
+{
+    EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+    
+    HashMapJavaScriptValue* hashMap = GetHashMap(wrapper);
+    hashMap->erase(key);
+}
+
+EAWEBKIT_API void ClearJavascriptValues(const EASTLJavascriptValueHashMapWrapper& wrapper) 
+{
+    EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+
+    HashMapJavaScriptValue* hashMap = GetHashMap(wrapper);
+    hashMap->clear();
+}
+
+EAWEBKIT_API size_t GetJavascriptValueCount(const EASTLJavascriptValueHashMapWrapper& wrapper) 
+{
+    EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+
+    HashMapJavaScriptValue* hashMap = GetHashMap(wrapper);
+    return hashMap->size();
+}
+
+
 ///////////////////////////////////////////////////////////////////////
 // EAWebKit Build Version 
 ///////////////////////////////////////////////////////////////////////
@@ -747,6 +966,18 @@ EAWEBKIT_API void SetCharacters(const char8_t* chars, EASTLFixedString8Wrapper& 
 EAWEBKIT_API const char* GetVersion()
 {
     return gEAWebKitBuildVersion;
+}
+
+EAWEBKIT_API void RegisterJavascriptDebugListener(EAWebKitJavascriptDebugListener *listener) {
+    EAWebKitJavascriptDebuggerWrapper *wrapper = EAWEBKIT_NEW ("EAWebKitJavascriptDebuggerWrapper") EAWebKitJavascriptDebuggerWrapper();
+    listener->SetDebugWrapper(wrapper);
+    listener->Attach();
+}
+
+EAWEBKIT_API void UnregisterJavascriptDebugListener(EAWebKitJavascriptDebugListener *listener) {
+    listener->Detach();
+    EAWEBKIT_DELETE listener->GetDebugWrapper();
+    listener->SetDebugWrapper(NULL);
 }
 
 EAWEBKIT_API void SetPlatformSocketAPI(EA::WebKit::PlatformSocketAPI& platformSocketAPI)
@@ -789,25 +1020,27 @@ namespace EA
 {
 	namespace WebKit
 	{
-		EAWEBKIT_API EA::Raster::Surface* CreateSurface(int width, int height, EA::Raster::PixelFormatType pft)
-		{
-			return EAWEBKIT_NEW("Surface") EA::Raster::Surface(width, height, pft);//WTF::fastNew<EA::Raster::Surface, int, int, EA::Raster::PixelFormatType>(width, height, pft);
-		}
 
-		EAWEBKIT_API void DestroySurface(EA::Raster::Surface* pSurface) 
+        EA::Raster::IEARaster* gpRasterInstance = NULL;
+        
+        EAWEBKIT_API void SetEARasterInstance(EA::Raster::IEARaster* pRasterInstance)
 		{
-			EAWEBKIT_DELETE pSurface;//WTF::fastDelete<EA::Raster::Surface>(pSurface);
-		}
-
-		EAWEBKIT_API bool WritePPMFile(const char* pPath, EA::Raster::Surface* pSurface, bool bAlphaOnly)
-		{
-			return EA::Raster::WritePPMFile(pPath,pSurface,bAlphaOnly);
+            if( (gpRasterInstance) && (gpRasterInstance != pRasterInstance) )
+            {
+                EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusInactive), "Warning: The raster instance is being changed while surfaces are possibly in use");
+            }
+            gpRasterInstance = pRasterInstance;    
 		}
 
 		EAWEBKIT_API EA::Raster::IEARaster* GetEARasterInstance()
 		{
-			static EA::Raster::EARasterConcrete concreteInstance;
-			return &concreteInstance;
+            if(!gpRasterInstance)
+            {
+                // Default             
+                static EA::Raster::EARasterConcrete concreteInstance;
+    			gpRasterInstance = &concreteInstance;
+            }
+            return gpRasterInstance;    
 		}
 	}
 }
@@ -960,56 +1193,56 @@ namespace EA
 			return EA::WebKit::GetAllocator();
 		}
 		
-		EA::Internal::IGlyphCache* EAWebkitConcrete::GetGlyphCache()
+		EA::WebKit::IGlyphCache* EAWebkitConcrete::GetGlyphCache()
 		{
 			EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
 			
 			return EA::WebKit::GetGlyphCache();
 		}
 
-		void EAWebkitConcrete::SetGlyphCache(EA::Internal::IGlyphCache* pGlyphCache)
+		void EAWebkitConcrete::SetGlyphCache(EA::WebKit::IGlyphCache* pGlyphCache)
 		{
 			EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
 			
 			EA::WebKit::SetGlyphCache(pGlyphCache);
 		}
 		
-		EA::Internal::IFontServer* EAWebkitConcrete::GetFontServer()
+		EA::WebKit::IFontServer* EAWebkitConcrete::GetFontServer()
 		{
 			EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
 			
 			return EA::WebKit::GetFontServer();
 		}
 
-		EA::Internal::IGlyphCache* EAWebkitConcrete::CreateGlyphCacheWrapperInterface(void* pGlyphCache)
+		EA::WebKit::IGlyphCache* EAWebkitConcrete::CreateGlyphCacheWrapperInterface(void* pGlyphCache)
         {
 			EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
 			
 			return  EA::WebKit::CreateGlyphCacheWrapperInterface(pGlyphCache); 
         }
 
-        void EAWebkitConcrete::DestroyGlyphCacheWrapperInterface(EA::Internal::IGlyphCache* pGlyphCacheInterface)
+        void EAWebkitConcrete::DestroyGlyphCacheWrapperInterface(EA::WebKit::IGlyphCache* pGlyphCacheInterface)
         {
 			EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
 			
 			EA::WebKit::DestroyGlyphCacheWrapperInterface(pGlyphCacheInterface);
         }
 
-		void EAWebkitConcrete::SetFontServer(EA::Internal::IFontServer* pFontServer)
+		void EAWebkitConcrete::SetFontServer(EA::WebKit::IFontServer* pFontServer)
 		{
 			EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
 
 			EA::WebKit::SetFontServer(pFontServer);
 		}
 
-        EA::Internal::IFontServer* EAWebkitConcrete::CreateFontServerWrapperInterface(void* pFontServer)
+        EA::WebKit::IFontServer* EAWebkitConcrete::CreateFontServerWrapperInterface(void* pFontServer)
         {
 			EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
 
 			return  EA::WebKit::CreateFontServerWrapperInterface(pFontServer); 
         }
 
-        void EAWebkitConcrete::DestroyFontServerWrapperInterface(EA::Internal::IFontServer* pFontServerInterface)
+        void EAWebkitConcrete::DestroyFontServerWrapperInterface(EA::WebKit::IFontServer* pFontServerInterface)
         {
 			EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
 
@@ -1224,6 +1457,13 @@ namespace EA
 			EA::WebKit::DestroyView(pView);
 		}
 
+		void EAWebkitConcrete::SetEARasterInstance(EA::Raster::IEARaster* pRasterInstance)
+		{
+			EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+
+			return EA::WebKit::SetEARasterInstance(pRasterInstance);
+		}
+
 		EA::Raster::IEARaster* EAWebkitConcrete::GetEARasterInstance()
 		{
 			EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
@@ -1340,6 +1580,75 @@ namespace EA
 			EA::WebKit::SetCharacters(chars, str);
 		}
 
+        void EAWebkitConcrete::GetJavaScriptValues(const EASTLVectorJavaScriptValueWrapper& wrapper, EA::WebKit::JavascriptValue** ppValues, int* pSize)
+        {
+            EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+
+            return EA::WebKit::GetJavaScriptValues(wrapper, ppValues, pSize);
+        }
+
+        void EAWebkitConcrete::SetJavaScriptValues(const EA::WebKit::JavascriptValue* pValues, int size, EASTLVectorJavaScriptValueWrapper& wrapper)
+        {
+            EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+
+            EA::WebKit::SetJavaScriptValues(pValues, size, wrapper);
+        }
+
+        EA::WebKit::JavascriptValue* EAWebkitConcrete::GetJavascriptValue(const EASTLJavascriptValueHashMapWrapper& wrapper, const char16_t* key, bool createIfMissing)
+        {
+            EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+            
+            return EA::WebKit::GetJavascriptValue(wrapper, key, createIfMissing);
+        }
+
+        EASTLJavascriptValueHashMapIteratorWrapper* EAWebkitConcrete::CreateJavascriptValueHashMapIterator()
+        {
+            EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+            return EA::WebKit::CreateJavascriptValueHashMapIterator();
+        }
+
+        void EAWebkitConcrete::DestroyHashMapIterator(EASTLJavascriptValueHashMapIteratorWrapper* i)
+        {
+            EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+            EA::WebKit::DestroyHashMapIterator(i);
+        }
+
+
+        void EAWebkitConcrete::SetHashMapIteratorToMapBegin(const EASTLJavascriptValueHashMapWrapper& wrapper, EASTLJavascriptValueHashMapIteratorWrapper* i)
+        {
+            EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+
+            EA::WebKit::SetHashMapIteratorToMapBegin(wrapper, i);
+        }
+        
+        EA::WebKit::JavascriptValue* EAWebkitConcrete::GetNextJavascriptValue(const EASTLJavascriptValueHashMapWrapper& wrapper, EASTLJavascriptValueHashMapIteratorWrapper* iteratorWrapper, EA::WebKit::JavascriptValue** valueOut, const char16_t** keyOut)
+        {
+            EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+
+            return EA::WebKit::GetNextJavascriptValue(wrapper, iteratorWrapper, valueOut, keyOut);
+        }
+
+        void EAWebkitConcrete::RemoveJavascriptValue(const EASTLJavascriptValueHashMapWrapper& wrapper, const char16_t *key) 
+        {
+            EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+            
+            EA::WebKit::RemoveJavascriptValue(wrapper, key);
+        }
+
+        void EAWebkitConcrete::ClearJavascriptValues(const EASTLJavascriptValueHashMapWrapper& wrapper) 
+        {
+            EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+
+            EA::WebKit::ClearJavascriptValues(wrapper);
+        }
+
+        size_t EAWebkitConcrete::GetJavascriptValueCount(const EASTLJavascriptValueHashMapWrapper& wrapper) 
+        {
+            EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
+
+            return EA::WebKit::GetJavascriptValueCount(wrapper);
+        }
+
 		void EAWebkitConcrete::ReattachCookies(TransportInfo* pTInfo)
 		{
 			EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
@@ -1373,6 +1682,16 @@ namespace EA
 			return EA::WebKit::GetVersion();
 		}
 
+        void EAWebkitConcrete::RegisterJavascriptDebugListener(EAWebKitJavascriptDebugListener* listener)
+        {
+            return EA::WebKit::RegisterJavascriptDebugListener(listener);
+        }
+
+        void EAWebkitConcrete::UnregisterJavascriptDebugListener(EAWebKitJavascriptDebugListener* listener)
+        {
+            return EA::WebKit::UnregisterJavascriptDebugListener(listener);
+        }
+
 		void EAWebkitConcrete::SetPlatformSocketAPI(EA::WebKit::PlatformSocketAPI& platformSocketAPI)
 		{
 			EA::WebKit::SetPlatformSocketAPI(platformSocketAPI);
@@ -1390,7 +1709,17 @@ namespace EA
 			EA::WebKit::DestroyJavaScriptValue(pValue);
 		}
 
+        EA::WebKit::JavascriptValue* EAWebkitConcrete::CreateJavaScriptValueArray(int count)
+        {
+            EAW_ASSERT_MSG( (GetWebKitStatus() == kWebKitStatusActive), "Did you call EAWebKit::Init()?");
 
+            return EA::WebKit::CreateJavaScriptValueArray(count);
+        }
+
+        void EAWebkitConcrete::DestroyJavaScriptValueArray(EA::WebKit::JavascriptValue* pValues)
+        {
+            EA::WebKit::DestroyJavaScriptValueArray(pValues);
+        }
     }
 }
 
@@ -1413,14 +1742,16 @@ extern "C" EA::WebKit::IEAWebkit* CreateEAWebkitInstance(void)
 #if defined(_WIN32) || defined(_WIN64) //Windows or Xbox 360
 #include <EAWebKit/DLLInterface.h>
 #elif defined(__PPU__) //PS3
-#include <sys/DLLInterface.h>
-#endif
+#include "sys/DLLInterface.h"
+#endif 
 
 extern "C" int EAWebKitDllStart(void)
 {
 	//Set the allocators to be used by these packages when the module is loaded.
 	EA::IO::SetAllocator(EA::WebKit::gpCoreAllocatorWebkitImplementation);
-	EA::Text::SetAllocator(EA::WebKit::gpCoreAllocatorWebkitImplementation);
+
+    // Deprecated: To be removed
+    EA::Text::SetAllocator(EA::WebKit::gpCoreAllocatorWebkitImplementation);
 
 	return PLATFORM_DLL_START_SUCCESS;
 }

@@ -62,13 +62,15 @@ namespace EA
 	}
 
 
-	namespace Allocator
-	{
-        ICoreAllocator* ICoreAllocator::GetDefaultAllocator()
-        {
-            return &IO::gCoreAllocatorMalloc;
-        }
-	}
+    #if EAIO_DEFAULT_ALLOCATOR_IMPL_ENABLED
+	    namespace Allocator
+	    {
+            ICoreAllocator* ICoreAllocator::GetDefaultAllocator()
+            {
+                return &IO::gCoreAllocatorMalloc;
+            }
+	    }
+    #endif
 
 } // namespace EA
 

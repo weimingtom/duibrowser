@@ -33,8 +33,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
-#include "EARaster.h"
-#include "EARasterColor.h"
+#include <EARaster/EARaster.h>
+#include <EARaster/EARasterColor.h>
 #include "Color.h"
 #include "IntRect.h"
 #include <EAWebkit/internal/EAWebKitAssert.h>
@@ -115,6 +115,7 @@ void Surface::InitMembers()
     mpBlitDest     = 0;
     mDrawFlags     = 0;
     mpBlitFunction = NULL;
+    mCategory      = kSurfaceCategoryDefault; 
 }
 
 
@@ -187,8 +188,7 @@ void Surface::SetPixelFormat(PixelFormatType pft)
     }
 }
 
-
-bool Surface::Set(void* pData, int width, int height, int stride, PixelFormatType pft, bool bCopyData, bool bTakeOwnership)
+bool Surface::Set(void* pData, int width, int height, int stride, PixelFormatType pft, bool bCopyData, bool bTakeOwnership, SurfaceCategory category)
 {
     FreeData();
 
@@ -199,15 +199,34 @@ bool Surface::Set(void* pData, int width, int height, int stride, PixelFormatTyp
     if(pData)
     {
         SetPixelFormat(pft);
+        SetCategory(category);
 
         if(bCopyData)  // If we are copying the data instead of taking over ownership...
         {
             if(Resize(width, height, false))
             {
-                // We could blit pSource to ourself, but we happen to know we are of identical
-                // format and we simply want to replication source onto ourselves. So memcpy it.
-                EAW_ASSERT(mStride == stride); // If this fails then we need to do it a slightly more involved way.
-                memcpy(mpData, pData, height * stride);
+                Lock();
+                if(mStride == stride)
+                {
+                    // We could blit pSource to ourself, but we happen to know we are of identical
+                    // format and we simply want to replication source onto ourselves. So memcpy it.              
+                    memcpy(mpData, pData, height * stride);
+                }
+                else
+                {
+                    // Case where the source and dest buffers have different strides so line copy instead                   
+                    char* pDestRow = (char*) mpData;     
+                    char* pSourceRow = (char*) pData;     
+                    int lineSize = width * GetPixelFormat().mBytesPerPixel;
+
+                    for(int h=0; h < height; h++)
+                    {
+                         memcpy(pDestRow, pSourceRow, lineSize);          
+                         pDestRow +=mStride;   
+                         pSourceRow +=stride;    
+                    }
+                }
+                Unlock();
             }
             else
                 return false;
@@ -228,15 +247,33 @@ bool Surface::Set(void* pData, int width, int height, int stride, PixelFormatTyp
 }
 
 
-bool Surface::Set(Surface* pSource)
+bool Surface::Set(ISurface* pSource)
 {
-    if(Resize(pSource->mWidth, pSource->mHeight, false))
+    if(Resize(pSource->GetWidth(), pSource->GetHeight(), false))
     {
-        // We could blit pSource to ourself, but we happen to know we are of identical
-        // format and we simply want to replication source onto ourselves. So memcpy it.
-        EAW_ASSERT(mStride == pSource->mStride); // If this fails then we need to do it a slightly more involved way.
-        memcpy(mpData, pSource->mpData, pSource->mHeight * pSource->mStride);
-
+        int stride = pSource->GetStride();
+        Lock();
+        if(mStride == stride)
+        {
+            // We could blit pSource to ourself, but we happen to know we are of identical
+            // format and we simply want to replication source onto ourselves. So memcpy it.        
+            memcpy(mpData, pSource->GetData(), pSource->GetHeight() * stride);
+        }
+        else
+        {
+            // Case where the source and dest buffers have different strides so line copy instead                   
+            char* pDestRow = (char*) mpData;     
+            char* pSourceRow = (char*) pSource->GetData();     
+            int lineSize = pSource->GetWidth() * GetPixelFormat().mBytesPerPixel;
+            int height = pSource->GetHeight();
+            for(int h=0; h < height; h++)
+            {
+                 memcpy(pDestRow, pSourceRow, lineSize);          
+                 pDestRow +=mStride;   
+                 pSourceRow +=stride;    
+            }
+        }
+        Unlock();
         return true;
     }
 
@@ -253,7 +290,9 @@ bool Surface::Resize(int width, int height, bool bCopyData)
 		void* pData = EAWEBKIT_NEW("Surface Resize") char[kNewMemorySize];//WTF::fastNewArray<char>(kNewMemorySize);
 
         #ifdef EA_DEBUG
+            Lock();
             memset(mpData, 0, kNewMemorySize);
+            Unlock();
         #endif
 
         // To do: Copy from mpData to pData.
@@ -269,8 +308,12 @@ bool Surface::Resize(int width, int height, bool bCopyData)
         mpData = EAWEBKIT_NEW("Surface Resize") char[kNewMemorySize];//WTF::fastNewArray<char> (kNewMemorySize);
 
         #ifdef EA_DEBUG
-        if(mpData)    
+        if(mpData) 
+        {
+            Lock();         
             memset(mpData, 0, kNewMemorySize);
+            Unlock();
+        }
         #endif
     }
 
@@ -279,27 +322,57 @@ bool Surface::Resize(int width, int height, bool bCopyData)
         mWidth  = width;
         mHeight = height;
         mStride = width * mPixelFormat.mBytesPerPixel;
+
+        // Reset the clip rec on resize
+        Rect r (0,0,width,height);
+        SetClipRect(r);
+    
     }
 
     return (mpData != NULL);
 }
 
 
-void Surface::FreeData()
+bool Surface::FreeData()
 {
+    bool returnFlag = false;
+
+    // Remove the compressed data buffer which is stored in the user data
+    if( ((mSurfaceFlags & (EA::Raster::kFlagCompressedRLE | EA::Raster::kFlagCompressedYCOCGDXT5 )) != 0 ) &&
+        (mpUserData) && (mCompressedSize) )
+    {
+         EAWEBKIT_DELETE[] ((char*)mpUserData);
+         mpUserData = NULL;
+         mCompressedSize = 0;
+         mSurfaceFlags &= ~(EA::Raster::kFlagCompressedRLE | EA::Raster::kFlagCompressedYCOCGDXT5);
+         returnFlag = true;  // Success
+    }
+
     if((mSurfaceFlags & kFlagOtherOwner) == 0)  // If we own the pointer...
     {
         EAWEBKIT_DELETE[] ((char*)mpData);//WTF::fastDeleteArray<char> ((char*)mpData);
         mpData = NULL;
+ 
+        // We only want to clear this stuff if there is no other owner for the other owner might still need this info.
+        mLockCount    = 0;
+        mSurfaceFlags = 0; 
+        returnFlag = true;  // Success
     }
 
-    mSurfaceFlags = 0; // Or maybe just mSurfaceFlags &= ~kFlagOtherOwner;
-    mWidth        = 0;
-    mHeight       = 0;
-    mStride       = 0;
-    mLockCount    = 0;
+    return returnFlag;
 }
 
+// Can be used for texture lock notification
+void Surface::Lock()
+{
+    mLockCount++;
+}
+
+void Surface::Unlock()
+{
+    EAW_ASSERT(mLockCount > 0);
+    mLockCount--;
+}
 
 void Surface::SetClipRect(const Rect* pRect)
 {
@@ -312,10 +385,10 @@ void Surface::SetClipRect(const Rect* pRect)
 }
 
 
-Surface* CreateSurface()
+ISurface* CreateSurface()
 {
     
-	Surface* pSurface = EAWEBKIT_NEW("Surface") Surface();//WTF::fastNew<Surface>();
+	ISurface* pSurface = EAWEBKIT_NEW("Surface") Surface();//WTF::fastNew<Surface>();
    
     if(pSurface)
         pSurface->AddRef();
@@ -324,15 +397,15 @@ Surface* CreateSurface()
 }
 
 
-Surface* CreateSurface(int width, int height, PixelFormatType pft)
+ISurface* CreateSurface(int width, int height, PixelFormatType pft,SurfaceCategory category)
 {
-    Surface* pNewSurface = CreateSurface();
+    ISurface* pNewSurface = CreateSurface();
 
     if(pNewSurface)
     {
         // Note that pNewSurface is already AddRef'd.
         pNewSurface->SetPixelFormat(pft);
-
+        pNewSurface->SetCategory(category);
         if(!pNewSurface->Resize(width, height, false))
         {
             DestroySurface(pNewSurface);
@@ -344,9 +417,9 @@ Surface* CreateSurface(int width, int height, PixelFormatType pft)
 }
 
 
-Surface* CreateSurface(Surface* pSurface)
+ISurface* CreateSurface(ISurface* pSurface)
 {
-    Surface* pNewSurface = CreateSurface();
+    ISurface* pNewSurface = CreateSurface();
 
     if(pNewSurface)
     {
@@ -362,14 +435,14 @@ Surface* CreateSurface(Surface* pSurface)
 }
 
 
-Surface* CreateSurface(void* pData, int width, int height, int stride, PixelFormatType pft, bool bCopyData, bool bTakeOwnership)
+ISurface* CreateSurface(void* pData, int width, int height, int stride, PixelFormatType pft, bool bCopyData, bool bTakeOwnership,SurfaceCategory category)
 {
-    Surface* pNewSurface = CreateSurface();
+    ISurface* pNewSurface = CreateSurface();
 
     if(pNewSurface)
     {
         // Note that pNewSurface is already AddRef'd.
-        if(!pNewSurface->Set(pData, width, height, stride, pft, bCopyData, bTakeOwnership))
+        if(!pNewSurface->Set(pData, width, height, stride, pft, bCopyData, bTakeOwnership, category))
         {
             DestroySurface(pNewSurface);
             pNewSurface = NULL;
@@ -380,7 +453,7 @@ Surface* CreateSurface(void* pData, int width, int height, int stride, PixelForm
 }
 
 
-void DestroySurface(Surface* pSurface)
+void DestroySurface(ISurface* pSurface)
 {
     EAWEBKIT_DELETE pSurface;//WTF::fastDelete<Surface>(pSurface);
 
@@ -429,22 +502,22 @@ EARASTER_API bool IntersectRect(const Rect& a, const Rect& b, Rect& result)
 
 // To do: Convert this to a .tga writer instead of .ppm, as .tga is more commonly
 //        supported yet is still a fairly simple format.
-EARASTER_API bool WritePPMFile(const char* pPath, Surface* pSurface, bool bAlphaOnly)
+EARASTER_API bool WritePPMFile(const char* pPath, ISurface* pSurface, bool bAlphaOnly)
 {
     FILE* const fp = fopen(pPath, "w");
 
     if(fp)
     {
-        const bool bARGB = (pSurface->mPixelFormat.mPixelFormatType == EA::Raster::kPixelFormatTypeARGB);
+        const bool bARGB = (pSurface->GetPixelFormat().mPixelFormatType == EA::Raster::kPixelFormatTypeARGB);
 
         fprintf(fp, "P3\n");
         fprintf(fp, "# %s\n", pPath);
-        fprintf(fp, "%d %d\n", (int)pSurface->mWidth, (int)pSurface->mHeight);
+        fprintf(fp, "%d %d\n", (int)pSurface->GetWidth(), (int)pSurface->GetHeight());
         fprintf(fp, "%d\n", 255);
 
-        for(int y = 0; y < pSurface->mHeight; y++)
+        for(int y = 0; y < pSurface->GetHeight(); y++)
         {
-            for(int x = 0; x < pSurface->mWidth; x++)
+            for(int x = 0; x < pSurface->GetWidth(); x++)
             {
                 EA::Raster::Color color; EA::Raster::GetPixel(pSurface, x, y, color);
                 const uint32_t    c = color.rgb();
@@ -518,23 +591,23 @@ namespace EA
 			EA::Raster::EARectToIntRect(in, out);
 		 }
 		// Surface management
-		 Surface* EARasterConcrete::CreateSurface()
+		 ISurface* EARasterConcrete::CreateSurface()
 		 {
 			 return EA::Raster::CreateSurface();
 		 }
-		 Surface* EARasterConcrete::CreateSurface(int width, int height, PixelFormatType pft)
+		 ISurface* EARasterConcrete::CreateSurface(int width, int height, PixelFormatType pft,SurfaceCategory category)
 		 {
-			 return EA::Raster::CreateSurface(width, height, pft);
+			 return EA::Raster::CreateSurface(width, height, pft, category);
 		 }
-		 Surface*    EARasterConcrete::CreateSurface(Surface* pSurface)
+		 ISurface*    EARasterConcrete::CreateSurface(ISurface* pSurface)
 		 {
 			 return EA::Raster::CreateSurface(pSurface);
 		 }
-		 Surface* EARasterConcrete::CreateSurface(void* pData, int width, int height, int stride, PixelFormatType pft, bool bCopyData, bool bTakeOwnership)
+		 ISurface* EARasterConcrete::CreateSurface(void* pData, int width, int height, int stride, PixelFormatType pft, bool bCopyData, bool bTakeOwnership, SurfaceCategory category)
 		 {
-			 return EA::Raster::CreateSurface(pData, width, height, stride, pft, bCopyData, bTakeOwnership);
+			 return EA::Raster::CreateSurface(pData, width, height, stride, pft, bCopyData, bTakeOwnership, category);
 		 }
-		 void EARasterConcrete::DestroySurface(Surface* pSurface)
+		 void EARasterConcrete::DestroySurface(ISurface* pSurface)
 		 {
 			 EA::Raster::DestroySurface(pSurface);
 		 }
@@ -566,53 +639,53 @@ namespace EA
 		 }
 
 		// Pixel functions
-		 void  EARasterConcrete::GetPixel(Surface* pSurface, int x, int y, Color& color)
+		 void  EARasterConcrete::GetPixel(ISurface* pSurface, int x, int y, Color& color)
 		 {
 			 EA::Raster::GetPixel(pSurface, x, y, color);
 		 }
-		 int EARasterConcrete::SetPixelSolidColor(Surface* pSurface, int x, int y, const Color& color)
+		 int EARasterConcrete::SetPixelSolidColor(ISurface* pSurface, int x, int y, const Color& color)
 		 {
 			 return EA::Raster::SetPixelSolidColor(pSurface, x, y, color);
 		 }
-		 int EARasterConcrete::SetPixelSolidColorNoClip(Surface* pSurface, int x, int y, const Color& color)
+		 int EARasterConcrete::SetPixelSolidColorNoClip(ISurface* pSurface, int x, int y, const Color& color)
 		 {
 			 return EA::Raster::SetPixelSolidColorNoClip(pSurface, x, y, color);
 		 }
-		 int EARasterConcrete::SetPixelColor(Surface* pSurface, int x, int y, const Color& color)
+		 int EARasterConcrete::SetPixelColor(ISurface* pSurface, int x, int y, const Color& color)
 		 {
 			 return EA::Raster::SetPixelColor(pSurface, x, y, color);
 		 }
-		 int EARasterConcrete::SetPixelColorNoClip(Surface* pSurface, int x, int y, const Color& color)
+		 int EARasterConcrete::SetPixelColorNoClip(ISurface* pSurface, int x, int y, const Color& color)
 		 {
 			 return EA::Raster::SetPixelColorNoClip(pSurface, x, y, color);
 		 }
-		 int EARasterConcrete::SetPixelRGBA(Surface* pSurface, int x, int y, int r, int g, int b, int a)
+		 int EARasterConcrete::SetPixelRGBA(ISurface* pSurface, int x, int y, int r, int g, int b, int a)
 		 {
 			 return EA::Raster::SetPixelRGBA(pSurface, x, y, r, g, b, a);
 		 }
-		 int EARasterConcrete::SetPixelRGBANoClip(Surface* pSurface, int x, int y, int r, int g, int b, int a)
+		 int EARasterConcrete::SetPixelRGBANoClip(ISurface* pSurface, int x, int y, int r, int g, int b, int a)
 		 {
 			 return EA::Raster::SetPixelRGBANoClip(pSurface, x, y, r, g, b, a);
 		 }
 
 		// Rectangle functions
-		 int EARasterConcrete::FillRectSolidColor(Surface* pSurface, const Rect* pRect, const Color& color)
+		 int EARasterConcrete::FillRectSolidColor(ISurface* pSurface, const Rect* pRect, const Color& color)
 		 {
 			 return EA::Raster::FillRectSolidColor(pSurface, pRect, color);
 		 }
-		 int EARasterConcrete::FillRectColor(Surface* pSurface, const Rect* pRect, const Color& color)
+		 int EARasterConcrete::FillRectColor(ISurface* pSurface, const Rect* pRect, const Color& color)
 		 {
 			return EA::Raster::FillRectColor(pSurface, pRect, color);
 		 }
-		 int EARasterConcrete::RectangleColor(Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color)
+		 int EARasterConcrete::RectangleColor(ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color)
 		 {
 			 return EA::Raster::RectangleColor(pSurface, x1, y1, x2, y2, color);
 		 }
-		 int EARasterConcrete::RectangleColor(Surface* pSurface, const EA::Raster::Rect& rect, const Color& c)
+		 int EARasterConcrete::RectangleColor(ISurface* pSurface, const EA::Raster::Rect& rect, const Color& c)
 		 {
 			 return EA::Raster::RectangleColor(pSurface, rect, c);
 		 }
-		 int EARasterConcrete::RectangleRGBA(Surface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a)
+		 int EARasterConcrete::RectangleRGBA(ISurface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a)
 		 {
 			 return EA::Raster::RectangleRGBA(pSurface, x1, y1, x2, y2, r, g, b, a);
 		 }
@@ -621,213 +694,224 @@ namespace EA
 		// int   BoxRGBA                 (Surface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a){}
 
 		// Line functions
-		 int EARasterConcrete::HLineSolidColor(Surface* pSurface, int x1, int x2, int  y, const Color& color)
+		 int EARasterConcrete::HLineSolidColor(ISurface* pSurface, int x1, int x2, int  y, const Color& color)
 		 {
 			 return EA::Raster::HLineSolidColor(pSurface,x1,x2,y,color);
 		 }
-		 int EARasterConcrete::HLineSolidRGBA(Surface* pSurface, int x1, int x2, int  y, int r, int g, int b, int a)
-		 {
-			 return EA::Raster::HLineSolidRGBA(pSurface,  x1,  x2,   y,  r,  g,  b,  a);
-		 }
-		 int EARasterConcrete::HLineColor(Surface* pSurface, int x1, int x2, int  y, const Color& color)
+
+		 int EARasterConcrete::HLineColor(ISurface* pSurface, int x1, int x2, int  y, const Color& color)
 		 {
 			 return EA::Raster::HLineColor(pSurface,  x1,  x2,   y,color);
 		 }
-		 int EARasterConcrete::HLineRGBA(Surface* pSurface, int x1, int x2, int  y, int r, int g, int b, int a)
-		 {
-			 return EA::Raster::HLineRGBA(pSurface,  x1,  x2,   y,  r,  g,  b,  a);
-		 }
-		 int EARasterConcrete::VLineSolidColor(Surface* pSurface, int  x, int y1, int y2, const Color& color)
+
+		 int EARasterConcrete::VLineSolidColor(ISurface* pSurface, int  x, int y1, int y2, const Color& color)
 		 {
 			 return EA::Raster::VLineSolidColor(pSurface,   x,  y1,  y2, color);
 		 }
-		 int EARasterConcrete::VLineSolidRGBA(Surface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a)
-		 {
-			 return EA::Raster::VLineSolidRGBA(pSurface,   x,  y1,  y2,  r,  g,  b,  a);
-		 }
-		 int EARasterConcrete::VLineColor(Surface* pSurface, int  x, int y1, int y2, const Color& color)
+
+		 int EARasterConcrete::VLineColor(ISurface* pSurface, int  x, int y1, int y2, const Color& color)
 		 {
 			 return EA::Raster::VLineColor(pSurface,   x,  y1,  y2, color);
 		 }
-		 int EARasterConcrete::VLineRGBA(Surface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a)
-		 {
-			 return EA::Raster::VLineRGBA(pSurface, x, y1, y2, r, g, b, a);
-		 }
-		 int EARasterConcrete::LineColor(Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color)
+
+		 int EARasterConcrete::LineColor(ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color)
 		 {
 			 return EA::Raster::LineColor(pSurface, x1, y1, x2, y2, color);
 		 }
-		 int EARasterConcrete::LineRGBA(Surface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a)
+		 int EARasterConcrete::LineRGBA(ISurface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a)
 		 {
 			 return EA::Raster::LineRGBA(pSurface,  x1,  y1,  x2,  y2,  r,  g,  b,  a);
 		 }
-		 int EARasterConcrete::AALineColor(Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color, bool bDrawEndpoint)
-		 {
-			 return EA::Raster::AALineColor(pSurface,  x1,  y1,  x2,  y2,color,bDrawEndpoint);
-		 }
-		 int EARasterConcrete::AALineColor(Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color)
-		 {
-			 return EA::Raster::AALineColor(pSurface,  x1,  y1,  x2,  y2, color);
-		 }
-		 int EARasterConcrete::AALineRGBA(Surface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a)
+	
+		 int EARasterConcrete::AALineRGBA(ISurface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a)
 		 {
 			 return EA::Raster::AALineRGBA(pSurface,  x1,  y1,  x2,  y2,  r,  g,  b,  a);
 		 }
 
 		// Circle / Ellipse
-		 int EARasterConcrete::CircleColor(Surface* pSurface, int x, int y, int radius, const Color& color)
+		 int EARasterConcrete::CircleColor(ISurface* pSurface, int x, int y, int radius, const Color& color)
 		 {
 			 return EA::Raster::CircleColor(pSurface,  x,  y,  radius, color);
 		 }
-		 int EARasterConcrete::CircleRGBA(Surface* pSurface, int x, int y, int radius, int r, int g, int b, int a)
+		 int EARasterConcrete::CircleRGBA(ISurface* pSurface, int x, int y, int radius, int r, int g, int b, int a)
 		 {
 			 return EA::Raster::CircleRGBA(pSurface,  x,  y,  radius,  r,  g,  b,  a);
 		 }
-		 int EARasterConcrete::ArcColor(Surface* pSurface, int x, int y, int r, int start, int end, const Color& color)
-		 {
-			 return EA::Raster::ArcColor(pSurface,  x,  y,  r,  start,  end, color);
-		 }
-		 int EARasterConcrete::ArcRGBA(Surface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a)
-		 {
-			 return EA::Raster::ArcRGBA(pSurface,  x,  y,  radius,  start,  end,  r,  g,  b,  a);
-		 }
-		 int EARasterConcrete::AACircleColor(Surface* pSurface, int x, int y, int r, const Color& color)
-		 {
-			 return EA::Raster::AACircleColor(pSurface,  x,  y,  r, color);
-		 }
-		 int EARasterConcrete::AACircleRGBA(Surface* pSurface, int x, int y, int radius, int r, int g, int b, int a)
-		 {
-			 return EA::Raster::AACircleRGBA(pSurface,  x,  y,  radius,  r,  g,  b,  a);
-		 }
-		 int EARasterConcrete::FilledCircleColor(Surface* pSurface, int x, int y, int r, const Color& color)
-		 {
-			 return EA::Raster::FilledCircleColor(pSurface,  x,  y,  r, color);
-		 }
-		 int EARasterConcrete::FilledCircleRGBA(Surface* pSurface, int x, int y, int radius, int r, int g, int b, int a)
-		 {
-			 return EA::Raster::FilledCircleRGBA(pSurface,  x,  y,  radius,  r,  g,  b,  a);
-		 }
-		 int EARasterConcrete::EllipseColor(Surface* pSurface, int x, int y, int rx, int ry, const Color& color)
+		 int EARasterConcrete::EllipseColor(ISurface* pSurface, int x, int y, int rx, int ry, const Color& color)
 		 {
 			 return EA::Raster::EllipseColor(pSurface,  x,  y,  rx,  ry,  color);
 		 }
-		 int EARasterConcrete::EllipseRGBA(Surface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a)
+		 int EARasterConcrete::EllipseRGBA(ISurface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a)
 		 {
 			 return EA::Raster::EllipseRGBA(pSurface,  x,  y,  rx,  ry,  r,  g,  b,  a);
 		 }
-		 int EARasterConcrete::AAEllipseColor(Surface* pSurface, int xc, int yc, int rx, int ry, const Color& color)
+		 int EARasterConcrete::AAEllipseColor(ISurface* pSurface, int xc, int yc, int rx, int ry, const Color& color)
 		 {
 			 return EA::Raster::AAEllipseColor(pSurface,  xc,  yc,  rx,  ry, color);
 		 }
-		 int EARasterConcrete::AAEllipseRGBA(Surface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a)
-		 {
-			 return EA::Raster::AAEllipseRGBA(pSurface,  x,  y,  rx,  ry,  r,  g,  b,  a);
-		 }
-		 int EARasterConcrete::FilledEllipseColor(Surface* pSurface, int x, int y, int rx, int ry, const Color& color)
+		 int EARasterConcrete::FilledEllipseColor(ISurface* pSurface, int x, int y, int rx, int ry, const Color& color)
 		 {
 			 return EA::Raster::FilledEllipseColor(pSurface,  x,  y,  rx,  ry, color);
 		 }
-		 int EARasterConcrete::FilledEllipseRGBA(Surface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a)
+		 int EARasterConcrete::FilledEllipseRGBA(ISurface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a)
 		 {
 			 return EA::Raster::FilledEllipseRGBA(pSurface,  x,  y,  rx,  ry,  r,  g,  b,  a);
 		 }
-		 int EARasterConcrete::PieColor(Surface* pSurface, int x, int y, int radius, int start, int end, const Color& color)
-		 {
-			 return EA::Raster::PieColor(pSurface,  x,  y,  radius,  start,  end, color);
-		 }
-		 int EARasterConcrete::PieRGBA(Surface* pSurface, int x, int y, int radius,  int start, int end, int r, int g, int b, int a)
-		 {
-			 return EA::Raster::PieRGBA(pSurface,  x,  y,  radius,   start,  end,  r,  g,  b,  a);
-		 }
-		 int EARasterConcrete::FilledPieColor(Surface* pSurface, int x, int y, int radius, int start, int end, const Color& color)
-		 {
-			 return EA::Raster::FilledPieColor(pSurface,  x,  y,  radius,  start,  end, color);
-		 }
-		 int EARasterConcrete::FilledPieRGBA(Surface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a)
-		 {
-			 return EA::Raster::FilledPieRGBA(pSurface,  x,  y,  radius,  start,  end,  r,  g,  b,  a);
-		 }
 
 		// Polygon
-		 int EARasterConcrete::SimpleTriangle(Surface* pSurface, int  x, int  y, int size, Orientation o, const Color& color)
+		 int EARasterConcrete::SimpleTriangle(ISurface* pSurface, int  x, int  y, int size, Orientation o, const Color& color)
 		 {
 			 return EA::Raster::SimpleTriangle(pSurface,   x,   y,  size, o, color);
 		 }
-		 int EARasterConcrete::TrigonColor(Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color)
-		 {
-			 return EA::Raster::TrigonColor(pSurface,  x1,  y1,  x2,  y2,  x3,  y3, color);
-		 }
-		 int EARasterConcrete::TrigonRGBA(Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a)
-		 {
-			 return EA::Raster::TrigonRGBA(pSurface,  x1,  y1,  x2,  y2,  x3,  y3,  r,  g,  b,  a);
-		 }
-		 int EARasterConcrete::AATrigonColor(Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color)
-		 {
-			 return EA::Raster::AATrigonColor(pSurface,  x1,  y1,  x2,  y2,  x3,  y3, color);
-		 }
-		 int EARasterConcrete::AATrigonRGBA(Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a)
-		 {
-			 return EA::Raster::AATrigonRGBA(pSurface,  x1,  y1,  x2,  y2,  x3,  y3,  r,  g,  b,  a);
-		 }
-		 int EARasterConcrete::FilledTrigonColor(Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color)
-		 {
-			 return EA::Raster::FilledTrigonColor(pSurface,  x1,  y1,  x2,  y2,  x3,  y3, color);
-		 }
-		 int EARasterConcrete::FilledTrigonRGBA(Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a)
-		 {
-			 return EA::Raster::FilledTrigonRGBA(pSurface,  x1,  y1,  x2,  y2,  x3,  y3,  r,  g,  b,  a);
-		 }
-		 int EARasterConcrete::PolygonColor(Surface* pSurface, const int* vx, const int* vy, int n, const Color& color)
+		 int EARasterConcrete::PolygonColor(ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color)
 		 {
 			 return EA::Raster::PolygonColor(pSurface, vx,  vy,  n, color);
 		 }
-		 int EARasterConcrete::PolygonRGBA(Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a)
+		 int EARasterConcrete::PolygonRGBA(ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a)
 		 {
 			 return EA::Raster::PolygonRGBA(pSurface, vx, vy,  n,  r,  g,  b,  a);
 		 }
-		 int EARasterConcrete::AAPolygonColor(Surface* pSurface, const int* vx, const int* vy, int n, const Color& color)
+		 int EARasterConcrete::AAPolygonColor(ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color)
 		 {
 			 return EA::Raster::AAPolygonColor(pSurface, vx, vy,  n, color);
 		 }
-		 int EARasterConcrete::AAPolygonRGBA(Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a)
+		 int EARasterConcrete::AAPolygonRGBA(ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a)
 		 {
 			 return EA::Raster::AAPolygonRGBA(pSurface, vx, vy,  n,  r,  g,  b,  a);
 		 }
-		 int EARasterConcrete::FilledPolygonColor(Surface* pSurface, const int* vx, const int* vy, int n, const Color& color)
+		 int EARasterConcrete::FilledPolygonColor(ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color)
 		 {
 			 return EA::Raster::FilledPolygonColor(pSurface, vx, vy,  n, color);
 		 }
-		 int EARasterConcrete::FilledPolygonRGBA(Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a)
+		 int EARasterConcrete::FilledPolygonRGBA(ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a)
 		 {
 			 return EA::Raster::FilledPolygonRGBA(pSurface, vx, vy,  n,  r,  g,  b,  a);
 		 }
-		 int EARasterConcrete::TexturedPolygon(Surface* pSurface, const int* vx, const int* vy, int n, Surface* pTexture,int texture_dx,int texture_dy)
+		 int EARasterConcrete::FilledPolygonColorMT(ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color, int** polyInts, int* polyAllocated)
+		 {
+			 return EA::Raster::FilledPolygonColorMT(pSurface, vx,  vy,  n, color, polyInts, polyAllocated);
+		 }
+		 int EARasterConcrete::FilledPolygonRGBAMT(ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a, int** polyInts, int* polyAllocated)
+		 {
+			 return EA::Raster::FilledPolygonRGBAMT(pSurface, vx, vy,  n,  r,  g,  b,  a, polyInts, polyAllocated);
+		 }
+
+
+#if UNUSED_IRASTER_CALLS_ENABLED
+
+         int EARasterConcrete::HLineSolidRGBA(ISurface* pSurface, int x1, int x2, int  y, int r, int g, int b, int a)
+		 {
+			 return EA::Raster::HLineSolidRGBA(pSurface,  x1,  x2,   y,  r,  g,  b,  a);
+		 }
+         int EARasterConcrete::HLineRGBA(ISurface* pSurface, int x1, int x2, int  y, int r, int g, int b, int a)
+		 {
+			 return EA::Raster::HLineRGBA(pSurface,  x1,  x2,   y,  r,  g,  b,  a);
+		 }
+         int EARasterConcrete::VLineSolidRGBA(ISurface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a)
+		 {
+			 return EA::Raster::VLineSolidRGBA(pSurface,   x,  y1,  y2,  r,  g,  b,  a);
+		 }
+         int EARasterConcrete::VLineRGBA(ISurface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a)
+		 {
+			 return EA::Raster::VLineRGBA(pSurface, x, y1, y2, r, g, b, a);
+		 }
+         int EARasterConcrete::AALineColor(ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color, bool bDrawEndpoint)
+		 {
+			 return EA::Raster::AALineColor(pSurface,  x1,  y1,  x2,  y2,color,bDrawEndpoint);
+		 }
+		 int EARasterConcrete::AALineColor(ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color)
+		 {
+			 return EA::Raster::AALineColor(pSurface,  x1,  y1,  x2,  y2, color);
+		 }
+         int EARasterConcrete::ArcColor(ISurface* pSurface, int x, int y, int r, int start, int end, const Color& color)
+		 {
+			 return EA::Raster::ArcColor(pSurface,  x,  y,  r,  start,  end, color);
+		 }
+		 int EARasterConcrete::ArcRGBA(ISurface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a)
+		 {
+			 return EA::Raster::ArcRGBA(pSurface,  x,  y,  radius,  start,  end,  r,  g,  b,  a);
+		 }
+         int EARasterConcrete::AACircleColor(ISurface* pSurface, int x, int y, int r, const Color& color)
+		 {
+			 return EA::Raster::AACircleColor(pSurface,  x,  y,  r, color);
+		 }
+		 int EARasterConcrete::AACircleRGBA(ISurface* pSurface, int x, int y, int radius, int r, int g, int b, int a)
+		 {
+			 return EA::Raster::AACircleRGBA(pSurface,  x,  y,  radius,  r,  g,  b,  a);
+		 }
+         int EARasterConcrete::FilledCircleColor(ISurface* pSurface, int x, int y, int r, const Color& color)
+		 {
+			 return EA::Raster::FilledCircleColor(pSurface,  x,  y,  r, color);
+		 }
+		 int EARasterConcrete::FilledCircleRGBA(ISurface* pSurface, int x, int y, int radius, int r, int g, int b, int a)
+		 {
+			 return EA::Raster::FilledCircleRGBA(pSurface,  x,  y,  radius,  r,  g,  b,  a);
+		 }
+         int EARasterConcrete::AAEllipseRGBA(ISurface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a)
+		 {
+			 return EA::Raster::AAEllipseRGBA(pSurface,  x,  y,  rx,  ry,  r,  g,  b,  a);
+		 }
+         int EARasterConcrete::PieColor(ISurface* pSurface, int x, int y, int radius, int start, int end, const Color& color)
+		 {
+			 return EA::Raster::PieColor(pSurface,  x,  y,  radius,  start,  end, color);
+		 }
+		 int EARasterConcrete::PieRGBA(ISurface* pSurface, int x, int y, int radius,  int start, int end, int r, int g, int b, int a)
+		 {
+			 return EA::Raster::PieRGBA(pSurface,  x,  y,  radius,   start,  end,  r,  g,  b,  a);
+		 }
+		 int EARasterConcrete::FilledPieColor(ISurface* pSurface, int x, int y, int radius, int start, int end, const Color& color)
+		 {
+			 return EA::Raster::FilledPieColor(pSurface,  x,  y,  radius,  start,  end, color);
+		 }
+		 int EARasterConcrete::FilledPieRGBA(ISurface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a)
+		 {
+			 return EA::Raster::FilledPieRGBA(pSurface,  x,  y,  radius,  start,  end,  r,  g,  b,  a);
+		 }
+         int EARasterConcrete::TrigonColor(ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color)
+		 {
+			 return EA::Raster::TrigonColor(pSurface,  x1,  y1,  x2,  y2,  x3,  y3, color);
+		 }
+		 int EARasterConcrete::TrigonRGBA(ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a)
+		 {
+			 return EA::Raster::TrigonRGBA(pSurface,  x1,  y1,  x2,  y2,  x3,  y3,  r,  g,  b,  a);
+		 }
+		 int EARasterConcrete::AATrigonColor(ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color)
+		 {
+			 return EA::Raster::AATrigonColor(pSurface,  x1,  y1,  x2,  y2,  x3,  y3, color);
+		 }
+		 int EARasterConcrete::AATrigonRGBA(ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a)
+		 {
+			 return EA::Raster::AATrigonRGBA(pSurface,  x1,  y1,  x2,  y2,  x3,  y3,  r,  g,  b,  a);
+		 }
+		 int EARasterConcrete::FilledTrigonColor(ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color)
+		 {
+			 return EA::Raster::FilledTrigonColor(pSurface,  x1,  y1,  x2,  y2,  x3,  y3, color);
+		 }
+		 int EARasterConcrete::FilledTrigonRGBA(ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a)
+		 {
+			 return EA::Raster::FilledTrigonRGBA(pSurface,  x1,  y1,  x2,  y2,  x3,  y3,  r,  g,  b,  a);
+		 }
+		 int EARasterConcrete::TexturedPolygon(ISurface* pSurface, const int* vx, const int* vy, int n, ISurface* pTexture,int texture_dx,int texture_dy)
 		 {
 			 //notImplemented();
 			 return -1;
 			 //return EA::Raster::TexturedPolygon(pSurface, vx, vy,  n, pTexture, texture_dx, texture_dy);
 		 }
-		 int EARasterConcrete::FilledPolygonColorMT(Surface* pSurface, const int* vx, const int* vy, int n, const Color& color, int** polyInts, int* polyAllocated)
-		 {
-			 return EA::Raster::FilledPolygonColorMT(pSurface, vx,  vy,  n, color, polyInts, polyAllocated);
-		 }
-		 int EARasterConcrete::FilledPolygonRGBAMT(Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a, int** polyInts, int* polyAllocated)
-		 {
-			 return EA::Raster::FilledPolygonRGBAMT(pSurface, vx, vy,  n,  r,  g,  b,  a, polyInts, polyAllocated);
-		 }
-		 int EARasterConcrete::TexturedPolygonMT(Surface* pSurface, const int* vx, const int* vy, int n, Surface* pTexture, int texture_dx, int texture_dy, int** polyInts, int* polyAllocated)
+		 int EARasterConcrete::TexturedPolygonMT(ISurface* pSurface, const int* vx, const int* vy, int n, ISurface* pTexture, int texture_dx, int texture_dy, int** polyInts, int* polyAllocated)
 		 {
 			 //notImplemented();
 			 return -1;
 			 //return EA::Raster::TexturedPolygonMT(pSurface, vx, vy,  n, pTexture,  texture_dx,  texture_dy, polyInts, polyAllocated);
 		 }
+#endif
+
 
 
 		///////////////////////////////////////////////////////////////////////
 		// Resampling
 		///////////////////////////////////////////////////////////////////////
 
-		 Surface* EARasterConcrete::ZoomSurface(Surface* pSurface, double zoomx, double zoomy, bool bSmooth)
+		 ISurface* EARasterConcrete::ZoomSurface(ISurface* pSurface, double zoomx, double zoomy, bool bSmooth)
 		 {
 			 return EA::Raster::ZoomSurface(pSurface, zoomx, zoomy, bSmooth);
 		 }
@@ -837,17 +921,22 @@ namespace EA
 			 return EA::Raster::ZoomSurfaceSize(width, height, zoomx, zoomy, dstwidth, dstheight);
 		 }
 
-		 Surface* EARasterConcrete::ShrinkSurface(Surface* pSurface, int factorX, int factorY)
+		 ISurface* EARasterConcrete::ShrinkSurface(ISurface* pSurface, int factorX, int factorY)
 		 {
 			 return EA::Raster::ShrinkSurface(pSurface, factorX, factorY);
 		 }
 
-		 Surface* EARasterConcrete::RotateSurface90Degrees(Surface* pSurface, int nClockwiseTurns)
+		 ISurface* EARasterConcrete::RotateSurface90Degrees(ISurface* pSurface, int nClockwiseTurns)
 		 {
 			 return EA::Raster::RotateSurface90Degrees(pSurface, nClockwiseTurns);
 		 }
 
-		 Surface* EARasterConcrete::CreateTransparentSurface(Surface* pSource, int surfaceAlpha)
+         ISurface* EARasterConcrete::TransformSurface(ISurface* pSurface, Rect& scrRect, Matrix2D& matrix)
+		 {
+			 return EA::Raster::TransformSurface(pSurface, scrRect, matrix);
+		 }   
+
+		 ISurface* EARasterConcrete::CreateTransparentSurface(ISurface* pSource, int surfaceAlpha)
 		 {
 			 return EA::Raster::CreateTransparentSurface(pSource, surfaceAlpha);
 		 }
@@ -857,31 +946,31 @@ namespace EA
 		// Blit functions
 		///////////////////////////////////////////////////////////////////////
 
-		 bool EARasterConcrete::ClipForBlit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, Rect& rectSourceResult, Rect& rectDestResult)
+		 bool EARasterConcrete::ClipForBlit(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, Rect& rectSourceResult, Rect& rectDestResult)
 		 {
 			 return EA::Raster::ClipForBlit(pSource, pRectSource, pDest, pRectDest, rectSourceResult, rectDestResult);
 		 }
-		 int EARasterConcrete::Blit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pDestClipRect)
+		 int EARasterConcrete::Blit(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, const Rect* pDestClipRect)
 		 {
 			 return EA::Raster::Blit(pSource, pRectSource, pDest, pRectDest, pDestClipRect);
 		 }
 
-		 int EARasterConcrete::BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest)
+		 int EARasterConcrete::BlitNoClip(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest)
 		 {
 			 return EA::Raster::BlitNoClip(pSource, pRectSource, pDest, pRectDest);
 		 }
 
-		 int EARasterConcrete::BlitTiled(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, int offsetX, int offsetY)
+		 int EARasterConcrete::BlitTiled(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, int offsetX, int offsetY)
 		 {
 			 return EA::Raster::BlitTiled(pSource, pRectSource, pDest, pRectDest, offsetX, offsetY);
 		 }
 
-		 int EARasterConcrete::BlitEdgeTiled(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pRectSourceCenter)
+		 int EARasterConcrete::BlitEdgeTiled(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, const Rect* pRectSourceCenter)
 		 {
 			 return EA::Raster::BlitEdgeTiled(pSource, pRectSource, pDest, pRectDest, pRectSourceCenter);
 		 }
 
-		 bool EARasterConcrete::SetupBlitFunction(Surface* pSource, Surface* pDest)
+		 bool EARasterConcrete::SetupBlitFunction(ISurface* pSource, ISurface* pDest)
 		 {
 			 return EA::Raster::SetupBlitFunction(pSource, pDest);
 		 }
@@ -897,7 +986,7 @@ namespace EA
 		 }
 
 		// A PPM file is a simple bitmap format which many picture viewers can read.
-		 bool EARasterConcrete::WritePPMFile(const char* pPath, Surface* pSurface, bool bAlphaOnly)
+		 bool EARasterConcrete::WritePPMFile(const char* pPath, ISurface* pSurface, bool bAlphaOnly)
 		 {
 			 return EA::Raster::WritePPMFile(pPath, pSurface, bAlphaOnly);
 		 }

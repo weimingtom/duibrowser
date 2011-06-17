@@ -72,6 +72,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     #else
 		#error "The support for this platform's file system is missing."
 	#endif
+
+#include <EAIO/EAFileBase.h>
 #endif
 
 
@@ -274,28 +276,26 @@ bool FileSystemDefault::WriteFile(FileObject fileObject, const void* buffer, int
 
 int64_t FileSystemDefault::GetFileSize(FileObject fileObject)
 {
-    FileInfo* pFileInfo = reinterpret_cast<FileInfo*>(fileObject);
+    FileInfo* pFileInfo = reinterpret_cast<FileInfo*>(fileObject); 
 
-    // Save the current offset.
-    const int savedPos = fseek(pFileInfo->mpFile, 0, SEEK_CUR);
+    // Save the current offset. 
+    const int savedPos = ftell(pFileInfo->mpFile); 
 
-    // Read the size.
-    const int endPos = fseek(pFileInfo->mpFile, 0, SEEK_END);
+    // Read the size. 
+    fseek(pFileInfo->mpFile, 0, SEEK_END); 
+    const int endPos = ftell(pFileInfo->mpFile); 
 
-    // Restore original offset.
-    fseek(pFileInfo->mpFile, savedPos, SEEK_SET);
+    // Restore original offset. 
+    fseek(pFileInfo->mpFile, savedPos, SEEK_SET); 
 
-    return endPos;
+    return endPos; 
 }
 
 
 int64_t FileSystemDefault::GetFilePosition(FileObject fileObject)
 {
     FileInfo* pFileInfo = reinterpret_cast<FileInfo*>(fileObject);
-
-    const int pos = fseek(pFileInfo->mpFile, 0, SEEK_CUR);
-
-    return pos;
+    return ftell(pFileInfo->mpFile);
 }
 
 
@@ -556,6 +556,31 @@ bool FileSystemDefault::GetDataDirectory(char* path)
 }
 
 
+
+bool FileSystemDefault::GetBaseDirectory(char8_t* path, size_t pathBufferCapacity)
+{
+	if(path)
+	{
+		char8_t baseDir[EA::IO::kMaxDirectoryLength];
+		memset(baseDir, 0, EA::IO::kMaxDirectoryLength);
+
+#if defined(EA_PLATFORM_WINDOWS) 
+		strcpy(baseDir,".\\temp\\pc\\");
+#elif defined(EA_PLATFORM_XENON)
+		strcpy(baseDir,".\\temp\\xenon\\");
+#elif defined (EA_PLATFORM_PS3)
+		strcpy(baseDir,"./temp/ps3/");
+#endif
+		if(pathBufferCapacity > strlen(baseDir))
+		{
+			strcpy(path, baseDir);
+			return true;
+		}
+	}
+
+	return false;
+
+}
 #endif // EAWEBKIT_DEFAULT_FILE_SYSTEM_ENABLED
 
 

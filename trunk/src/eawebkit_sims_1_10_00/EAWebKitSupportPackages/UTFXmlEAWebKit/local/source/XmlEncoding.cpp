@@ -154,8 +154,8 @@ size_t ConvertEncoding(const void* pTextInput,  size_t  nLengthInput,  WriteEnco
     // ASCII  => UTF8
     // UTF8  => ASCII (May be impossible to do without losing information)
     if((nEncodingInput == nEncodingOutput) ||
-        ((nEncodingInput == kWriteEncodingASCII) && (nEncodingOutput != kWriteEncodingUTF16)) ||
-         (nEncodingInput != kWriteEncodingUTF16) && (nEncodingOutput == kWriteEncodingASCII))
+        (((nEncodingInput == kWriteEncodingASCII) && (nEncodingOutput != kWriteEncodingUTF16)) )||
+         ((nEncodingInput != kWriteEncodingUTF16) && (nEncodingOutput == kWriteEncodingASCII)))
     {
         if(pTextInput != pTextOutput)
         {

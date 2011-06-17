@@ -365,6 +365,18 @@ namespace EA
             EAIO_API bool SetCurrentWorkingDirectory(const char16_t* pDirectory);
             EAIO_API bool SetCurrentWorkingDirectory(const char8_t* pDirectory);
 
+
+            /// Directory::IsDirectoryEmpty
+            /// Returns true if the directory is empty. The nDirectoryEntryFlags parameter specifies if 
+            /// you want to see if the directory is empty of files or empty of directories. The bRecursive
+            /// parameter specifies if the emptiness check applies to files within subdirectories in addition
+            /// to the current directory. 
+            /// For example, you want to see if a directory has no files in it nor any of its subdirectories,
+            /// use IsDirectoryEmpty(<dirpath>, kDirectoryEntryFile, true). If you want to see if a directory 
+            /// has any subdirectories, use IsDirectoryEmpty(<dirpath>, kDirectoryEntryDirectory, false).
+            EAIO_API bool IsDirectoryEmpty(const char16_t* pDirectory, int nDirectoryEntryFlags = kDirectoryEntryFile, bool bRecursive = true);
+            EAIO_API bool IsDirectoryEmpty(const char8_t*  pDirectory, int nDirectoryEntryFlags = kDirectoryEntryFile, bool bRecursive = true);
+
         } // namespace Directory
 
 
@@ -508,6 +520,25 @@ namespace EA
         /// the specification of and manipulation of paths.
         EAIO_API int GetSpecialDirectory(SpecialDirectory specialDirectory, char16_t* pDirectory, bool bEnsureDirectoryExistence = false, uint32_t nPathLength = kMaxDirectoryLength);
         EAIO_API int GetSpecialDirectory(SpecialDirectory specialDirectory, char8_t* pDirectory, bool bEnsureDirectoryExistence = false, uint32_t nPathLength = kMaxDirectoryLength);
+
+
+        /// Returns true if the input character can always be used in a path file name.
+        /// You cannot use this function one-by-one on a file name to determine if the file
+        /// name is valid, as there are special combination cases that make this so.
+        bool IsFileNameCharValid(char16_t c, FileSystem fileSystemType);
+
+        /// Returns true if the input file name is valid for the file system.
+        bool IsFileNameStringValid(const char16_t* pName, FileSystem fileSystemType);
+
+        /// Returns true if the input directory name is valid for the file system.
+        bool IsDirectoryNameStringValid(const char16_t* pName, FileSystem fileSystemType);
+
+        /// Returns true if the given path is valid. The path can consist of a full
+        /// directory and file path, just a full directory path, or just a file name.
+        /// fileSystemType refers to the file system, which defaults to the system's
+        /// standard file system. 
+        bool IsFilePathStringValid(const char16_t* pPath, FileSystem fileSystemType);
+
 
     } // namespace IO
 

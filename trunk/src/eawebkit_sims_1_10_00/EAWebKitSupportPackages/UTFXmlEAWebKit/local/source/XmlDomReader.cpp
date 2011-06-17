@@ -396,6 +396,58 @@ tNodeList::iterator DomNode::GetNodeIterator(const char8_t * pName)
     return it;
 }
 
+DomDocument* DomNode::AsDomDocument()
+{
+    EA_ASSERT(mNodeType == EA::XML::XmlReader::Document);
+    return static_cast<DomDocument*>(this);
+}
+
+DomElement* DomNode::AsDomElement()
+{
+    EA_ASSERT(mNodeType == EA::XML::XmlReader::Element);
+    return static_cast<DomElement*>(this);
+}
+
+DomComment* DomNode::AsDomComment()
+{
+    EA_ASSERT(mNodeType == EA::XML::XmlReader::Comment);
+    return static_cast<DomComment*>(this);
+}
+
+DomCharacterData* DomNode::AsDomCharacterData()
+{
+    EA_ASSERT(mNodeType == EA::XML::XmlReader::CharacterData);
+    return static_cast<DomCharacterData*>(this);
+}
+
+DomPrologue* DomNode::AsDomPrologue()
+{
+    EA_ASSERT(mNodeType == EA::XML::XmlReader::Prologue);
+    return static_cast<DomPrologue*>(this);
+}
+
+DomProcessingInstruction* DomNode::AsDomProcessingInstruction()
+{
+    EA_ASSERT(mNodeType == EA::XML::XmlReader::ProcessingInstruction);
+    return static_cast<DomProcessingInstruction*>(this);
+}
+
+DomEntityRef* DomNode::AsDomEntityRef()
+{
+    EA_ASSERT(mNodeType == EA::XML::XmlReader::EntityRef);
+    return static_cast<DomEntityRef*>(this);
+}
+
+DomDeclaration* DomNode::AsDomDeclaration()
+{
+    EA_ASSERT(mNodeType == EA::XML::XmlReader::DocTypeDecl  ||
+              mNodeType == EA::XML::XmlReader::EntityDecl   ||
+              mNodeType == EA::XML::XmlReader::ElementDecl  ||
+              mNodeType == EA::XML::XmlReader::AttListDecl  ||
+              mNodeType == EA::XML::XmlReader::NotationDecl);
+    return static_cast<DomDeclaration*>(this);
+}
+
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -620,6 +672,8 @@ tAttributeList* DomElement::CreateAttributeList(tAttributeList* pCopy)
                 pAttributeList = new(pAttributeList) tAttributeList(*pCopy);
             else
                 pAttributeList = new(pAttributeList) tAttributeList;
+
+            pAttributeList->set_allocator(CoreAllocatorAdapter(UTFXML_ALLOC_PREFIX "DomAttributeList", pAllocator));
         }
     }
 

@@ -131,7 +131,8 @@ EA::IO::MemoryStream::MemoryStream(void* pData, size_type nSize, bool bUsePointe
 
 
 EA::IO::MemoryStream::MemoryStream(const MemoryStream& memoryStream)
-  : mpSharedPointer(memoryStream.mpSharedPointer),
+  : IStream(),
+    mpSharedPointer(memoryStream.mpSharedPointer),
     mpAllocator(memoryStream.mpAllocator),
     mpName(memoryStream.mpName),
     mnRefCount(0),

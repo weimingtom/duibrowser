@@ -61,6 +61,7 @@ namespace EA
 	namespace WebKit
 	{
 
+		// Note by Arpit Baldeva: 09/22/2010 - Following is deprecation candidate now and hence not modifed/moved.
 		class InputDelegate
 		{
 		public:
@@ -118,6 +119,7 @@ namespace EA
 			KeyboardCallback mCallback;
 		};
 
+		// Note by Arpit Baldeva: 09/22/2010 - Following is deprecation candidate now and hence not modifed/moved.
 		class TextAreaDelegate
 		{
 		public:
@@ -149,6 +151,7 @@ namespace EA
 					{
 						WebCore::HTMLElement* htmlElement = (WebCore::HTMLElement*)element;
 
+						//abaldeva:TODO - Wondering why a wide char comparison here as opposed to char comparison in above.
 						if (wcscmp(htmlElement->tagName().charactersWithNullTermination(),L"TEXTAREA") == 0)
 						{
 							return true;
@@ -175,6 +178,8 @@ namespace EA
 
 
 
+		
+		
 		template <typename Delegate>
 		class DOMWalker
 		{
@@ -184,7 +189,6 @@ namespace EA
 				,	mShouldContinue(true)
 			{
 				WalkNodes(document);
-
 			}
 
 		private:
@@ -194,6 +198,16 @@ namespace EA
 
 			void WalkNodes(WebCore::Node* rootNode)
 			{
+				// Note by Arpit Baldeva - Changed the recursive algorithm to an iterative algorithm. This results in 25 To 40% increase in efficiency.
+				while(rootNode)
+				{
+					mShouldContinue = mDelegate(rootNode);
+					if(!mShouldContinue)
+						break;
+
+					rootNode = rootNode->traverseNextNode();
+				}
+				/* Old recursive code
 				if (mShouldContinue)
 				{
 					//////////////////////////////////////////////////////////////////////////
@@ -221,6 +235,7 @@ namespace EA
 						}
 					}
 				}
+				*/
 			}
 		};	
 

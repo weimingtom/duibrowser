@@ -59,7 +59,8 @@ EA::IO::FixedMemoryStream::FixedMemoryStream( void* pData, size_type nSize )
 
 ///////////////////////////////////////////////////////////////////////////////
 EA::IO::FixedMemoryStream::FixedMemoryStream( FixedMemoryStream& other )
-    : mpData( other.mpData )
+    : IStream( )
+    , mpData( other.mpData )
     , mnRefCount( 0 )
     , mnSize( other.mnSize )
     , mnCapacity( other.mnSize )

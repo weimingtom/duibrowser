@@ -134,6 +134,21 @@ namespace EA
 			return reinterpret_cast<EA::WebKit::HeaderMap*>((wrapper).GetImpl());
 		}
 
+        VectorJavaScriptValue* GetVectorJavaScriptValue(const EASTLVectorJavaScriptValueWrapper& wrapper)
+        {
+            return reinterpret_cast<EA::WebKit::VectorJavaScriptValue*>(wrapper.GetImpl());
+        }
+
+        HashMapJavaScriptValue* GetHashMap(const EASTLJavascriptValueHashMapWrapper& wrapper)
+        {
+            return reinterpret_cast<EA::WebKit::HashMapJavaScriptValue*>(wrapper.GetImpl());
+        }
+
+        HashMapJavaScriptValue::iterator* GetHashMapIterator(const EASTLJavascriptValueHashMapIteratorWrapper& wrapper)
+        {
+            return reinterpret_cast<EA::WebKit::HashMapJavaScriptValue::iterator*>(wrapper.GetImpl());
+        }
+
 	}
 } // namespace EA
 

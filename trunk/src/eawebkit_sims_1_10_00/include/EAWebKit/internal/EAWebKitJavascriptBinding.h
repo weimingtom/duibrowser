@@ -40,6 +40,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <EAWebKit/internal/EAWebKitAssert.h>  
 
 #include "BAL/OWBAL/Concretizations/Types/WK/BCbalValuePrivateWK.h" // For setting the JS ExecState
+#include "JSArray.h"
+#include "PropertyNameArray.h"
 
       
 
@@ -71,6 +73,14 @@ namespace EA
 			{
 			}
 
+            // Always returns true so we can report missing methods via the JavascriptMethodMissing callback.
+            // This just pretends that the binding object has every method that's asked for so
+			// that the VM doesn't encounter an error.
+            virtual bool hasMethod(const char *name) 
+			{
+                return true;
+            }
+
 			//////////////////////////////////////////////////////////////////////////
 			//
             BalValue* invoke(const char *name, Vector<BalValue*> args, KJS::ExecState* exec )
@@ -87,18 +97,37 @@ namespace EA
                     
 					for (Vector<BalValue*>::const_iterator i = args.begin(); i != args.end(); ++i)
 					{
-                        Translate(*i, info.mArguments[counter++]);
+                        Translate(*i, info.mArguments[counter++], exec);
 					}
 					info.mArgumentCount = counter;
 
-					pVN->JavascriptMethodInvoked(info);
+                    // If the binding object actually has the method, use the method invoke call,
+                    // otherwise use the method missing call.
+                    if (BalObject::hasMethod(name)) 
+                    {
+					    pVN->JavascriptMethodInvoked(info);
+                    }
+                    else 
+                    {
+                        if (!pVN->JavascriptMethodMissing(info)) {
+                            FixedString8_128 logString;
+                            logString.sprintf("%s could not be found in bound javascript object.", info.mMethodName);
+
+                            DebugLogInfo logInfo;
+                            logInfo.mpLogText = logString.c_str();
+                            logInfo.mpView = info.mpView;
+                            logInfo.mType = kDebugLogJavascript;
+
+                            pVN->DebugLog(logInfo);
+                        }
+                    }
 
                 	// CSidhall 3/25/10 -We need to set the exec in the private BalValuePrivate 
                     // so that the translate can call the exec to allocated a string when a string is returned.
                     if(mValue.d)
                         mValue.d->setExec(exec);
 
-					return Translate(info.mReturn, mValue);
+					return Translate(info.mReturn, mValue, exec);
 				}
 				else
 				{
@@ -125,7 +154,7 @@ namespace EA
 					info.mpView = mpView;
                     info.mPropertyName = name;
 					pVN->GetJavascriptProperty(info);   // On the client side, we flip it so that a get is a set. 
-					Translate(info.mValue, *translated);
+					Translate(info.mValue, *translated, exec);
 				}
 				else
 				{
@@ -136,7 +165,7 @@ namespace EA
 
 			//////////////////////////////////////////////////////////////////////////
 			//
-			void setProperty( const char *name, BalValue *value) 
+			void setProperty( const char *name, BalValue *value, KJS::ExecState* exec)
 			{
 				EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
                 if (pVN)
@@ -144,7 +173,7 @@ namespace EA
 					JavascriptPropertyInfo info;
                     info.mpView = mpView;				
                     info.mPropertyName = name;
-					Translate(value, info.mValue);
+					Translate(value, info.mValue, exec);
 					pVN->SetJavascriptProperty(info); // On the client side, we flip it so that a set is a get.
 				}
 			};
@@ -152,7 +181,7 @@ namespace EA
 		private:
 			//////////////////////////////////////////////////////////////////////////
 			// object marshalling 
-			BalValue* Translate(JavascriptValue& value, BalValue& translated)
+			BalValue* Translate(JavascriptValue& value, BalValue& translated, KJS::ExecState* exec)
 			{
 				switch (value.GetType())
 				{
@@ -171,6 +200,45 @@ namespace EA
                         translated.balString(pVal);
                     }
                     break;
+                case JavascriptValueType_Array:
+                    {
+                        VectorJavaScriptValue* values = GetVectorJavaScriptValue(value.GetArrayValue());
+                        JSArray* jsArray = constructEmptyArray(exec, values->size());
+                        for (unsigned i = 0, n = values->size(); i < n; ++i)
+                        {
+                            // Use BAL wrappers so we can call Translate recursively
+                            BalValuePrivate elementBalValPrivate(exec, NULL);
+                            BalValue elementBalVal(&elementBalValPrivate);
+                            Translate(values->at(i), elementBalVal, exec);
+                            jsArray->put(exec, i, elementBalVal.d->getValue());
+                            elementBalVal.d = NULL; // prevent free
+                        }
+                        *translated.d = BalValuePrivate(exec, jsArray);
+                    }
+                    break;
+                case JavascriptValueType_Object:
+                    {
+                      HashMapJavaScriptValue* hashMap = GetHashMap(value.GetHashMapValue());
+                      JSObject* jsObject = constructEmptyObject(exec);
+
+                      HashMapJavaScriptValue::iterator start = hashMap->begin();
+                      HashMapJavaScriptValue::iterator end = hashMap->end();
+                      for (HashMapJavaScriptValue::iterator iEntry = start; iEntry != end; ++iEntry) 
+                      {
+                          // Use BAL wrappers so we can call Translate recursively
+                          BalValuePrivate elementBalValPrivate(exec, NULL);
+                          BalValue elementBalVal(&elementBalValPrivate);
+                          Translate(iEntry->second, elementBalVal, exec);
+
+                          const UString name(iEntry->first.c_str(), iEntry->first.length() + 1); // +1 to grab the null character as well.
+                          Identifier ident(exec, name);
+                          jsObject->put(exec, ident, elementBalVal.d->getValue());
+                          elementBalVal.d = NULL; // prevent free
+                      }
+
+                      *translated.d = BalValuePrivate(exec, jsObject);
+                    }
+                    break;
                 default:
                       EAW_ASSERT(0);
                     break;
@@ -181,7 +249,7 @@ namespace EA
 
 			//////////////////////////////////////////////////////////////////////////
 			//
-			JavascriptValue* Translate(const BalValue* value, JavascriptValue& translated)
+			JavascriptValue* Translate(const BalValue* value, JavascriptValue& translated, KJS::ExecState* exec)
 			{
 				switch (value->type())
 				{
@@ -201,6 +269,55 @@ namespace EA
                         translated.SetStringType();
                     }
 					break;
+                case KJS::ObjectType:
+                    {
+                        JSObject* pJSObject = value->d->getValue()->toObject(exec);
+                        if (pJSObject->isObject(&JSArray::info))
+                        {
+                            translated.SetArrayType();
+
+                            // Special treatment for arrays. We return an actual array instead of hash map
+                            JSArray* pJSArray = static_cast<JSArray*>(pJSObject);
+
+                            unsigned arrayLength = pJSArray->getLength();
+                            VectorJavaScriptValue* pJavaScriptValues = GetVectorJavaScriptValue(translated.GetArrayValue());
+                            pJavaScriptValues->resize(arrayLength);
+
+                            for (unsigned i = 0; i < arrayLength; ++i)
+                            {
+                                // Use BAL wrappers so we can call Translate recursively
+                                JSValue* val = pJSArray->get(exec, i);
+                                BalValuePrivate priv = BalValuePrivate(exec, val);
+                                BalValue balVal(&priv);
+                                Translate(&balVal, (*pJavaScriptValues)[i], exec);
+                                balVal.d = NULL; // prevent free
+                            }
+                        }
+                        else
+                        {
+                            translated.SetObjectType();
+
+                            PropertyNameArray propertyNames(exec);
+                            pJSObject->getPropertyNames(exec, propertyNames);
+                            
+                            HashMapJavaScriptValue* pJavascriptValues = GetHashMap(translated.GetHashMapValue());
+
+                            PropertyNameArray::const_iterator start = propertyNames.begin();
+                            PropertyNameArray::const_iterator end = propertyNames.end();
+                            for (PropertyNameArray::const_iterator iProp = start; iProp != end; ++iProp)
+							{
+                                JSValue* val = pJSObject->get(exec, *iProp);
+                                BalValuePrivate priv = BalValuePrivate(exec, val);
+                                BalValue balVal(&priv);
+                                
+                                const char16_t* name = iProp->ustring().data();
+                                JavascriptValue &translated = (*pJavascriptValues)[name];
+                                Translate(&balVal, translated, exec);
+                                balVal.d = NULL; // Prevent free.
+                            }
+                        }
+                    }
+                    break;
 				default:
 					translated.SetUndefined();  // Bal has some other types like null or unspecified
 					break;

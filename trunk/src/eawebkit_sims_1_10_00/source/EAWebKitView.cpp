@@ -48,6 +48,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <Api/WebView.h>
 #include <FrameView.h>
+#include <FrameTree.h>
 #include <FrameLoader.h>
 #include <DocumentLoader.h>
 #include <SubstituteData.h>
@@ -69,6 +70,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <EAWebKit/internal/InputBinding/EAWebKitEventListener.h>
 #include <EAWebKit/internal/InputBinding/EAWebKitPolarRegion.h>
 #include <EAWebKit/internal/InputBinding/EAWebKitUtils.h>
+#include <EAWebKit/internal/InputBinding/EAWebKitDocumentNavigationDelegates.h>
+
 #include "HTMLInputElement.h"
 #include <NodeList.h>
 #include <EventNames.h>
@@ -85,10 +88,11 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BAL/OWBAL/Concretizations/Types/Common/BCbal_objectCommon.h"
 #include "WebCore/bridge/bal/bal_class.h"
 #include "HTMLTextAreaElement.h"
-#include "xml/XMLHttpRequest.h"
 #include <EAWebKit/internal/EAWebkitJavascriptBinding.h>
 #include "BAL/WKAL/Concretizations/Widgets/EA/BCPlatformScrollBarEA.h"
 #include <EAWebKit/internal/EAWebKitViewHelper.h>
+
+#include <float.h>
 
 #ifdef _MSC_VER
 	#define snprintf _snprintf
@@ -100,6 +104,8 @@ namespace EA
 namespace WebKit
 {
 
+	View* AutoSetActiveView::spActiveView = NULL;
+
     LoadInfo::LoadInfo()
 		: mpView(NULL),
 		mLET(kLETNone),
@@ -108,6 +114,7 @@ namespace WebKit
 		mContentLength(-1),
 		mProgressEstimation(0.0),
 		mURI(),
+		mResourceURI(),
 		mPageTitle(),
         mLastChangedTime(0)
 	{
@@ -120,25 +127,12 @@ namespace WebKit
 
 
 ViewNotification* gpViewNotification = NULL;
-XMLHttpRequestEventListener* gpEventListener = NULL;
 
 
 EAWEBKIT_API void SetViewNotification(ViewNotification* pViewNotification)
 {
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	gpViewNotification = pViewNotification;
-
-	if (pViewNotification)
-	{
-		gpEventListener = new XMLHttpRequestEventListener(pViewNotification);
-
-		WebCore::XMLHttpRequest::setStaticOnAbortListener(gpEventListener); 
-		WebCore::XMLHttpRequest::setStaticOnErrorListener(gpEventListener);
-		WebCore::XMLHttpRequest::setStaticOnLoadListener(gpEventListener);
-		WebCore::XMLHttpRequest::setStaticOnLoadStartListener(gpEventListener);
-		WebCore::XMLHttpRequest::setStaticOnProgressListener(gpEventListener);
-	}
-	
 }
 
 
@@ -229,7 +223,7 @@ void NOTIFY_PROCESS_STATUS(ViewProcessInfo& process, VProcessStatus processStatu
 
 
 ///////////////////////////////////////////////////////////////////////
-// Javascrip value
+// Javascript value
 ///////////////////////////////////////////////////////////////////////
 EAWEBKIT_API EA::WebKit::JavascriptValue* CreateJavaScriptValue() 
 {
@@ -239,6 +233,16 @@ EAWEBKIT_API EA::WebKit::JavascriptValue* CreateJavaScriptValue()
 EAWEBKIT_API void DestroyJavaScriptValue(EA::WebKit::JavascriptValue* pValue)                    
 {
 	EAWEBKIT_DELETE pValue;
+}
+
+EAWEBKIT_API EA::WebKit::JavascriptValue* CreateJavaScriptValueArray(int count)
+{
+    return EAWEBKIT_NEW("JavaScriptValue") EA::WebKit::JavascriptValue[count];
+}
+
+EAWEBKIT_API void DestroyJavaScriptValueArray(EA::WebKit::JavascriptValue* pValue)                    
+{
+    EAWEBKIT_DELETE[] pValue;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -308,19 +312,10 @@ EAWEBKIT_API View* GetView(::WebView* pWebView)
 
 EAWEBKIT_API View* GetView(::WebFrame* pWebFrame)
 {
-    // To do: Use a mutex instead of simply memory barriers.
-    // Instead of doing a loop, we could possibly stuff a pointer into the given WebFrame directly or indirectly.
-    // To consider: This function isn't strictly needed, as we could get along with just the WebView version of it.
-    for(eastl_size_t i = 0, iEnd = ViewArray::GetArray().size(); i < iEnd; ++i)
-    {
-        View*     const pViewCurrent     = ViewArray::GetArray()[i];
-        WebFrame* const pWebFrameCurrent = pViewCurrent->GetWebFrame();
+	if(pWebFrame)
+		return GetView(pWebFrame->webView());
 
-        if(pWebFrameCurrent == pWebFrame)
-            return pViewCurrent;
-    }
-
-    return NULL;
+	return NULL;
 }
 
 
@@ -331,15 +326,8 @@ EAWEBKIT_API View* GetView(WebCore::Frame* pFrame)
         WebCore::Page* pPage = pFrame->page();
         if(pPage)
         {
-            ::WebView* pWebView = ::kit(pPage);  //From #include <WebView.h>
-            if(pWebView)
-            {
-                EA::Raster::Surface* pSurface = pWebView->viewWindow();
-                if(pSurface)
-                {
-                    return static_cast<View*>(pSurface->mpUserData);
-                }
-            }
+            WebView* pWebView = ::kit(pPage);  //From #include <WebView.h>
+            return GetView(pWebView);
         }
     }
    return NULL;
@@ -367,17 +355,18 @@ EAWEBKIT_API void DestroyView(View* pView)
 const float PI_4 = 3.14159f / 4.0f;
 
 View::View()
-  : mpWebView(),
-    mpSurface(),
+  : mpWebView(0),
+    mpSurface(0),
     mViewParameters(),
     mLoadInfo(),
     mCursorPos(0, 0),
-    mpModalInputClient(),
+    mpModalInputClient(0),
 	mOverlaySurfaceArrayContainer(0),
     mLinkHookManager(this),
     mTextInputStateInfo(),
 	mDebugger(0),
 	mNodeListContainer(0),
+	mBestNodeFrame(0),
 	mBestNodeX(0),
 	mBestNodeY(0),
 	mBestNodeWidth(0),
@@ -386,10 +375,11 @@ View::View()
 	mCachedNavigationDownId(),
 	mCachedNavigationLeftId(),
 	mCachedNavigationRightId(),
-	mNavigatorTheta(PI_4),
 	mURI(),
 	mJavascriptBindingObject(0),
-    mJavascriptBindingObjectName(0)
+    mJavascriptBindingObjectName(),
+    mOwnsViewSurface(true),
+	mEmulatingConsoleOnPC(false)
 {
     ViewArray::GetArray().push_back(this);
 	mNodeListContainer = EAWEBKIT_NEW("NodeListContainer") NodeListContainer();//WTF::fastNew<NodeListContainer> ();
@@ -426,10 +416,52 @@ bool View::InitView(const ViewParameters& vp)
 	SET_AUTO_ACTIVE_VIEW(this);
     SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	
-	mViewParameters = vp;
+	EAW_ASSERT_MSG(!mpSurface, "Surface pointer not NULL when calling InitView\n");
+	EAW_ASSERT_MSG(!mpWebView, "WebView pointer not NULL when calling InitView\n");
 
-    if(!mpSurface)
-        mpSurface = EA::Raster::CreateSurface(vp.mWidth, vp.mHeight, EA::Raster::kPixelFormatTypeARGB);
+	if(mpSurface || mpWebView)//Don't allow reinit of View. Return false instead.
+		return false;
+
+	mViewParameters = vp;
+    
+    if(!mpSurface) 
+    {
+         bool isExternalSurfaceGood = false;
+
+        // Check if we can use the optional user view surface 
+        if(vp.mpViewSurface)
+        {
+            isExternalSurfaceGood = true;  
+
+            // Inspect the provided external surface...
+            // Verify that the size is correct and that we are in ARGB
+            if(vp.mpViewSurface->GetPixelFormat().mPixelFormatType != EA::Raster::kPixelFormatTypeARGB)
+            {
+                isExternalSurfaceGood = false;
+                EAW_ASSERT_MSG(isExternalSurfaceGood, "View::Provided surface needs to be in ARGB format. Using default instead.");
+            }      
+            else if ((vp.mpViewSurface->GetWidth() !=  vp.mWidth) || (vp.mpViewSurface->GetHeight() !=  vp.mHeight) )   
+            {
+                // Attempt to resize. 
+                isExternalSurfaceGood = vp.mpViewSurface->Resize(vp.mWidth, vp.mHeight, false);  
+                EAW_ASSERT_MSG(isExternalSurfaceGood, "View::Failed to resize external surface. Using default instead.");
+            }
+        }
+        
+        if(!isExternalSurfaceGood)
+        {
+            // The default: Create a surface using EARaster instance.
+            mpSurface = GetEARasterInstance()->CreateSurface(vp.mWidth, vp.mHeight, EA::Raster::kPixelFormatTypeARGB, EA::Raster::kSurfaceCategoryMainView);
+            mOwnsViewSurface = true;
+        }
+        else 
+        {
+            mpSurface = vp.mpViewSurface;   
+            mOwnsViewSurface = false;    
+        }   
+        
+        EAW_ASSERT(mpSurface);
+   }
 
     if(mpSurface)
     {
@@ -441,12 +473,12 @@ bool View::InitView(const ViewParameters& vp)
 
             const WKAL::IntRect   viewRect(0, 0, vp.mWidth, vp.mHeight);
             const WebCore::String frameName(parameters.mpApplicationName ? parameters.mpApplicationName : "EAWebKit");
-            const WebCore::String groupName;
+            const WebCore::String groupName;//10/19/10 - abaldeva - We should probably specify the group name in the same way we do for frameName above.
 
             mpWebView->parseConfigFile();
             mpWebView->initWithFrame(viewRect, frameName, groupName);
             mpWebView->setViewWindow(mpSurface);
-            mpWebView->setProhibitsMainFrameScrolling(!vp.mbScrollingEnabled);
+            mpWebView->setProhibitsMainFrameScrolling(!vp.mbScrollingEnabled);//10/19/10 - abaldeva - This should probably stop scrolling for every frame including iframe etc? 
             mpWebView->setTabKeyCyclesThroughElements(vp.mbTabKeyFocusCycle);
             if(parameters.mpUserAgent)
 			{
@@ -464,16 +496,16 @@ bool View::InitView(const ViewParameters& vp)
                 mpWebView->setApplicationNameForUserAgent(WebCore::String(parameters.mpApplicationName));
 
             // We store a pointer to the view 'this' in the Surface.
-            mpSurface->mpUserData = static_cast<View*>(this);
+            mpSurface->SetUserData(this);
             
             mpWebView->setTranparentBackground(vp.mbTransparentBackground); // 7/23/09 CSidhall - Added storing of transparent background
             // Apply the setting to the current frame view.
             if(vp.mbTransparentBackground)
             {
-                WebCore::FrameView* pFrameView = GetFrameView();
-                EAW_ASSERT(pFrameView);
+                WebCore::FrameView* pMainFrameView = GetFrameView();
+                EAW_ASSERT(pMainFrameView);
 
-                pFrameView->setTransparent(vp.mbTransparentBackground);
+                pMainFrameView->setTransparent(vp.mbTransparentBackground);
             }
         }
         else
@@ -490,15 +522,12 @@ void View::ShutdownView()
     SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	SET_AUTO_COLLECTOR_STACK_BASE();   // 9/4/09 - CSidhall - Added to get approximate stack base
 
-    WebCore::XMLHttpRequest::removeStaticEventListeners();
-	delete gpEventListener;
-	gpEventListener = NULL;
-
 	if (mJavascriptBindingObject)
 	{
 		delete mJavascriptBindingObject;
         mJavascriptBindingObject = NULL;	
-        KJS::Bindings::BalClass::cleanup();
+		//abaldeva:Temporarily moved to EAWebKit Shutdown to support multiple views
+		//KJS::Bindings::BalClass::cleanup();
 	}
 	
 
@@ -512,7 +541,9 @@ void View::ShutdownView()
 
     if(mpSurface)
     {
-        EA::Raster::DestroySurface(mpSurface);
+        if(mOwnsViewSurface)
+            GetEARasterInstance()->DestroySurface(mpSurface);
+    
         mpSurface = NULL;
     }
 }
@@ -522,8 +553,8 @@ void View::GetSize(int& w, int& h) const
 {
     if(mpSurface)
     {
-        w = mpSurface->mWidth;
-        h = mpSurface->mHeight;
+        w = mpSurface->GetWidth();
+        h = mpSurface->GetHeight();
     }
     else
     {
@@ -540,18 +571,20 @@ bool View::SetSize(int w, int h)
 	bool bResult = true;
 
     // Only recreate surfaces if there is a change.
-    if(!mpSurface || (mpSurface->mWidth != w) || (mpSurface->mHeight != h))
+    if(!mpSurface || (mpSurface->GetWidth() != w) || (mpSurface->GetHeight() != h))
     {
         if(mpSurface)
             bResult = mpSurface->Resize(w, h, false);
         else
         {
-            mpSurface = EA::Raster::CreateSurface(w, h, EA::Raster::kPixelFormatTypeARGB);
+            mpSurface = GetEARasterInstance()->CreateSurface(w, h, EA::Raster::kPixelFormatTypeARGB, EA::Raster::kSurfaceCategoryMainView);
+            mOwnsViewSurface = true;            
             bResult   = (mpSurface != NULL);
         }
     }
 
-    EAW_ASSERT(mpWebView); // If this fails, are you calling SetSize before calling InitView?
+    EAW_ASSERT_MSG(mpWebView, "If this fails, are you calling SetSize before calling InitView?\n");
+
     if(mpWebView)
     {
         mpWebView->setViewWindow(mpSurface);
@@ -572,19 +605,26 @@ bool View::SetURI(const char* pURI)
 	SET_AUTO_ACTIVE_VIEW(this);
     SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 
+	EAW_ASSERT_MSG(mpWebView, "View::SetURI failure. Have you called View::InitView yet?");
+	EAW_ASSERT_MSG(pURI && pURI[0], "View::SetURI failure. Incorrect URL");
+
+	
 	if(mpWebView && pURI && pURI[0])
     {
-        ::WebFrame* pWebFrame = mpWebView->topLevelFrame();
-        EAW_ASSERT(pWebFrame);
+        // Notify of a possible focus change - this will shut down popups if active
+        if(mpModalInputClient)
+                mpModalInputClient->OnFocusChangeEvent(false);  
+        
+        ::WebFrame* pMainWebFrame = GetWebFrame();
+        EAW_ASSERT(pMainWebFrame);
 
         double timeoutSeconds = (double)EA::WebKit::GetParameters().mPageTimeoutSeconds;
-
 		
-        pWebFrame->loadURL(pURI, timeoutSeconds);
+        pMainWebFrame->loadURL(pURI, timeoutSeconds);
+		
 		return true;
     }
 
-    EAW_FAIL_MSG("View::SetURI failure. Have you called View::InitView yet?");
 	return false; 
 }
 
@@ -592,11 +632,13 @@ void View::Refresh()
 {
     SET_AUTO_ACTIVE_VIEW(this);
     SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+		
+	
 	if(mpWebView)
 	{
-		::WebFrame* pWebFrame = mpWebView->topLevelFrame();
-		EAW_ASSERT(pWebFrame);
-		pWebFrame->reload(); 
+		::WebFrame* pMainWebFrame = GetWebFrame();
+		EAW_ASSERT(pMainWebFrame);
+		pMainWebFrame->reload(); 
 	}
 }
 
@@ -607,9 +649,9 @@ bool View::LoadResourceRequest(const WebCore::ResourceRequest& resourceRequest)
     SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	if(mpWebView)
     {
-		::WebFrame* pWebFrame = mpWebView->topLevelFrame();
-        EAW_ASSERT(pWebFrame);
-        pWebFrame->loadRequest(resourceRequest);
+		::WebFrame* pMainWebFrame = GetWebFrame();
+        EAW_ASSERT(pMainWebFrame);
+        pMainWebFrame->loadRequest(resourceRequest);
         
 		return true;
     }
@@ -618,11 +660,11 @@ bool View::LoadResourceRequest(const WebCore::ResourceRequest& resourceRequest)
 }
 const char16_t* View::GetURI()
 {
-    WebCore::Frame* pFrame = GetFrame();
+    WebCore::Frame* pMainFrame = GetFrame();
 
-    if(pFrame)
+    if(pMainFrame)
     {
-        const WebCore::KURL&   url  = pFrame->loader()->url();
+        const WebCore::KURL&   url  = pMainFrame->loader()->url();
         const WebCore::String& sURL = url.string();
 
         GetFixedString(mURI)->assign(sURL.characters(), sURL.length());
@@ -643,9 +685,9 @@ bool View::SetHTML(const char* pHTML, size_t length, const char* pBaseURL)
 bool View::SetContent(const void* pData, size_t length, const char* pMimeType, const char* pEncoding, const char* pBaseURL)
 {
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-	WebCore::Frame* pFrame = GetFrame();
+	WebCore::Frame* pMainFrame = GetFrame();
 
-    if(pFrame)
+    if(pMainFrame)
     {
 		WebCore::KURL                      kurl(pBaseURL); // It handles the case of pBaseURL == NULL.
         WebCore::ResourceRequest           request(kurl);
@@ -654,7 +696,7 @@ bool View::SetContent(const void* pData, size_t length, const char* pMimeType, c
         const WebCore::String              sEncoding(pEncoding ? pEncoding : "");
         WebCore::SubstituteData            substituteData(buffer, sMimeType, sEncoding, kurl);
 
-        pFrame->loader()->load(request, substituteData);
+        pMainFrame->loader()->load(request, substituteData);
 
 		return true;
     }
@@ -666,30 +708,42 @@ bool View::SetContent(const void* pData, size_t length, const char* pMimeType, c
 void View::CancelLoad()
 {
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-	if(GetFrame() && GetFrame()->loader())
+	
+	WebCore::Frame* pMainFrame = GetFrame();
+	if(pMainFrame && pMainFrame->loader())
 	{
-		GetFrame()->loader()->stopAllLoaders();
+		pMainFrame->loader()->stopAllLoaders();
 	}
 }
 
+void View::QueueRegionToDrawUpdate(int x, int y, int width, int height)
+{
+	const WKAL::IntRect rect(x, y, width, height);
+	mpWebView->addToDirtyRegion(rect);
+
+	WebCore::FrameView* const pMainFrameView  = GetFrameView();
+	if(pMainFrameView)
+		pMainFrameView->setNeedsLayout();
+}
 
 bool View::GoBack()
 {
 	SET_AUTO_ACTIVE_VIEW(this);
     SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	SET_AUTO_COLLECTOR_STACK_BASE();   
-    bool returnFlag = false;
+    
+	bool returnFlag = false;
     if(mpWebView)
     {
         returnFlag =mpWebView->goBack();
-
-        // Set dirty region (seems that a file protocol will not refresh correctly)
         if(returnFlag)
         {
-            int w = mpSurface->mWidth;
-            int h = mpSurface->mHeight;
-            const WKAL::IntRect rect(0, 0, w, h);
-            mpWebView->addToDirtyRegion(rect);
+			// Update 10/25/10 - Note by Arpit Baldeva - Fix the problem of page not refreshing correctly when navigated via history mechanism.            
+			QueueRegionToDrawUpdate(0, 0, mpSurface->GetWidth(), mpSurface->GetHeight());
+
+            // Notify of a possible focus change - this will shut down popups if active
+            if(mpModalInputClient)
+                mpModalInputClient->OnFocusChangeEvent(false);  
         }
     }
      return returnFlag;
@@ -701,18 +755,20 @@ bool View::GoForward()
 	SET_AUTO_ACTIVE_VIEW(this);
     SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	SET_AUTO_COLLECTOR_STACK_BASE();   
+	
+	
 	bool returnFlag = false;
-    
     if(mpWebView)
     {
         returnFlag = mpWebView->goForward();
-        // Set dirty region (seems that a file protocol will not refresh correctly)
         if(returnFlag)
         {
-            int w = mpSurface->mWidth;
-            int h = mpSurface->mHeight;
-            const WKAL::IntRect rect(0, 0, w, h);
-            mpWebView->addToDirtyRegion(rect);
+			// Update 10/25/10 - Note by Arpit Baldeva - Fix the problem of page not refreshing correctly when navigated via history mechanism.
+			QueueRegionToDrawUpdate(0, 0, mpSurface->GetWidth(), mpSurface->GetHeight());
+            
+            // Notify of a possible focus change - this will shut down popups if active
+            if(mpModalInputClient)
+                mpModalInputClient->OnFocusChangeEvent(false);  
         }
     }
     return returnFlag;
@@ -747,69 +803,138 @@ TextInputStateInfo& View::GetTextInputStateInfo()
     return mTextInputStateInfo;
 }
 
+static void TranslateJavaScriptValue(KJS::JSValue* pValue, EA::WebKit::JavascriptValue* pReturnValue, ExecState* exec)
+{
+    if (pValue->isBoolean())
+    {
+        pReturnValue->SetBooleanValue(pValue->getBoolean());
+    }
+    else if (pValue->isUndefinedOrNull())
+    {
+        pReturnValue->SetUndefined();
+    }
+    else if (pValue->isNumber())
+    {
+        pReturnValue->SetNumberValue(pValue->uncheckedGetNumber());
+    }
+    else if (pValue->isString())
+    {
+        // 5/11/10 - Fix proposed by Chin Yee Cheng for the fixed string expects a null terminated string.
+        UString valueStr = pValue->getString();
+        GetFixedString(pReturnValue->GetStringValue())->assign(valueStr.data(), valueStr.size());
+
+        pReturnValue->SetStringType();
+    }
+    else if (pValue->isObject(&JSArray::info))
+    {
+        // Arrays, handle separately from objects
+        const JSArray* pJSArray = static_cast<const JSArray*>(pValue->getObject());
+        unsigned arrayLength = pJSArray->getLength();
+        VectorJavaScriptValue* pJavaScriptValues = GetVectorJavaScriptValue(pReturnValue->GetArrayValue());
+        pJavaScriptValues->resize(arrayLength);
+
+        for (unsigned i = 0; i < arrayLength; ++i)
+        {
+            JSValue* pItemValue = pJSArray->get(exec, i);
+            TranslateJavaScriptValue(pItemValue, &(pJavaScriptValues->at(i)), exec);
+        }
+        pReturnValue->SetArrayType();
+    }
+    else if (pValue->isObject())
+    {
+        JSObject* pJSObject = pValue->getObject();
+        HashMapJavaScriptValue* hashMap = GetHashMap(pReturnValue->GetHashMapValue());
+
+        PropertyNameArray propertyNames(exec);
+        pJSObject->getPropertyNames(exec, propertyNames);
+
+        PropertyNameArray::const_iterator start = propertyNames.begin();
+        PropertyNameArray::const_iterator end = propertyNames.end();
+        for (PropertyNameArray::const_iterator iProp = start; iProp != end; ++iProp) {
+            JSValue *val = pJSObject->get(exec, *iProp);
+
+            const char16_t *name = iProp->ustring().data();
+            JavascriptValue *nativeValue = &(*hashMap)[name];
+            TranslateJavaScriptValue(val, nativeValue, exec);
+        }
+
+        pReturnValue->SetObjectType();
+    }
+    else
+    {
+        pReturnValue->SetUndefined();
+    }
+    // Do we need to free pValue in some way?
+}
+
 bool View::EvaluateJavaScript(const char* pScriptSource, size_t length, EA::WebKit::JavascriptValue* pReturnValue)
 {
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	// For a more general solution, which we may want to look into, see:
-    //     https://lists.webkit.org/pipermail/webkit-dev/2008-November/005686.html
+	//     https://lists.webkit.org/pipermail/webkit-dev/2008-November/005686.html
+	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+	SET_AUTO_COLLECTOR_STACK_BASE();   // Need to store collector stack base as this call can bypass the viewTick()
 
-    SET_AUTO_COLLECTOR_STACK_BASE();   // Need to store collector stack base as this call can bypass the viewTick()
+	//We don't do any utf-8 to 16 conversion and assume that the input is ascii-encoded. Otherwise, we may end up with a performance penalty.
+	//The caller may choose to use the 16 bit version if non-ascii character support is required.
+	const WebCore::String sScriptSource(pScriptSource, length);   
+	return EvaluateJavaScript(sScriptSource.characters(),sScriptSource.length(), pReturnValue);
+	
+}
 
-    bool returnFlag = false;
-    WebCore::Frame*            pFrame = GetFrame();
-    WebCore::ScriptController* pProxy = pFrame->script();
 
-    if(pReturnValue)
-    	pReturnValue->SetUndefined();
+bool View::EvaluateJavaScript(const char16_t* pScriptSource, size_t length, EA::WebKit::JavascriptValue* pReturnValue)
+{
+	// For a more general solution, which we may want to look into, see:
+	//     https://lists.webkit.org/pipermail/webkit-dev/2008-November/005686.html
+	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+	SET_AUTO_COLLECTOR_STACK_BASE();   // Need to store collector stack base as this call can bypass the viewTick()
+	
+    // We default the return value to be undefined for now
+	if(pReturnValue)
+		pReturnValue->SetUndefined();
+	
+	bool returnFlag = false;
+	WebCore::Frame* pMainFrame = GetFrame();//Note 10/19/10 - abaldeva - We need to investigate if we should get the focus Or MainFrame here.
+	if(pMainFrame)
+	{
+		WebCore::ScriptController* pProxy = pMainFrame->script();
+		if(pProxy)
+		{
+			const WebCore::String sFileName;
+			const int             baseLine = 1;
+			const WebCore::String sScriptSource(pScriptSource, length);
 
-    if(pProxy)
-    {
-        const WebCore::String sFileName;
-        const int             baseLine = 1;
-        const WebCore::String sScriptSource(pScriptSource, length);
+			KJS::JSValue* pValue = pProxy->evaluate(sFileName, baseLine, sScriptSource);
 
-        KJS::JSValue* pValue = pProxy->evaluate(sFileName, baseLine, sScriptSource);
-
-        if((pValue) && (pReturnValue))
-        {
-			if (pValue->isBoolean())
+			if(pValue)
 			{
-				pReturnValue->SetBooleanValue(pValue->getBoolean());
-                returnFlag = true;	
-            }
-			else if (pValue->isUndefinedOrNull())
-			{
-				pReturnValue->SetUndefined();
-                returnFlag = true;	
-			}
-			else if (pValue->isNumber())
-			{
-				pReturnValue->SetNumberValue(pValue->uncheckedGetNumber());
-                returnFlag = true;	
-			}
-			else if (pValue->isString())
-			{
-				// This might not  be null-terminated
+				if(pReturnValue)
+                {
+                    // we need the exec only because JSArray::get requires the exec state. This could potentially be removed.
+                    ExecState* exec = pProxy->windowShell()->window()->globalExec();
+                    TranslateJavaScriptValue(pValue, pReturnValue, exec);
+                }
 
-                // 5/11/10 - Fix proposed by Chin Yee Cheng for the fixed string expects a null terminated string.
-                UString valueStr = pValue->getString();
-                GetFixedString(pReturnValue->GetStringValue())->assign(valueStr.data(), valueStr.size());
+                // 7/27/10 CSidhall So this is a small API change, we now return true if a non zero pValue was found versus previously where 
+                // we only returned true if  pValue was non zero and a pReturnValue was set by the user.  This was suggested by Chin Yee Cheng.
+                // So any return with a non NULL pValue is a success.  (It is unclear if there could be some special
+                // exceptions to this in case of with "Break" or "Continue" internal JS completion codes but we consider those as fails for now).
                 
-                pReturnValue->SetStringType();
-                returnFlag = true;	
-			}
-            // Do we need to free pValue in some way?
+                returnFlag = true;  
+            }
+            else
+            {
+                // No valid return so leave the returnValue to undefined
+            }
+		
+            // 5/12/10 CSidhall - Changed this to just flag the update instead of doing a full layout update as EvaluateJavascript might be called x times in a same frame. 
+	        // We could consider only updating the layout in case only of a pValue return
+            WebCore::FrameView* const pMainFrameView  = GetFrameView();
+	        if(pMainFrameView)
+		        pMainFrameView->setNeedsLayout();
         }
-    }
-    
-    // 2/10/10 -The java script might have changed something in the layout so
-    // we need an update.
-    // 5/12/10 CSidhall - Changed this to just flag the update instead of doing a full layout update as EvaluateJavascript might be called x times in a same frame. 
-    WebCore::FrameView* const pFrameView  = GetFrameView();
-    if(pFrameView)
-       pFrameView->setNeedsLayout();
-
-    return returnFlag;	
+	}
+	return returnFlag;	
 }
 
 
@@ -857,10 +982,10 @@ bool View::Tick()
 	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeDraw, EA::WebKit::kVProcessStatusStarted, this);
     // Check for a dirty FrameView, and if so then trigger a repaint.
     // The repaint will result in any notifications being sent out.
-    WebCore::FrameView*     const pFrameView  = GetFrameView();
+    WebCore::FrameView*     const pMainFrameView  = GetFrameView();
     EA::WebKit::Parameters& parameters        = EA::WebKit::GetParameters();
 
-    if(pFrameView && mpWebView && pFrameView->IsDirty()) // If there is anything to draw...
+    if(pMainFrameView && mpWebView && pMainFrameView->IsDirty()) // If there is anything to draw...
     {
         if(parameters.mbDrawIntermediatePages || !mpWebView->isLoading())  // If we are to draw intermediate pages (as well as completed pages) or if the view has already completed loading...
         {
@@ -890,8 +1015,8 @@ void View::RedrawArea(int x, int y, int w, int h)
     {
         x = 0;
         y = 0;
-        w = mpSurface->mWidth;
-        h = mpSurface->mHeight;
+        w = mpSurface->GetWidth();
+        h = mpSurface->GetHeight();
     }
 
     const WKAL::IntRect rect(x, y, w, h);
@@ -910,15 +1035,7 @@ void View::ViewUpdated(int x, int y, int w, int h)
     // overlay surfaces (e.g. overlaid popup modal menus).
     BlitOverlaySurfaces();
 
-    // Notify the user of the update.
-    EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
-
-    if(pVN)
-    {
-        EA::WebKit::ViewUpdateInfo vui = { this, x, y, w, h };
-        pVN->ViewUpdate(vui);
-    }
-
+    // 12/10/10 CSidhall - Moved the view update/draw event notifications to onExpose() in WebViewPrivate.cpp to avoid multiple callbacks.
 }
 
 
@@ -931,10 +1048,36 @@ void View::Scroll(int x, int y)
 	if(mpWebView)
     {
         mpWebView->scrollBy(WebCore::IntPoint(x, y));
-        if(mpModalInputClient)
+        //abaldeva:TODO - Fix this. Modal Input means that WebKit does not get input events. So it is meant for exclusiveness.
+		if(mpModalInputClient)
             mpModalInputClient->OnScrollViewEvent();
     }
 	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeScrollEvent, EA::WebKit::kVProcessStatusEnded, this);
+}
+
+void View::Scroll(bool xAxisScroll, bool yAxisScroll, int xScrollLines, int xScrollDelta,
+				  int yScrollLines, int yScrollDelta)
+{
+	MouseWheelEvent mouseWheelEvent;	
+	mouseWheelEvent.mX = mCursorPos.x;
+	mouseWheelEvent.mY = mCursorPos.y;
+	
+	if(yAxisScroll)
+	{
+		mouseWheelEvent.mbShift = false;
+		mouseWheelEvent.mLineDelta = yScrollLines;
+		mouseWheelEvent.mZDelta = yScrollDelta;
+		OnMouseWheelEvent(mouseWheelEvent);
+	}
+
+	if(xAxisScroll)
+	{
+		mouseWheelEvent.mbShift = true;
+		mouseWheelEvent.mLineDelta = -xScrollLines;
+		mouseWheelEvent.mZDelta = -xScrollDelta;
+		OnMouseWheelEvent(mouseWheelEvent);
+	}
+	
 }
 
 void View::GetScrollOffset(int& x, int& y)
@@ -982,6 +1125,10 @@ void View::OnMouseMoveEvent(const MouseMoveEvent& mouseMoveEvent)
     SET_AUTO_COLLECTOR_STACK_BASE();  // Mark stack for Javascript collector
 	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeMouseMoveEvent, EA::WebKit::kVProcessStatusStarted, this);
 	
+	//+09/15/10 - Note by Arpit Baldeva: Moved it (from few lines below)before firing the event. This is because during the mpWebView->onMouseMotion call, the Cursor::Set is called where we inform the 
+	//application about the current cursor position. 
+	mCursorPos.set(mouseMoveEvent.mX, mouseMoveEvent.mY);
+	
 	if(mpModalInputClient)
         mpModalInputClient->OnMouseMoveEvent(mouseMoveEvent);
     else if(mpWebView)
@@ -994,7 +1141,8 @@ void View::OnMouseMoveEvent(const MouseMoveEvent& mouseMoveEvent)
         WKAL::PlatformScrollbar::updateAutoScrollThumbWithMouseMove(mouseMoveEvent);   
     
     }
-    mCursorPos.set(mouseMoveEvent.mX, mouseMoveEvent.mY);
+	//-09/15/10 - Note by Arpit Baldeva: Disabled following with the explanation above.
+    //mCursorPos.set(mouseMoveEvent.mX, mouseMoveEvent.mY);
 
 	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeMouseMoveEvent, EA::WebKit::kVProcessStatusEnded, this);
 }
@@ -1089,7 +1237,7 @@ ModalInputClient* View::GetModalInputClient() const
 }
 
 
-void View::SetOverlaySurface(EA::Raster::Surface* pSurface, const EA::Raster::Rect& viewRect)
+void View::SetOverlaySurface(EA::Raster::ISurface* pSurface, const EA::Raster::Rect& viewRect)
 {
 	SET_AUTO_ACTIVE_VIEW(this);
     SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
@@ -1134,7 +1282,7 @@ void View::SetOverlaySurface(EA::Raster::Surface* pSurface, const EA::Raster::Re
         const EA::Raster::Rect sourceRect(0, 0, viewRect.w, viewRect.h);
 
         // 2/8/09 CSidhall - Added clip rectangle reset for overlay draw to fix partial draw bug          
-        const EA::Raster::Rect savedSurfaceRect(mpSurface->mClipRect.x, mpSurface->mClipRect.y,mpSurface->mClipRect.width(),mpSurface->mClipRect.height());
+        const EA::Raster::Rect savedSurfaceRect(mpSurface->GetClipRect().x, mpSurface->GetClipRect().y,mpSurface->GetClipRect().width(),mpSurface->GetClipRect().height());
         WebCore::FrameView* pFV = GetFrameView();
         if(pFV)
         {    
@@ -1143,28 +1291,40 @@ void View::SetOverlaySurface(EA::Raster::Surface* pSurface, const EA::Raster::Re
             mpSurface->SetClipRect(&visRect);
         }
 
-        EA::Raster::Blit(pSurface, &sourceRect, mpSurface, &viewRect, NULL);
+        // Notify user of view draw start event.  
+        EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
+        EA::WebKit::ViewUpdateInfo vui = { this, viewRect.x, viewRect.y, viewRect.w, viewRect.h, EA::WebKit::ViewUpdateInfo::kViewDrawStart };
+        if(pVN)
+        {
+            pVN->DrawEvent(vui);
+        }    
+
+        GetEARasterInstance()->Blit(pSurface, &sourceRect, mpSurface, &viewRect, NULL);
 
         // 2/8/09 CSidhall Added rectangle restore (might not be needed but restores everything as it was)
         mpSurface->SetClipRect(&savedSurfaceRect);
 
 
-        // Notify user of view update.
-        EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
-
+        // Notify user of view draw end event.
         if(pVN)
         {
-            EA::WebKit::ViewUpdateInfo vui = { this, viewRect.x, viewRect.y, viewRect.w, viewRect.h };
+            vui.mDrawEvent = EA::WebKit::ViewUpdateInfo::kViewDrawEnd; 
+            pVN->DrawEvent(vui);
+
+            // TODO: Deprecate this view update (replaced with DrawEvent)
             pVN->ViewUpdate(vui);
         }
     }
-
 }
 
 
-void View::RemoveOverlaySurface(EA::Raster::Surface* pSurface)
+void View::RemoveOverlaySurface(EA::Raster::ISurface* pSurface)
 {
-	SET_AUTO_ACTIVE_VIEW(this);
+	// This could occur during the shutdown sequence with some dependency shutdown issues.
+    if(!mOverlaySurfaceArrayContainer)
+        return;
+    
+    SET_AUTO_ACTIVE_VIEW(this);
     SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	
 	// This function is not re-entrant, as it modifies its data. You cannot safely call it while within a user callback.
@@ -1195,16 +1355,32 @@ void View::RemoveOverlaySurface(EA::Raster::Surface* pSurface)
 // the overlay in that area.
 void View::BlitOverlaySurfaces()
 {
-	SET_AUTO_ACTIVE_VIEW(this);
+    if(mOverlaySurfaceArrayContainer->mOverlaySurfaceArray.size() <= 0)
+        return;
+    
+    SET_AUTO_ACTIVE_VIEW(this);
     SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	
-	for(OverlaySurfaceArray::iterator it = mOverlaySurfaceArrayContainer->mOverlaySurfaceArray.begin(); it != mOverlaySurfaceArrayContainer->mOverlaySurfaceArray.end(); ++it)
+   // 6/20/10 CSidhall - Added clip rectangle reset for overlay draw to fix partial draw bug          
+   const EA::Raster::Rect savedSurfaceRect(mpSurface->GetClipRect().x, mpSurface->GetClipRect().y,mpSurface->GetClipRect().width(),mpSurface->GetClipRect().height());
+    WebCore::FrameView* pFV = GetFrameView();
+    if(pFV)
+    {    
+        WebCore::IntSize scrollOffset = pFV->scrollOffset();
+        const EA::Raster::Rect visRect(pFV->contentsX() - scrollOffset.width(), pFV->contentsY() - scrollOffset.height(), pFV->width(), pFV->height());
+        mpSurface->SetClipRect(&visRect);
+    } 
+
+    for(OverlaySurfaceArray::iterator it = mOverlaySurfaceArrayContainer->mOverlaySurfaceArray.begin(); it != mOverlaySurfaceArrayContainer->mOverlaySurfaceArray.end(); ++it)
     {
         const OverlaySurfaceInfo& osi = *it;
-
         const EA::Raster::Rect sourceRect(0, 0, osi.mViewRect.w, osi.mViewRect.h);
-        EA::Raster::Blit(osi.mpSurface, &sourceRect, mpSurface, &osi.mViewRect, NULL);
+        GetEARasterInstance()->Blit(osi.mpSurface, &sourceRect, mpSurface, &osi.mViewRect, NULL);
     }
+
+    // Restore clip
+     mpSurface->SetClipRect(&savedSurfaceRect);
+
 }
 
 
@@ -1214,49 +1390,46 @@ WebView* View::GetWebView() const
 }
 
 
-::WebFrame* View::GetWebFrame() const
+::WebFrame* View::GetWebFrame(bool focusFrame /* = false */) const
 {
-    if(mpWebView)
-    {
-        ::WebFrame* pWebFrame  = mpWebView->topLevelFrame();
-        EAW_ASSERT(pWebFrame);
+	if(mpWebView)
+	{
+		WebCore::Page* pPage = mpWebView->page();
+		EAW_ASSERT(pPage);
 
-        return pWebFrame;
-    }
+		WebCore::FocusController* pFocusController = (pPage ? pPage->focusController() : NULL);
+		EAW_ASSERT(pFocusController);
 
-    return NULL;
+		if(pFocusController)
+		{
+			WebCore::Frame* pFrame = (focusFrame ? pFocusController->focusedFrame() : pFocusController->getMainFrame());
+
+			::WebFrame* pWebFrame  = (pFrame ? kit(pFrame) : NULL);
+
+			return pWebFrame;
+		}
+	}
+
+	return NULL;
+}
+
+WebCore::Frame* View::GetFrame(bool focusFrame /* = false */) const
+{
+	::WebFrame* pWebFrame  = GetWebFrame(focusFrame);
+
+	WebCore::Frame* pFrame = (pWebFrame ? pWebFrame->impl() : NULL);
+
+	return pFrame;
 }
 
 
-WebCore::Frame* View::GetFrame() const
+WebCore::FrameView* View::GetFrameView(bool focusFrame /* = false */) const
 {
     if(mpWebView)
     {
-        ::WebFrame* pWebFrame  = mpWebView->topLevelFrame();
-        EAW_ASSERT(pWebFrame);
+        WebCore::Frame* pFrame = GetFrame(focusFrame);
 
-        WebCore::Frame* pFrame = pWebFrame->impl();
-        EAW_ASSERT(pFrame);
-
-        return pFrame;
-    }
-
-    return NULL;
-}
-
-
-WebCore::FrameView* View::GetFrameView() const
-{
-    if(mpWebView)
-    {
-        ::WebFrame* pWebFrame  = mpWebView->topLevelFrame();
-        EAW_ASSERT(pWebFrame);
-
-        WebCore::Frame* pFrame = ::core(pWebFrame);
-        EAW_ASSERT(pFrame);
-
-        WebCore::FrameView* pFrameView = pFrame->view();
-        EAW_ASSERT(pFrameView);
+		WebCore::FrameView* pFrameView = (pFrame ? pFrame->view() : NULL);
 
         return pFrameView;
     }
@@ -1279,15 +1452,13 @@ WebCore::Page* View::GetPage() const
 }
 
 
-WebCore::Document* View::GetDocument() const
+WebCore::Document* View::GetDocument(bool focusFrame /* = false */) const
 {
     if(mpWebView)
     {
-        WebCore::Frame* pFrame = GetFrame();
-        EAW_ASSERT(pFrame);
+        WebCore::Frame* pFrame = GetFrame(focusFrame);
 
-        WebCore::Document* pDocument = pFrame->document();
-        EAW_ASSERT(pDocument);
+		WebCore::Document* pDocument = (pFrame ? pFrame->document() : NULL);
 
         return pDocument;
     }
@@ -1296,7 +1467,7 @@ WebCore::Document* View::GetDocument() const
 }
 
 
-EA::Raster::Surface* View::GetSurface() const
+EA::Raster::ISurface* View::GetSurface() const
 {
     // We could also get this from our FrameView, but we happen to keep our
     // own pointer to this.
@@ -1317,252 +1488,8 @@ void View::ResetForNewLoad()
     mLoadInfo = LoadInfo();
 }
 
-class DelegateBase
-{
-public:
-	DelegateBase(EA::WebKit::View* view) : mView(view)
-	{
-		// empty
-	}
 
-protected:
-	bool CanJumpToNode(WebCore::Node* node)
-	{
-		SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-		if (node->nodeType() == WebCore::Node::ELEMENT_NODE)
-		{
-			WebCore::Element* element = (WebCore::Element*)node;
-
-			if (element->isHTMLElement())
-			{
-				WebCore::HTMLElement* htmlElement = (WebCore::HTMLElement*)element;
-
-				WebCore::IntRect rect = htmlElement->getRect();					
-				bool isBigEnough = rect.width()>5 && rect.height() > 5;
-
-				if (isBigEnough && (htmlElement->tagName()=="A" || htmlElement->tagName()=="INPUT" || htmlElement->tagName()=="TEXTAREA"))
-				{
-					if (htmlElement->computedStyle()->visibility()==WebCore::VISIBLE)
-					{
-						if (htmlElement->computedStyle()->display()!=WebCore::NONE)
-						{
-							if (!htmlElement->hasClass() || !htmlElement->classNames().contains("navigation_ignore"))
-							{	
-								return true;						
-							}
-						}
-						
-					}
-				}
-			}
-		}
-
-		return false;
-	}
-
-	const EA::WebKit::View* GetView() const { return mView; }
-	EA::WebKit::View* GetView() { return mView; }
-
-
-private:
-	EA::WebKit::View* mView;
-};
-
-class JumpToFirstLinkDelegate : public DelegateBase
-{
-public:
-	explicit JumpToFirstLinkDelegate(EA::WebKit::View* view)
-	:	DelegateBase(view)
-	,	mFoundElement(0)
-	{
-
-	}
-
-	bool operator()(WebCore::Node* node)
-	{
-		SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-		if (InterestedInNode(node))
-		{
-			ApplyAction(node);
-			// by returning false we'll taking the domwalker that we've found the node we want, and to stop.
-			return false;
-		}
-		return true;
-	}
-
-	WebCore::Element* FoundElement() const { return mFoundElement; }
-
-
-protected:
-	bool InterestedInNode(WebCore::Node* node)
-	{
-		return CanJumpToNode(node);
-	}
-
-	void ApplyAction(WebCore::Node* node)
-	{
-		WebCore::Element* htmlElement = (WebCore::Element*)node;
-		mFoundElement = htmlElement;
-		this->GetView()->MoveMouseCursorToNode(htmlElement);
-	}
-private:
-	WebCore::Element* mFoundElement;
-};
-
-
-class JumpToElementWithClassDelegate : public DelegateBase
-{
-public:
-	explicit JumpToElementWithClassDelegate(EA::WebKit::View* view, const char* jumpToClass)
-		: DelegateBase(view)
-		, mFoundElement(0)
-		, mJumpToClass(jumpToClass)
-	{
-
-	}
-
-	bool operator()(WebCore::Node* node)
-	{
-		SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-		if (InterestedInNode(node))
-		{
-			ApplyAction(node);
-			// by returning false we'll taking the domwalker that we've found the node we want, and to stop.
-			return false;
-		}
-		return true;
-	}
-
-	WebCore::Element* FoundElement() const { return mFoundElement; }
-
-protected:
-	bool InterestedInNode(WebCore::Node* node)
-	{
-
-		if (node->nodeType() == WebCore::Node::ELEMENT_NODE)
-		{
-			WebCore::Element* element = (WebCore::Element*)node;
-
-			if (element->isHTMLElement())
-			{
-				WebCore::HTMLElement* htmlElement = (WebCore::HTMLElement*)element;
-
-				if (htmlElement->computedStyle()->visibility()==WebCore::VISIBLE)
-				{
-					if (htmlElement->computedStyle()->display()!=WebCore::NONE)
-				    {
-						if (htmlElement->hasClass() && htmlElement->classNames().contains(mJumpToClass))
-						{
-							    return true;						
-					    }
-				    }
-			    }
-		    }
-		}
-
-		return false;
-	}
-
-	void ApplyAction(WebCore::Node* node)
-	{
-		WebCore::Element* htmlElement = (WebCore::Element*)node;
-		mFoundElement = htmlElement;
-		this->GetView()->MoveMouseCursorToNode(htmlElement);
-	}
-private:
-	WebCore::Element* mFoundElement;
-	const char*			mJumpToClass;
-};
-
-class JumpToElementWithIdDelegate : public DelegateBase
-{
-public:
-	explicit JumpToElementWithIdDelegate(EA::WebKit::View* view, const char* jumpToId)
-		: DelegateBase(view) 
-		, mFoundElement(0)
-		, mJumpToId(jumpToId)
-	{
-
-	}
-
-	bool operator()(WebCore::Node* node)
-	{
-		SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-		if (InterestedInNode(node))
-		{
-			ApplyAction(node);
-			// by returning false we'll taking the domwalker that we've found the node we want, and to stop.
-			return false;
-		}
-		return true;
-	}
-
-	WebCore::Element* FoundElement() const { return mFoundElement; }
-
-protected:
-	bool InterestedInNode(WebCore::Node* node)
-	{
-		if (node->nodeType() == WebCore::Node::ELEMENT_NODE)
-		{
-			WebCore::Element* element = (WebCore::Element*)node;
-
-			if (element->isHTMLElement())
-			{
-				WebCore::HTMLElement* htmlElement = (WebCore::HTMLElement*)element;
-
-				if (htmlElement->computedStyle()->visibility()==WebCore::VISIBLE)
-				{
-					if (htmlElement->id() == mJumpToId)
-				    {
-					    return true;
-				    }
-			    }
-		    }
-		}
-
-		return false;
-	}
-
-	void ApplyAction(WebCore::Node* node)
-	{
-		WebCore::Element* htmlElement = (WebCore::Element*)node;
-		mFoundElement = htmlElement;
-		this->GetView()->MoveMouseCursorToNode(htmlElement);
-	}
-private:
-	WebCore::Element*	mFoundElement;
-	const char*			mJumpToId;
-};
-
-class IsNodeNavigableDelegate : DelegateBase
-{
-public:
-	IsNodeNavigableDelegate(EA::WebKit::View* view) : DelegateBase(view), mFoundNode(false) {}
-
-	bool operator()(WebCore::Node* node)
-	{
-		SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-		bool canJump = CanJumpToNode(node);
-		if (canJump)
-		{
-			mFoundNode = true;
-		}
-
-		return !canJump;
-	}
-
-	bool FoundNode() const { return mFoundNode; }
-
-private:
-	bool mFoundNode;
-};
-
-
-
-
-
-
-
+// APIs for Navigation
 
 //+ 6/11/09 Note: these following procedures were contributed by Chris Stott and the Skate Team
 
@@ -1571,11 +1498,8 @@ bool View::IsAlreadyOverNavigableElement()
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	if (mpWebView)
 	{
-		int x, y;
-
-		GetCursorPosition(x, y);
-
-		WebCore::Element* element = mpWebView->elementAtPoint(x, y);
+		// This works for multiple frames.
+		WebCore::Element* element = mpWebView->elementAtPoint(mCursorPos.x, mCursorPos.y);
 
 		if (element)
 		{
@@ -1596,51 +1520,55 @@ bool View::IsAlreadyOverNavigableElement()
 bool View::JumpToFirstLink(const char* jumpToClass, bool skipJumpIfAlreadyOverElement)
 {
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-	WebCore::Document* document = this->GetDocument();
-
-	EAW_ASSERT(document);
-
-	if (document)
+	
+	WebCore::Frame* pFrame = GetFrame();
+	// Search for the desired element in all the frames
+	while(pFrame)
 	{
-		if (!skipJumpIfAlreadyOverElement)
+		WebCore::Document* document = pFrame->document();
+		EAW_ASSERT(document);
+
+		if (document)
 		{
-			JumpToElementWithClassDelegate delegate1(this, jumpToClass);
-
-			DOMWalker<JumpToElementWithClassDelegate> walker(document, delegate1);		
-
-			if (!delegate1.FoundElement())
+			if (!skipJumpIfAlreadyOverElement)
 			{
-				JumpToFirstLinkDelegate delegate2(this);
+				JumpToElementWithClassDelegate delegate1(this, jumpToClass);
 
-				DOMWalker<JumpToFirstLinkDelegate> walker(document, delegate2);		
-
-				if (delegate2.FoundElement())
+				DOMWalker<JumpToElementWithClassDelegate> walker(document, delegate1);		
+				WebCore::Element* element1 = delegate1.FoundElement();
+				if (element1)
 				{
-					WebCore::Element* element = delegate2.FoundElement();
-					WebCore::IntRect rect = element->getRect();
-					mBestNodeX = rect.x();
-					mBestNodeY = rect.y();
-					mBestNodeWidth = rect.width();
-					mBestNodeHeight = rect.height();
-					UpdateCachedHints(element);
+					UpdateCachedHints(element1);
 					return true;
 				}
-			}
-			else
-			{
-				WebCore::Element* element = delegate1.FoundElement();
-				WebCore::IntRect rect = element->getRect();
-				mBestNodeX = rect.x();
-				mBestNodeY = rect.y();
-				mBestNodeWidth = rect.width();
-				mBestNodeHeight = rect.height();
-				UpdateCachedHints(element);
-				return true;
-			}
+			}		
+		}
 
-		}		
+		pFrame = pFrame->tree()->traverseNext();
 	}
 
+	// We did not find the element, so we jump to the first jumpable link in all the frames
+	pFrame = GetFrame();
+	while(pFrame)
+	{
+		WebCore::Document* document = pFrame->document();
+		EAW_ASSERT(document);
+		
+		if(document)
+		{
+			JumpToFirstLinkDelegate delegate2(this);
+			DOMWalker<JumpToFirstLinkDelegate> walker(document, delegate2);		
+			WebCore::Element* element2 = delegate2.FoundElement();
+			if (element2)
+			{
+				UpdateCachedHints(element2);
+				return true;
+			}
+		}
+
+		pFrame = pFrame->tree()->traverseNext();
+	}
+	
 	return false;
 }
 
@@ -1649,27 +1577,26 @@ bool View::JumpToFirstLink(const char* jumpToClass, bool skipJumpIfAlreadyOverEl
 bool View::JumpToId(const char* jumpToId)
 {
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-	WebCore::Document* document = this->GetDocument();
-
-	EAW_ASSERT(document);
-
-	if (document)
+	WebCore::Frame* pFrame = GetFrame();
+	// Search for the desired element in all the frames
+	while(pFrame)
 	{
-		JumpToElementWithIdDelegate delegate1(this, jumpToId);
+		WebCore::Document* document = pFrame->document();
+		EAW_ASSERT(document);
 
-		DOMWalker<JumpToElementWithIdDelegate> walker(document, delegate1);		
-
-		if (delegate1.FoundElement())
+		if (document)
 		{
+			JumpToElementWithIdDelegate delegate1(this, jumpToId);
+
+			DOMWalker<JumpToElementWithIdDelegate> walker(document, delegate1);		
 			WebCore::Element* element = delegate1.FoundElement();
-			WebCore::IntRect rect = element->getRect();
-			mBestNodeX = rect.x();
-			mBestNodeY = rect.y();
-			mBestNodeWidth = rect.width();
-			mBestNodeHeight = rect.height();
-			UpdateCachedHints(element);
-			return true;
+			if (element)
+			{
+				UpdateCachedHints(element);
+				return true;
+			}
 		}
+		pFrame = pFrame->tree()->traverseNext();
 	}
 
 	return false;
@@ -1688,11 +1615,13 @@ void View::UpdateCachedHints(WebCore::Node* node)
 		WebCore::Attribute* leftAttribute = attributeMap->getAttributeItem("navigationleft");
 		WebCore::Attribute* rightAttribute = attributeMap->getAttributeItem("navigationright");
 
-		char buffer[100];
-		wchar_t uBuffer[100];
+		const size_t kMaxAttribValLength = 256;
+		char buffer[kMaxAttribValLength];
+		wchar_t uBuffer[kMaxAttribValLength];
 		if ( upAttribute )
 		{
 			unsigned int length = upAttribute->value().length();
+			EAW_ASSERT_MSG(length < kMaxAttribValLength-1,"Attribute value buffer not big enough, truncating the string\n"); 
 			wcsncpy(uBuffer, upAttribute->value().string().characters(), length);
 			uBuffer[length] = L'\0';
 			sprintf(buffer,"%S",uBuffer);
@@ -1706,11 +1635,12 @@ void View::UpdateCachedHints(WebCore::Node* node)
 		if ( downAttribute )
 		{
 			unsigned int length = downAttribute->value().length();
+			EAW_ASSERT_MSG(length < kMaxAttribValLength-1,"Attribute value buffer not big enough, truncating the string\n"); 
 			wcsncpy(uBuffer, downAttribute->value().string().characters(), length);
 			uBuffer[length] = L'\0';
 			sprintf(buffer,"%S",uBuffer);
 			GetFixedString(mCachedNavigationDownId)->assign(buffer);;
-	}
+		}
 		else
 		{
 			GetFixedString(mCachedNavigationDownId)->assign("");
@@ -1719,6 +1649,7 @@ void View::UpdateCachedHints(WebCore::Node* node)
 		if ( leftAttribute )
 		{
 			unsigned int length = leftAttribute->value().length();
+			EAW_ASSERT_MSG(length < kMaxAttribValLength-1,"Attribute value buffer not big enough, truncating the string\n"); 
 			wcsncpy(uBuffer, leftAttribute->value().string().characters(), length);
 			uBuffer[length] = L'\0';
 			sprintf(buffer,"%S",uBuffer);
@@ -1727,11 +1658,12 @@ void View::UpdateCachedHints(WebCore::Node* node)
 		else
 		{
 			GetFixedString(mCachedNavigationLeftId)->assign("");
-}
+		}
 
 		if ( rightAttribute )
 		{
 			unsigned int length = rightAttribute->value().length();
+			EAW_ASSERT_MSG(length < kMaxAttribValLength-1,"Attribute value buffer not big enough, truncating the string\n"); 
 			wcsncpy(uBuffer, rightAttribute->value().string().characters(), length);
 			uBuffer[length] = L'\0';
 			sprintf(buffer,"%S",uBuffer);
@@ -1753,26 +1685,102 @@ void View::UpdateCachedHints(WebCore::Node* node)
 
 //////////////////////////////////////////////////////////////////////////
 //
+void View::SetJumpNavigationParams(const JumpNavigationParams& jumpNavigationParams)
+{
+	mJumpNavigationParams = jumpNavigationParams;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//
 bool View::JumpToNearestElement(EA::WebKit::JumpDirection direction)
 {
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+	
+	//We try to find an element in the current visiable area. If not found, we scroll the view in the intended direction.
+	bool foundElement = JumpToNearestElement(direction, true);
+	
+	// If not found, we try one more time since newer elements may be visible now. In our case, it is necessary to do so(unlike some other implementation where only
+	// scroll may happen). Imagine a player navigating through the music track listing and on the edge. If the user presses down, not only he is expecting the new
+	// item to become visible, he is also expecting to be able to jump to it.
+	if(!foundElement)
+		foundElement = JumpToNearestElement(direction, false);
+
+	return foundElement;
+
+	
+}
+
+
+bool View::JumpToNearestElement(EA::WebKit::JumpDirection direction, bool scrollIfElementNotFound)
+{
+	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+
+	// Note by Arpit Baldeva:
+	// We have a problem here. mpModalInputClient object is supposed to be used for Modal input only however the only class using this object 
+	// is html SELECT element(implemented as a popup). But in reality, html SELECT element is NOT modal. So it is little ill-conceived. 
+	// For example, in all the browsers, if you scroll the mouse wheel on the frame, the SELECT element disappears and the actual frame scrolls.
+
+	// For any modal input needs on a web page, the users are advised to use the Z-layer technique with Javascript/CSS - http://jqueryui.com/demos/dialog/#modal-confirmation.
+
+	// The problem we want to solve here is have the SELECT element respond to the controller input correctly(select element one by one).
+	// But the button event information is lost by the time we are in the EA::WebKit::View. For the foreseeable future, there is no candidate
+	// other than html SELECT element which is implemented as a modal popup inside EAWebKit. So inside EA::WebKit::View, we create a dummy
+	// button event from the Jump direction and make SELECT respond to it. If any other object starts using the modal input, this would need to be
+	// revisited. But then, we'll need to solve a plethora of issues. So we do minimum work here to not break other things.
+
+	bool handledByModalInputClient = false;
+	if(mpModalInputClient)
+	{
+		EA::WebKit::ButtonEvent btnEvent;
+		switch(direction)
+		{
+			/*
+			case EA::WebKit::JumpLeft:
+			{
+			btnEvent.mID = EA::WebKit::kButton0;
+			handledByModalInputClient = mpModalInputClient->OnButtonEvent(btnEvent);
+			}
+			*/
+		case EA::WebKit::JumpUp:
+			{
+				btnEvent.mID = EA::WebKit::kButton1;
+				handledByModalInputClient =  mpModalInputClient->OnButtonEvent(btnEvent);
+				break;
+			}
+			/*
+			case EA::WebKit::JumpRight:
+			{
+			btnEvent.mID = EA::WebKit::kButton2;
+			handledByModalInputClient =  mpModalInputClient->OnButtonEvent(btnEvent);
+			}
+			*/
+		case EA::WebKit::JumpDown:
+			{
+				btnEvent.mID = EA::WebKit::kButton3;
+				handledByModalInputClient =  mpModalInputClient->OnButtonEvent(btnEvent);
+				break;
+			}
+		default:
+			// We don't return and allow any other button press to go to the main View. At the same time, we make the SELECT element lose focus.
+			{
+				mpModalInputClient->OnFocusChangeEvent(false);
+				break;
+			}
+		}
+	}
+
+	if(handledByModalInputClient)
+		return true;
+
 	if(!mpWebView)
 	{
 		return false;
 	}
 
-	WebCore::Document* document = this->GetDocument();
-	EAW_ASSERT(document);
+	int lastX		= mCursorPos.x;
+	int lastY		= mCursorPos.y;
 
-	int lastX		= 0;
-	int lastY		= 0;
-	this->GetCursorPosition( lastX, lastY );
-
-	WebCore::IntPoint scrollOffset = this->mpWebView->scrollOffset();
-
-	mCentreX = lastX + scrollOffset.x();
-	mCentreY = lastY + scrollOffset.y();
-
+	// Following is a shortcut to drive navigation from a page.
 	switch (direction)
 	{
 	case EA::WebKit::JumpRight:
@@ -1839,35 +1847,135 @@ bool View::JumpToNearestElement(EA::WebKit::JumpDirection direction)
 		EAW_FAIL_MSG("Should not have got here\n");
 	}
 
-	mNavigatorTheta = 1.5f;
-	DocumentNavigator navigator(direction, WebCore::IntPoint(mCentreX, mCentreY), mBestNodeX, mBestNodeY, mBestNodeWidth, mBestNodeHeight, mNavigatorTheta );
-	navigator.FindBestNode(document);
 
+	// Iterate over all the frames and find the closest element in any of all the frames.
+	WebCore::Frame* pFrame		= GetFrame();
+	float currentRadialDistance = FLT_MAX; // A high value to start with so that the max distance between any two elements in the surface is under it.
+	WebCore::Node* currentBestNode = NULL;
+	while(pFrame)
+	{
+		WebCore::Document* document = pFrame->document();
+		EAW_ASSERT(document);
 
+		if(document)
+		{
+			WebCore::FrameView* pFrameView = document->view();
+			WebCore::IntPoint scrollOffset;
+			if(pFrameView)
+			{
+				scrollOffset.setX(pFrameView->scrollOffset().width());
+				scrollOffset.setY(pFrameView->scrollOffset().height());
+			}
 
-	MoveMouseCursorToNode(navigator.GetBestNode());
-	
+			// We figure out the start position(It is center of the currently hovered element almost all the time but can be slightly different 
+			// due to scroll sometimes).
+			mCentreX = lastX + scrollOffset.x();
+			mCentreY = lastY + scrollOffset.y();
+
+			DocumentNavigator navigator(this, document, direction, WebCore::IntPoint(mCentreX, mCentreY), mBestNodeX, mBestNodeY, mBestNodeWidth, mBestNodeHeight, mJumpNavigationParams.mNavigationTheta, mJumpNavigationParams.mStrictAxesCheck, currentRadialDistance);
+			navigator.FindBestNode(document);
+
+			if(navigator.GetBestNode())
+			{
+				currentBestNode			= navigator.GetBestNode();
+				currentRadialDistance	= navigator.GetBestNodeRadialDistance();
+			}
+
+		}
+
+		pFrame = pFrame->tree()->traverseNext();
+	}
+
 	bool foundSomething = false;
-
-	if (navigator.GetBestNode())
+	if (currentBestNode) //We found the node to navigate. Move the cursor and we are done.
 	{
 		foundSomething = true;
-		WebCore::Node* bestNode = navigator.GetBestNode();
-		WebCore::IntRect rect = bestNode->getRect();
-		mBestNodeX = rect.x();
-		mBestNodeY = rect.y();
-		mBestNodeWidth = rect.width();
-		mBestNodeHeight = rect.height();
-
-		UpdateCachedHints(bestNode);
+		MoveMouseCursorToNode(currentBestNode, false);
+		UpdateCachedHints(currentBestNode);
 	}
-	
+	else if(scrollIfElementNotFound)// Node is not found. 
+	{
+		// Based on the intended direction of movement, scroll so that some newer elements are visible.
+		
+		int cursorPosBeforeScrollX, cursorPosBeforeScrollY;
+		cursorPosBeforeScrollX = mCursorPos.x;
+		cursorPosBeforeScrollY = mCursorPos.y;
 
+		switch(direction)
+		{
+		case EA::WebKit::JumpDown:
+			{
+				ScrollOnJump(true, -mJumpNavigationParams.mNumLinesToAutoScroll);
+				break;
+			}
+
+		case EA::WebKit::JumpUp:
+			{
+				ScrollOnJump(true, mJumpNavigationParams.mNumLinesToAutoScroll);
+				break;
+			}
+		case EA::WebKit::JumpRight:
+			{
+				ScrollOnJump(false, -mJumpNavigationParams.mNumLinesToAutoScroll);
+				break;
+			}
+		case EA::WebKit::JumpLeft:
+			{
+				ScrollOnJump(false, mJumpNavigationParams.mNumLinesToAutoScroll);
+				break;
+			}
+		default:
+			{
+				EAW_ASSERT_MSG(false, "Should not reach here\n");
+			}
+		}
+
+		// We move the mouse cursor back to the location where the last best node was found. This is so that we don't end up with the cursor being in no man's land. While that may work 
+		// for ordinary sites, it may not work well with customized pages that leverage CSS to visually indicate current position rather than a cursor graphic.
+		// We don't call MoveMouseCursorToNode() with last cached node as there are edge cases where we may be holding an invalid node. Using a cached frame and checking against the
+		// current valid frames safeguards against that.
+
+		WebCore::IntSize scrollOffset;
+		WebCore::Frame* pFrame1	= GetFrame();
+		while(pFrame1)
+		{
+			if(pFrame1 == mBestNodeFrame)//Find the frame where last best node existed.
+			{
+				if(pFrame1->view())
+				{
+					scrollOffset = pFrame1->view()->scrollOffset();//We read scroll offset here as it could have changed in the switch statement above.
+					break;
+				}
+			}
+			pFrame1 = pFrame1->tree()->traverseNext();
+		}
+		
+		int targetcursorPosAfterScrollX, targetcursorPosAfterScrollY;
+		targetcursorPosAfterScrollX = mBestNodeX + mBestNodeWidth / 2 - scrollOffset.width();
+		targetcursorPosAfterScrollY = mBestNodeY + mBestNodeHeight/ 2 - scrollOffset.height();
+
+		EA::WebKit::MouseMoveEvent moveEvent;
+		memset( &moveEvent, 0, sizeof(moveEvent) );
+		
+		const int cursorInset = 5;// Make cursor stay inside 5 pixels from boundaries. No known issues but added this as a safety measure so that we do not lose cursor ever.
+		
+		moveEvent.mX	= Clamp( cursorInset, targetcursorPosAfterScrollX, GetSurface()->GetWidth() - cursorInset );
+		moveEvent.mY	= Clamp( cursorInset, targetcursorPosAfterScrollY, GetSurface()->GetHeight() - cursorInset );
+
+		moveEvent.mDX	= moveEvent.mX - cursorPosBeforeScrollX;
+		moveEvent.mDY	= moveEvent.mY - cursorPosBeforeScrollY;
+
+		OnMouseMoveEvent(moveEvent);
+		// We intentionally don't call JumpToNearestElement(direction, false) here to avoid recursion. We do it in the overloaded function above.
+	}
+		
+
+#if EAWEBKIT_ENABLE_JUMP_NAVIGATION_DEBUGGING
 	mNodeListContainer->mFoundNodes = navigator.mNodeListContainer->mFoundNodes;
 	mNodeListContainer->mRejectedByAngleNodes = navigator.mNodeListContainer->mRejectedByAngleNodes;
 	mNodeListContainer->mRejectedByRadiusNodes = navigator.mNodeListContainer->mRejectedByRadiusNodes;
 	mNodeListContainer->mRejectedWouldBeTrappedNodes = navigator.mNodeListContainer->mRejectedWouldBeTrappedNodes;
-	
+
 	mAxesX = navigator.mAxesX;
 	mAxesY = navigator.mAxesY;
 
@@ -1877,35 +1985,35 @@ bool View::JumpToNearestElement(EA::WebKit::JumpDirection direction)
 	switch (direction)
 	{
 	case EA::WebKit::JumpRight:
-		mMinX = mCentreX + (int)(axisLength*cos(mNavigatorTheta));
-		mMinY = mCentreY - (int)(axisLength*sin(mNavigatorTheta));
+		mMinX = mCentreX + (int)(axisLength*cos(mJumpNavigationParams.mNavigationTheta));
+		mMinY = mCentreY - (int)(axisLength*sin(mJumpNavigationParams.mNavigationTheta));
 
-		mMaxX = mCentreX + (int)(axisLength*cos(mNavigatorTheta));
-		mMaxY = mCentreY + (int)(axisLength*sin(mNavigatorTheta));
+		mMaxX = mCentreX + (int)(axisLength*cos(mJumpNavigationParams.mNavigationTheta));
+		mMaxY = mCentreY + (int)(axisLength*sin(mJumpNavigationParams.mNavigationTheta));
 		break;
 
 	case EA::WebKit::JumpDown:
-		mMinX = mCentreX + (int)(axisLength*sin(mNavigatorTheta));
-		mMinY = mCentreY + (int)(axisLength*cos(mNavigatorTheta));
+		mMinX = mCentreX + (int)(axisLength*sin(mJumpNavigationParams.mNavigationTheta));
+		mMinY = mCentreY + (int)(axisLength*cos(mJumpNavigationParams.mNavigationTheta));
 
-		mMaxX = mCentreX - (int)(axisLength*sin(mNavigatorTheta));
-		mMaxY = mCentreY + (int)(axisLength*cos(mNavigatorTheta));
+		mMaxX = mCentreX - (int)(axisLength*sin(mJumpNavigationParams.mNavigationTheta));
+		mMaxY = mCentreY + (int)(axisLength*cos(mJumpNavigationParams.mNavigationTheta));
 		break;
 
 	case EA::WebKit::JumpLeft:
-		mMinX = mCentreX - (int)(axisLength*cos(mNavigatorTheta));
-		mMinY = mCentreY + (int)(axisLength*sin(mNavigatorTheta));
+		mMinX = mCentreX - (int)(axisLength*cos(mJumpNavigationParams.mNavigationTheta));
+		mMinY = mCentreY + (int)(axisLength*sin(mJumpNavigationParams.mNavigationTheta));
 
-		mMaxX = mCentreX - (int)(axisLength*cos(mNavigatorTheta));
-		mMaxY = mCentreY - (int)(axisLength*sin(mNavigatorTheta));
+		mMaxX = mCentreX - (int)(axisLength*cos(mJumpNavigationParams.mNavigationTheta));
+		mMaxY = mCentreY - (int)(axisLength*sin(mJumpNavigationParams.mNavigationTheta));
 		break;
 
 	case EA::WebKit::JumpUp:
-		mMinX = mCentreX - (int)(axisLength*sin(mNavigatorTheta));
-		mMinY = mCentreY - (int)(axisLength*cos(mNavigatorTheta));
+		mMinX = mCentreX - (int)(axisLength*sin(mJumpNavigationParams.mNavigationTheta));
+		mMinY = mCentreY - (int)(axisLength*cos(mJumpNavigationParams.mNavigationTheta));
 
-		mMaxX = mCentreX + (int)(axisLength*sin(mNavigatorTheta));
-		mMaxY = mCentreY - (int)(axisLength*cos(mNavigatorTheta));
+		mMaxX = mCentreX + (int)(axisLength*sin(mJumpNavigationParams.mNavigationTheta));
+		mMaxY = mCentreY - (int)(axisLength*cos(mJumpNavigationParams.mNavigationTheta));
 
 		break;
 
@@ -1913,10 +2021,13 @@ bool View::JumpToNearestElement(EA::WebKit::JumpDirection direction)
 		EAW_FAIL_MSG("Should not have got here\n");
 	}
 
+#endif	
+
 	return foundSomething;
 
 
 }
+#if EAWEBKIT_ENABLE_JUMP_NAVIGATION_DEBUGGING		
 
 //////////////////////////////////////////////////////////////////////////
 //
@@ -1943,8 +2054,15 @@ void View::DrawFoundNodes(DrawNodeCallback callback)
 			WebCore::HTMLElement* element = (WebCore::HTMLElement*)node;
 
 			WebCore::IntRect rect = element->getRect();
-
-			callback(rect.x(),rect.y(),rect.width(),rect.height(), mCentreX, mCentreY);
+			
+			WebCore::FrameView* pFrameView = element->document()->view(); //Can be NULL
+			if(pFrameView)
+			{
+				rect.setX(rect.x() + pFrameView->x() - pFrameView->scrollOffset().width());
+				rect.setY(rect.y() + pFrameView->y() - pFrameView->scrollOffset().height());
+			}
+	
+			callback(rect.x(), rect.y(),rect.width(),rect.height(), mCentreX, mCentreY);
 		}
 	}
 }
@@ -1963,8 +2081,15 @@ void View::DrawRejectedByRadiusNodes(DrawNodeCallback callback)
 			WebCore::HTMLElement* element = (WebCore::HTMLElement*)node;
 
 			WebCore::IntRect rect = element->getRect();
+			
+			WebCore::FrameView* pFrameView = element->document()->view(); //Can be NULL
+			if(pFrameView)
+			{
+				rect.setX(rect.x() + pFrameView->x() - pFrameView->scrollOffset().width());
+				rect.setY(rect.y() + pFrameView->y() - pFrameView->scrollOffset().height());
+			}
 
-			callback(rect.x(),rect.y(),rect.width(),rect.height(), mCentreX, mCentreY);
+			callback(rect.x(), rect.y(),rect.width(),rect.height(), mCentreX, mCentreY);
 		}
 	}
 }
@@ -1983,8 +2108,15 @@ void View::DrawRejectedByAngleNodes(DrawNodeCallback callback)
 			WebCore::HTMLElement* element = (WebCore::HTMLElement*)node;
 
 			WebCore::IntRect rect = element->getRect();
+			
+			WebCore::FrameView* pFrameView = element->document()->view(); //Can be NULL
+			if(pFrameView)
+			{
+				rect.setX(rect.x() + pFrameView->x() - pFrameView->scrollOffset().width());
+				rect.setY(rect.y() + pFrameView->y() - pFrameView->scrollOffset().height());
+			}
 
-			callback(rect.x(),rect.y(),rect.width(),rect.height(), mCentreX, mCentreY);
+			callback(rect.x(), rect.y(),rect.width(),rect.height(), mCentreX, mCentreY);
 		}
 	}
 }
@@ -2003,8 +2135,15 @@ void View::DrawRejectedWouldBeTrappedNodes(DrawNodeCallback callback)
 			WebCore::HTMLElement* element = (WebCore::HTMLElement*)node;
 
 			WebCore::IntRect rect = element->getRect();
+			
+			WebCore::FrameView* pFrameView = element->document()->view(); //Can be NULL
+			if(pFrameView)
+			{
+				rect.setX(rect.x() + pFrameView->x() - pFrameView->scrollOffset().width());
+				rect.setY(rect.y() + pFrameView->y() - pFrameView->scrollOffset().height());
+			}
 
-			callback(rect.x(),rect.y(),rect.width(),rect.height(), mCentreX, mCentreY);
+			callback(rect.x(), rect.y(),rect.width(),rect.height(), mCentreX, mCentreY);
 		}
 	}
 }
@@ -2019,41 +2158,187 @@ void View::DrawSearchAxes(DrawAxesCallback callback)
 
 //////////////////////////////////////////////////////////////////////////
 //
-void View::EnterTextIntoSelectedInput(const char* text)
+#endif
+void View::EnterTextIntoSelectedInput(const char16_t* text, bool textWasAccepted)
 {
+	SET_AUTO_ACTIVE_VIEW(this);
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-	const WebCore::Document* document = this->GetDocument();
-	EAW_ASSERT(document);
+	
+	WebCore::Frame* pFrame = GetFrame();
 
-	if (document)
+	while(pFrame)
 	{
-		// WebCore::ExceptionCode code=0;
+		WebCore::Document* document = pFrame->document();
+		EAW_ASSERT(document);
 
 		WebCore::Node* node = document->focusedNode();
-
-		if (node)
+		if (node && node->isHTMLElement())
 		{
-            //+ 8/12/09 CSidhall - Activated text input             
-            // Old code:
-			// node->setNodeValue(text,code);
-		    
-            // New code:
-            // Find out if we have a text input node
-            if( (node->focused()) && (node->isElementNode()) && (node->hasTagName( WebCore::HTMLNames::inputTag )) ) 
-            {
-                WebCore::HTMLInputElement* pInputElement = static_cast<WebCore::HTMLInputElement*> (node);
+			//+ 8/12/09 CSidhall - Activated text input             
+			if(node->hasTagName(WebCore::HTMLNames::inputTag)) 
+			{
+				WebCore::HTMLInputElement* pInputElement = static_cast<WebCore::HTMLInputElement*> (node);
 
-                // Get the flag
-                bool textField = pInputElement->isTextField();
-                if(textField)
-                {
-                    WebCore::String val(text); 
-                    pInputElement->setValue(val);                   
-                }
-            }
-            //-CS
-        }		
-    }
+				if(textWasAccepted && pInputElement->isTextField())
+				{
+					pInputElement->setValue(text);                   
+				}
+				pInputElement->blur();//We want to blur even if the text was not accepted and only if the element was an editable field.
+			}
+			else if(node->hasTagName(WebCore::HTMLNames::textareaTag))
+			{
+				WebCore::HTMLTextAreaElement* pTextAreaElement = static_cast<WebCore::HTMLTextAreaElement*> (node);
+
+				if(textWasAccepted)
+				{
+					pTextAreaElement->setValue(text);                   
+				}
+				pTextAreaElement->blur();//We want to blur even if the text was not accepted and only if the element was an editable field.
+			}
+			//-CS
+
+			break;
+		}		
+		
+		pFrame = pFrame->tree()->traverseNext();
+	}
+}
+
+
+void View::EnterTextIntoSelectedInput(const char8_t* text, bool textWasAccepted)
+{
+	EAW_ASSERT_MSG(false, "This is deprecated and should not be used");
+	return;
+
+	//We don't do any utf-8 to 16 conversion and assume that the input is ascii-encoded. Otherwise, we may end up with a performance penalty.
+	//The caller may choose to use the 16 bit version if non-ascii character support is required.
+	WebCore::String textStr(text);   
+	return EnterTextIntoSelectedInput(textStr.charactersWithNullTermination(),textWasAccepted);
+
+}
+
+WebCore::String GetTextFromSelectedInputAsString(EA::WebKit::View* view, bool contentText)
+{
+	WebCore::Frame* pFrame = view->GetFrame();
+	
+	while(pFrame)
+	{
+		WebCore::Document* document = pFrame->document();
+		EAW_ASSERT(document);
+
+		if(document)
+		{
+			WebCore::Node* node = document->focusedNode();
+			if( node && node->isHTMLElement()) 
+			{
+				if(node->hasTagName( WebCore::HTMLNames::inputTag)) 
+				{
+					WebCore::HTMLInputElement* pInputElement = static_cast<WebCore::HTMLInputElement*> (node);
+					if(pInputElement->isTextField())
+					{
+						if(contentText)
+						{
+							return pInputElement->value();                
+						}
+						else
+						{
+							return pInputElement->getAttribute("title").string();
+						}
+					}
+				}
+				else if(node->hasTagName(WebCore::HTMLNames::textareaTag))
+				{
+					WebCore::HTMLTextAreaElement* pTextAreaElement = static_cast<WebCore::HTMLTextAreaElement*> (node);
+					if(contentText)
+					{
+						return pTextAreaElement->value();
+					}
+					else
+					{
+						return pTextAreaElement->getAttribute("title").string();
+					}
+				}
+				
+				break;
+			}
+		}
+
+
+		pFrame = pFrame->tree()->traverseNext();
+	}
+	
+	return WebCore::String();
+}
+
+//+ 8/12/09 CSidhall - Added to get the input text from a field
+uint32_t View::GetTextFromSelectedInput(char8_t* contentTextBuffer, const uint32_t maxcontentTextBufferLength, char8_t* titleTextBuffer, const uint32_t maxTitleTextBufferLength)
+{
+	EAW_ASSERT_MSG(false, "This is deprecated and should not be used.");
+	return 0;
+
+	SET_AUTO_ACTIVE_VIEW(this);
+	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+
+	uint32_t size = 0;
+	if(contentTextBuffer && maxcontentTextBufferLength)
+	{
+		WebCore::String val = GetTextFromSelectedInputAsString(this, true);
+		if(!val.isEmpty())                
+		{
+			size = val.length() + 1;    // + 1 For terminator 
+			const UChar* pSource = val.charactersWithNullTermination();
+			EAW_ASSERT_MSG(size <=maxcontentTextBufferLength, "Truncating the string as buffer length is not sufficient\n");
+			EA::Internal::Strlcpy(contentTextBuffer, pSource, maxcontentTextBufferLength, size);
+			contentTextBuffer[maxcontentTextBufferLength-1] = 0;
+		}
+	}
+	return size;    
+}
+//- CS
+
+uint32_t View::GetTextFromSelectedInput(char16_t* contentTextBuffer, const uint32_t maxcontentTextBufferLength, char16_t* titleTextBuffer, const uint32_t maxTitleTextBufferLength)
+{
+	SET_AUTO_ACTIVE_VIEW(this);
+	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+
+	uint32_t size = 0;
+	if(titleTextBuffer && maxTitleTextBufferLength)
+	{
+		WebCore::String val = GetTextFromSelectedInputAsString(this,false);
+		if(!val.isEmpty())                
+		{
+			size = val.length() + 1;    // + 1 For terminator 
+			const UChar* pSource = val.charactersWithNullTermination();
+			EAW_ASSERT_MSG(size <=maxTitleTextBufferLength, "Truncating the string as buffer length is not sufficient\n");
+			EA::Internal::Strlcpy(titleTextBuffer, pSource, maxTitleTextBufferLength);
+			titleTextBuffer[maxTitleTextBufferLength-1] = 0;
+		}
+		else
+		{
+			titleTextBuffer[0] = 0;
+		}
+	}
+	
+	size = 0;
+	if(contentTextBuffer && maxcontentTextBufferLength)
+	{
+		WebCore::String val = GetTextFromSelectedInputAsString(this,true);
+		if(!val.isEmpty())                
+		{
+			size = val.length() + 1; 
+			const UChar* pSource = val.charactersWithNullTermination();
+			EAW_ASSERT_MSG(size <=maxcontentTextBufferLength, "Truncating the string as buffer length is not sufficient\n");
+			EA::Internal::Strlcpy(contentTextBuffer, pSource, maxcontentTextBufferLength);
+			contentTextBuffer[maxcontentTextBufferLength-1] = 0;
+		}
+		else
+		{
+			contentTextBuffer[0] = 0;
+		}
+	}
+
+	//Returning size is not so useful as we don't allow embedded NULL and now we have two buffers passed in. For now, we return the size of the content to be backward compatible.
+	return size;    
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2065,7 +2350,7 @@ void View::AdvanceFocus(EA::WebKit::FocusDirection direction, const EA::WebKit::
 	EAW_ASSERT(GetFrame()->page());
 	EAW_ASSERT(GetFrame()->page()->focusController());
 
-	GetFrame()->page()->focusController()->advanceFocus((WebCore::FocusDirection)direction, 0);
+	GetFrame()->page()->focusController()->advanceFocus((WebCore::FocusDirection)direction, 0);//Note 10/19/10 - abaldeva - We need to investigate if we should get the focus Or MainFrame here.
 
 	MoveMouseCursorToFocusElement();
 }
@@ -2074,46 +2359,47 @@ void View::AdvanceFocus(EA::WebKit::FocusDirection direction, const EA::WebKit::
 
 //////////////////////////////////////////////////////////////////////////
 //
+// 
 void View::MoveMouseCursorToFocusElement()
 {
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-	WebCore::Document* document = this->GetDocument();
+	
+	WebCore::Frame* pFrame = GetFrame();
 
-	EAW_ASSERT(document);
-
-	if (document)
+	while (pFrame)
 	{
-		WebCore::Node* node = document->focusedNode();
-
-		if (node)
+		WebCore::Document* document = pFrame->document();
+		EAW_ASSERT(document);
+		if (document)
 		{
-			WebCore::HTMLElement* element = (WebCore::HTMLElement*)node;
-
-			WebCore::IntRect rect = element->getRect();
-			
+			if (WebCore::Node* node = document->focusedNode())
 			{
-				int lastX		= 0;
-				int lastY		= 0;
-				this->GetCursorPosition( lastX, lastY );
-
-				int newX		= rect.x() + rect.width() /2;
-				int newY		= rect.bottom() - rect.height() /2;
-
-				EA::WebKit::MouseMoveEvent moveEvent;
-				memset( &moveEvent, 0, sizeof(moveEvent) );
-				moveEvent.mDX	= newX-lastX;
-				moveEvent.mDY	= newY-lastY;
-				moveEvent.mX	= Clamp( 0, newX, this->GetSurface()->mWidth );
-				moveEvent.mY	= Clamp( 0, newY, this->GetSurface()->mHeight );
-				this->OnMouseMoveEvent( moveEvent );
+				MoveMouseCursorToNode(node);
+				break;
 			}
 		}
+
+		pFrame = pFrame->tree()->traverseNext();
 	}
 }
 
+void View::ScrollOnJump(bool vertical, float numLinesDelta)
+{
+	EA::WebKit::MouseWheelEvent mouseWheelEvent;
+	GetCursorPosition( mouseWheelEvent.mX, mouseWheelEvent.mY );
+	
+	if(vertical)
+		mouseWheelEvent.mbShift = false;
+	else
+		mouseWheelEvent.mbShift = true;
+
+	mouseWheelEvent.mZDelta = 1; //This is not being used on the (EA)WebKit side.
+	mouseWheelEvent.mLineDelta = numLinesDelta;
+	OnMouseWheelEvent(mouseWheelEvent);
+}
 //////////////////////////////////////////////////////////////////////////
 //
-void View::MoveMouseCursorToNode(WebCore::Node* node)
+void View::MoveMouseCursorToNode(WebCore::Node* node, bool scrollIfNecessary)
 {
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	if (mpWebView && node)
@@ -2121,26 +2407,74 @@ void View::MoveMouseCursorToNode(WebCore::Node* node)
 		WebCore::HTMLElement* element = (WebCore::HTMLElement*)node;
 
 		WebCore::IntRect rect = element->getRect();
-
+		WebCore::IntPoint frameOffset;
+		WebCore::IntPoint scrollOffset;
+		
+		WebCore::FrameView* pFrameView = element->document()->view(); //Can be NULL
+		if(pFrameView)
 		{
-			int lastX		= 0;
-			int lastY		= 0;
-			this->GetCursorPosition( lastX, lastY );
-
-			WebCore::IntPoint scrollOffset = this->mpWebView->scrollOffset();
-
-			int newX		= rect.x() + rect.width()/2 - scrollOffset.x();
-			int newY		= rect.bottom() - rect.height()/2 - scrollOffset.y();
-
-			EA::WebKit::MouseMoveEvent moveEvent;
-			memset( &moveEvent, 0, sizeof(moveEvent) );
-			moveEvent.mDX	= newX-lastX;
-			moveEvent.mDY	= newY-lastY;
-			moveEvent.mX	= Clamp( 0, newX, this->GetSurface()->mWidth );
-			moveEvent.mY	= Clamp( 0, newY, this->GetSurface()->mHeight );
-
-			this->OnMouseMoveEvent( moveEvent );
+			//Use move here instead of setX/setY as it results in 1 call instead of two and takes advantage that ctor sets x,y to 0.
+			frameOffset.move(pFrameView->x(), pFrameView->y());
+			scrollOffset.move(pFrameView->scrollOffset().width(), pFrameView->scrollOffset().height());
 		}
+		
+		
+		// This will be true if this function is called from anywhere except JumpToNearestElement(). This enables us to not lose the cursor during
+		// arbitrary jumping of elements from either code or webpage using the Navigation APIs.
+		if(scrollIfNecessary)
+		{
+			WebCore::IntPoint targetCursorLocation(frameOffset.x()+rect.x()+rect.width()/2  - scrollOffset.x(), frameOffset.y()+rect.y()+rect.height()/2  - scrollOffset.y());
+			// Added 1 in all the line delta below resulting in a better visual behavior when the element happens to be at the edge.
+			if(targetCursorLocation.y() > GetSurface()->GetHeight())
+			{
+				float numLinesDelta = -(((targetCursorLocation.y() - mCursorPos.y)/LINE_STEP)+1);
+				ScrollOnJump(true, numLinesDelta);
+			}
+			if(targetCursorLocation.y()< 0.0f)
+			{
+				float numLinesDelta = (((mCursorPos.y - targetCursorLocation.y())/LINE_STEP)+1);
+				ScrollOnJump(true, numLinesDelta);
+			}
+			if(targetCursorLocation.x() > GetSurface()->GetWidth())
+			{
+				float numLinesDelta = -(((targetCursorLocation.x() - mCursorPos.x)/LINE_STEP)+1);
+				ScrollOnJump(false, numLinesDelta);
+			}
+			if(targetCursorLocation.x()< 0.0f)
+			{
+				float numLinesDelta = (((mCursorPos.x - targetCursorLocation.x())/LINE_STEP)+1);
+				ScrollOnJump(false, numLinesDelta);
+			}
+													
+			// Read the scroll offset again as it may have changed.
+			if(pFrameView) 
+			{
+				scrollOffset.setX(pFrameView->scrollOffset().width());
+				scrollOffset.setY(pFrameView->scrollOffset().height());
+			}
+		}
+
+		mBestNodeFrame	= element->document()->frame(); //Can be NULL
+		mBestNodeX		= frameOffset.x()  + rect.x();
+		mBestNodeY		= frameOffset.y()  + rect.y();
+		mBestNodeWidth	= rect.width();
+		mBestNodeHeight = rect.height();
+		
+		int lastX		= mCursorPos.x;
+		int lastY		= mCursorPos.y;
+		
+		int newX		= mBestNodeX + rect.width()/2  - scrollOffset.x();
+		int newY		= mBestNodeY + rect.height()/2 - scrollOffset.y();
+
+		EA::WebKit::MouseMoveEvent moveEvent;
+		memset( &moveEvent, 0, sizeof(moveEvent) );
+		moveEvent.mDX	= newX-lastX;
+		moveEvent.mDY	= newY-lastY;
+		const int cursorInset = 5;// Make cursor stay inside 5 pixels from boundaries. No known issues but added this as a safety measure so that we do not lose cursor ever.
+		moveEvent.mX	= Clamp( cursorInset, newX, GetSurface()->GetWidth() - cursorInset );
+		moveEvent.mY	= Clamp( cursorInset, newY, GetSurface()->GetHeight() - cursorInset );
+
+		this->OnMouseMoveEvent( moveEvent );
 	}
 }
 
@@ -2160,31 +2494,48 @@ void View::SetCursorPosition(int x, int y)
 		memset( &moveEvent, 0, sizeof(moveEvent) );
 		moveEvent.mDX	= newX-lastX;
 		moveEvent.mDY	= newY-lastY;
-		moveEvent.mX	= Clamp( 0, newX, this->GetSurface()->mWidth );
-		moveEvent.mY	= Clamp( 0, newY, this->GetSurface()->mHeight );
+		moveEvent.mX	= Clamp( 0, newX, this->GetSurface()->GetWidth() );
+		moveEvent.mY	= Clamp( 0, newY, this->GetSurface()->GetHeight() );
 		this->OnMouseMoveEvent( moveEvent );
 	}
 }
 
+bool View::IsEmulatingConsoleOnPC() const
+{
+	return mEmulatingConsoleOnPC;
+}
 
+void View::SetEmulatingConsoleOnPC(bool emulatingConsoleOnPC)
+{
+	mEmulatingConsoleOnPC = emulatingConsoleOnPC;
+}
 
 //////////////////////////////////////////////////////////////////////////
 //
 void View::AttachEventsToInputs(KeyboardCallback callback)
 {
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-	WebCore::Document* document = this->GetDocument();
+	
+	WebCore::Frame* pFrame = GetFrame();
 
-	EAW_ASSERT(document);
-
-	if (document)
+	while(pFrame)
 	{
-		InputDelegate id(callback);
-		TextAreaDelegate tad(callback);
+		WebCore::Document* document = pFrame->document();
+		EAW_ASSERT(document);
 
-		DOMWalker<InputDelegate> walker(document, id);		
-		DOMWalker<TextAreaDelegate> walker2(document, tad);		
+		if (document)
+		{
+			InputDelegate id(callback);
+			TextAreaDelegate tad(callback);
+
+			DOMWalker<InputDelegate> walker(document, id);		
+			DOMWalker<TextAreaDelegate> walker2(document, tad);		
+		}
+
+		pFrame = pFrame->tree()->traverseNext();
 	}
+	
+	
 }
 
 void View::AttachJavascriptDebugger()
@@ -2201,21 +2552,32 @@ void View::AttachJavascriptDebugger()
 void View::AttachEventToElementBtId(const char* id, KeyboardCallback callback)
 {
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-	WebCore::Document* document = this->GetDocument();
 
-	EAW_ASSERT(document);
 	EAW_ASSERT(id);
 
-	if (document)
-	{
-		WebCore::Element* element = document->getElementById(id);
+	WebCore::Frame* pFrame = GetFrame();
 
-		if (element)
+	while(pFrame)
+	{
+		WebCore::Document* document = pFrame->document();
+		EAW_ASSERT(document);
+
+		if (document)
 		{
-			KeyboardEventListener* listener = new KeyboardEventListener(callback, (WebCore::HTMLElement*)element);
-			element->setHTMLEventListener(WebCore::eventNames().clickEvent, WTF::adoptRef(listener) );
+			WebCore::Element* element = document->getElementById(id);
+			if (element)
+			{
+				KeyboardEventListener* listener = new KeyboardEventListener(callback, (WebCore::HTMLElement*)element);
+				element->setHTMLEventListener(WebCore::eventNames().clickEvent, WTF::adoptRef(listener) );
+
+				break;
+			}
 		}
+		pFrame = pFrame->tree()->traverseNext();
 	}
+
+
+	
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2265,26 +2627,30 @@ void View::SetElementTextById(const char* id, const char* text)
 {
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	
-	WebCore::Document* document = this->GetDocument();
-
-	EAW_ASSERT(document);
 	EAW_ASSERT(id);
 	EAW_ASSERT(text);
 
-	if (document)
+	WebCore::Frame* pFrame = GetFrame();
+	while(pFrame)
 	{
-		WebCore::Element* element = document->getElementById(id);
-
-		if (element)
+		WebCore::Document* document = pFrame->document();
+		EAW_ASSERT(document);
+	
+		if (document)
 		{
-			if (element->isHTMLElement())
+			WebCore::Element* element = document->getElementById(id);
+			if (element && element->isHTMLElement())
 			{
 				WebCore::HTMLElement* htmlElement = (WebCore::HTMLElement*)element;
 
 				WebCore::ExceptionCode error = 0;
 				htmlElement->setInnerHTML(text, error);
+
+				break;
 			}
 		}
+
+		pFrame = pFrame->tree()->traverseNext();
 	}
 }
 
@@ -2293,71 +2659,46 @@ void View::SetElementTextById(const char* id, const char* text)
 bool View::ClickElementById(const char* id)
 {
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-	
-	WebCore::Document* document = this->GetDocument();
 
 	EAW_ASSERT(id);
-	EAW_ASSERT(document);
+	if(!id || !id[0])
+		return false;
 
-	if (document)
+	if(mpModalInputClient)
+		mpModalInputClient->OnFocusChangeEvent(false);
+
+	
+	bool elementClicked = false;
+
+	WebCore::Frame* pFrame = GetFrame();
+	while(pFrame)
 	{
-        WebCore::Element* element = document->getElementById(id);
+		WebCore::Document* document = pFrame->document();
+		EAW_ASSERT(document);
 
-        if (element && element->isHTMLElement())
-        {    
-            WebCore::HTMLElement* htmlElement = (WebCore::HTMLElement*)element;
+		if (document)
+		{
+			WebCore::Element* element = document->getElementById(id);
 
-            htmlElement->click();
-            return true;
-        }
+			if (element && element->isHTMLElement())
+			{    
+				WebCore::HTMLElement* htmlElement = (WebCore::HTMLElement*)element;
+				htmlElement->click();
+				elementClicked = true;
+			}
+		}
+
+		if(elementClicked)
+			break;
+
+		pFrame = pFrame->tree()->traverseNext();
 	}
-
+	
     return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //
-
-class ClickElementsByClassOrIdDelegate
-{
-public:
-	ClickElementsByClassOrIdDelegate(const char* className, bool includeId) 
-	:	mClassName(className)
-	,	mReturnValue(false)
-	,	mIncludeId(includeId)
-	{
-		// empty
-	}
-
-	bool operator()(WebCore::Node* node)
-	{
-		SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-		if (node->isElementNode())
-		{
-			WebCore::Element* element = (WebCore::Element*)node;
-
-			if (element && element->isHTMLElement())
-			{    
-				WebCore::HTMLElement* htmlElement = (WebCore::HTMLElement*)element;
-
-				// test class, and optionally the id
-				if ((htmlElement->hasClass() && htmlElement->classNames().contains(mClassName)) || (mIncludeId && htmlElement->id() == mClassName))
-				{
-					htmlElement->click();
-					mReturnValue = true;
-				}
-			}
-		}
-		return true;
-	}
-
-	bool GetReturnValue() const { return mReturnValue; }
-
-private:
-	const char* mClassName;
-	bool		mReturnValue;
-	bool		mIncludeId;
-};
 
 //////////////////////////////////////////////////////////////////////////
 //
@@ -2365,19 +2706,37 @@ bool View::ClickElementsByClass(const char* className)
 {
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	
-	WebCore::Document* document = this->GetDocument();
-
 	EAW_ASSERT(className);
-	EAW_ASSERT(document);
+	if(!className || !className[0])
+		return false;
 
-	ClickElementsByClassOrIdDelegate delegate(className, false);
+	if(mpModalInputClient)
+		mpModalInputClient->OnFocusChangeEvent(false);
 
-	if (document)
+	
+	bool elementClicked = false;
+	
+	WebCore::Frame* pFrame = GetFrame();
+	while(pFrame)
 	{
-		DOMWalker<ClickElementsByClassOrIdDelegate> walker(document, delegate);	
+		WebCore::Document* document = pFrame->document();
+		EAW_ASSERT(document);
+
+		ClickElementsByIdOrClassDelegate delegate(className, false);
+		if (document)
+		{
+			DOMWalker<ClickElementsByIdOrClassDelegate> walker(document, delegate);	
+		}
+
+		elementClicked = delegate.GetReturnValue();
+
+		if(elementClicked)
+			break;
+
+		pFrame = pFrame->tree()->traverseNext();
 	}
 
-	return delegate.GetReturnValue();
+	return elementClicked;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2386,64 +2745,56 @@ bool View::ClickElementsByIdOrClass(const char* idOrClassName)
 {
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	
-	WebCore::Document* document = this->GetDocument();
-
 	EAW_ASSERT(idOrClassName);
-	EAW_ASSERT(document);
+	if(!idOrClassName || !idOrClassName[0])
+		return false;
+	
+	if(mpModalInputClient)
+		mpModalInputClient->OnFocusChangeEvent(false);
 
-	ClickElementsByClassOrIdDelegate delegate(idOrClassName, true);
+	bool elementClicked = false;
 
-	if (document)
+	WebCore::Frame* pFrame = GetFrame();
+	while(pFrame)
 	{
+		WebCore::Document* document = pFrame->document();
+		EAW_ASSERT(document);
 
-		DOMWalker<ClickElementsByClassOrIdDelegate> walker(document, delegate);	
+		ClickElementsByIdOrClassDelegate delegate(idOrClassName, true);
+		DOMWalker<ClickElementsByIdOrClassDelegate> walker(document, delegate);	
+		elementClicked = delegate.GetReturnValue();
+
+		if(elementClicked)
+			break;
+
+		pFrame = pFrame->tree()->traverseNext();
 	}
 
-	return delegate.GetReturnValue();
+	return elementClicked;
 }
 
+bool View::Click()
+{
+	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+	//Do not deal with modal input here since OnMouseButtonEvent deals with it.
+	EA::WebKit::MouseButtonEvent event;
+	memset(&event, 0, sizeof(event));
+	event.mId = EA::WebKit::kMouseLeft;
+	event.mX  = mCursorPos.x;
+	event.mY  = mCursorPos.y;
 
+	event.mbDepressed = true;
+	OnMouseButtonEvent(event);
+	event.mbDepressed = false;
+	OnMouseButtonEvent(event);
+
+	return true;
+}
 
 
 //- Contributed by Chris Stott and team
 
 
-
-
-//+ 8/12/09 CSidhall - Added to get the input text from a field
-uint32_t View::GetTextFromSelectedInput(char* pTextBuffer, const uint32_t bufferLenght)
-{
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-	
-	const WebCore::Document* document = this->GetDocument();
-	EAW_ASSERT(document);
-    uint32_t size = 0;
-	
-    if( (document) && (pTextBuffer) && (bufferLenght) )
-	{
-		WebCore::Node* node = document->focusedNode();
-
-        if( (node) && (node->focused()) && (node->isElementNode()) && (node->hasTagName( WebCore::HTMLNames::inputTag )) ) 
-        {
-            WebCore::HTMLInputElement* pInputElement = static_cast<WebCore::HTMLInputElement*> (node);
-
-            // Get the flag
-            bool textField = pInputElement->isTextField();
-            if(textField)
-            {
-                WebCore::String val; 
-                val = pInputElement->value();                   
-              
-                // Copy                
-                size = val.length() + 1;    // + 1 For terminator 
-                const UChar* pSource = val.String::charactersWithNullTermination();
-                EA::Internal::Strlcpy(pTextBuffer, pSource, bufferLenght, size);
-            }
-        }
-    }
-    return size;    
-}
-//- CS
 
 
 
@@ -2453,10 +2804,11 @@ void View::CreateJavascriptBindings(const char* bindingObjectName)
 {
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	
-	mJavascriptBindingObjectName = bindingObjectName;
+	GetFixedString(mJavascriptBindingObjectName)->assign(bindingObjectName);
+
 	mJavascriptBindingObject = 	new JavascriptBindingObject(this);
 	if(mJavascriptBindingObject)
-        this->mpWebView->mainFrame()->addToJSWindowObject(mJavascriptBindingObjectName, mJavascriptBindingObject);
+        this->mpWebView->mainFrame()->addToJSWindowObject(GetFixedString(mJavascriptBindingObjectName)->c_str(), mJavascriptBindingObject);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2466,7 +2818,7 @@ void View::RebindJavascript()
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	
 	if(mJavascriptBindingObject)
-        this->mpWebView->mainFrame()->addToJSWindowObject(mJavascriptBindingObjectName, mJavascriptBindingObject);
+        this->mpWebView->mainFrame()->addToJSWindowObject(GetFixedString(mJavascriptBindingObjectName)->c_str(), mJavascriptBindingObject);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2485,7 +2837,9 @@ void View::RegisterJavascriptMethod(const char* name)
         info.mpView = this;
         info.mpLogText = "No binding object created yet";
 		info.mType = kDebugLogJavascript;
-        gpViewNotification->DebugLog(info);
+		EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();
+		if(pViewNotification)
+			pViewNotification->DebugLog(info);
 	}
 
 	

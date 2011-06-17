@@ -38,6 +38,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <EAIO/internal/Config.h>
+
+#if EAIO_CPP_STREAM_ENABLED
+
 #include <EAIO/EAStreamCpp.h>
 #include <iostream>
 #include <assert.h>
@@ -227,21 +230,22 @@ bool StreamCpp::Write(const void* pData, size_type nSize)
 }
 
 
+void StreamCpp::Clear(bool clearInput, bool clearOutput)
+{
+    if(clearInput && mpStdIstream)
+        mpStdIstream->clear();
+    if(clearOutput && mpStdOstream)
+        mpStdOstream->clear();
+}
+
+
+
 } // namespace IO
 
 } // namespace EA
 
 
-
-
-
-
-
-
-
-
-
-
+#endif // EAIO_CPP_STREAM_ENABLED
 
 
 

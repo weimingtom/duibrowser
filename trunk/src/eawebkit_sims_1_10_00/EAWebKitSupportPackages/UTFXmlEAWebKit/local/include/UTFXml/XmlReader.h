@@ -32,14 +32,14 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Purpose: Classes for reading in hierarchical data structures from XML files
 //
 // Copyright (c) 2006 Electronic Arts Inc.
-// Created by: Talin
+// Created by: Talin. Further developed and maintained by Paul Pedriana.
 ///////////////////////////////////////////////////////////////////////////////
 
 #ifndef UTFXML_XMLREADER_H
 #define UTFXML_XMLREADER_H
 
-#include <eastl/vector.h>
-#include <eastl/hash_map.h>
+#include <EASTL/vector.h>
+#include <EASTL/hash_map.h>
 #include <UTFXml/internal/Config.h>
 #include <UTFXml/XmlEncoding.h>
 #include <UTFXml/XmlTokenBuffer.h>
@@ -66,8 +66,8 @@ namespace EA {
 
 
         //////////////////////////////////////////////////////////////////////////
-        /// XmlReader implements a stream-based XML parser, modeled after the
-        /// .Net XmlReader class.
+        /// XmlReader implements a stream-based XML parser (a.k.a. StAX), modeled 
+        /// after the .Net XmlReader class.
         ///
         /// Differences from the .Net version:
         ///    - Individual attributes are not nodes (you can't move to an attribute)
@@ -368,16 +368,40 @@ namespace EA {
             // -------- Location functions
 
             //////////////////////////////////////////////////////////////////////////
-            /// Current line number
+            /// Current line number within the current file (i.e. stream).
+            /// The first line has a value of zero.
+            /// The current line number refers to the line number that the current
+            /// node (the most recent one that Read found) begins on.
             int32_t GetLineNumber() const;
 
             //////////////////////////////////////////////////////////////////////////
-            /// Current column( number
+            /// Current column number within the current file (i.e. stream).
+            /// The first column has a value of zero.
+            /// The column number is the byte index for the given line.
+            /// The current column number refers to the column that the current
+            /// node (the most recent one that Read found) begins on.
             int32_t GetColumnNumber() const;
 
             //////////////////////////////////////////////////////////////////////////
-            /// Current byte index within the parse buffer
-            ssize_t  GetCurrentByteIndex() const;
+            /// Current byte index within the current file (i.e. stream).
+            /// The current byte index refers to the byte index that the current
+            /// node (the most recent one that Read found) begins on.
+            /// If the XML content spreads across multiple files (streams) or includes
+            /// an external entity reference (XML equivalent to #include), then 
+            /// this byte index refers only to the currently parsing stream. If you 
+            /// want to absolute XML content byte position, use GetAbsoluteByteIndex().
+            /// The first byte has a value of zero.
+            ssize_t GetCurrentByteIndex() const;
+
+            /// Returns the absolute byte index in the XML content stream. If there
+            /// is just one stream for the XML content (as is most common) then this 
+            /// results in the same value as GetCurrentByteIndex. If the XML content
+            /// is spread across multiple streams or if there is an external entity
+            /// reference whereby an XML file includes content that is read from an
+            /// external document, this byte index measures the byte index as if all
+            /// these files were a single file. This result is equal to the total 
+            /// number of bytes read by this class.
+            ssize_t GetAbsoluteByteIndex() const { return 0; } // Not currently implemented.
 
             //////////////////////////////////////////////////////////////////////////
             /// Return the depth of the current token
@@ -567,12 +591,12 @@ namespace EA {
                 InputStream *     mpNext;                 /// Next stream
 
                 const char *      mpStreamURI;            /// URI of stream (for debugging)
-                int32_t           mPrevChar;              /// Previous character
-                int32_t           mLineIndex;             /// Line number in the source buffer
-                int32_t           mColumnIndex;           /// Column index in the source buffer
-                int32_t           mNextLineIndex;         /// Line number of current read position
-                int32_t           mNextColumnIndex;       /// Column number of current read position
-                ssize_t           mByteIndex;             /// Byte index in the source buffer
+                int32_t           mPrevChar;              /// Previous character value.
+                int32_t           mLineIndex;             /// Line number in the source buffer. 0-based.
+                int32_t           mColumnIndex;           /// Column index in the source buffer. 0-based.
+                int32_t           mNextLineIndex;         /// Line number of current read position. 0-based.
+                int32_t           mNextColumnIndex;       /// Column number of current read position. 0-based.
+                ssize_t           mByteIndex;             /// Byte index in the source buffer. 0-based.
 
                 ssize_t FillBuffer();                   /// Fill buffer
                 int32_t ReadChar();                     /// Read character
@@ -625,6 +649,7 @@ namespace EA {
             NSDeclaration *     mDefaultNS;             /// Current default namespace
             NSDeclaration *     mElementNS;             /// Current element namespace
 
+            const char*         mBuiltInEntities[10];   /// amp = &, lt = <, etc.
             tEntityMap          mEntityDecls;           /// Internal Entity declaration map
             entity_lookup_t *   mpEntityResolver;       /// Pointer to entity resolve
             void *              mpEntityResolverContext;/// Context pointer for entity resolver
@@ -648,9 +673,9 @@ namespace EA {
             const char *        mpSystemId;             /// DOCTYPE System ID
             const char *        mpPublicId;             /// DOCTYPE Public ID
 
-            int32_t             mLineIndex;             /// Line number in the source buffer
-            int32_t             mColumnIndex;           /// Column index in the source buffer
-            ssize_t             mByteIndex;             /// Byte index in the source buffer
+            int32_t             mLineIndex;             /// Line number in the source buffer. 0-based.
+            int32_t             mColumnIndex;           /// Column index in the source buffer. 0-based.
+            ssize_t             mByteIndex;             /// Byte index in the source buffer. 0-based.
 
 
             //////////////////////////////////////////////////////////////////////////

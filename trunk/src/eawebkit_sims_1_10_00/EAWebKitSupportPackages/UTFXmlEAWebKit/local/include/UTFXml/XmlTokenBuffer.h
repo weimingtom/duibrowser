@@ -43,7 +43,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifndef EA_ALLOCATOR_ICOREALLOCATOR_INTERFACE_H
-#include <CoreAllocator/icoreallocator_interface.h>
+#include <coreallocator/icoreallocator_interface.h>
 #endif
 
 #include <UTFXml/internal/Config.h>
