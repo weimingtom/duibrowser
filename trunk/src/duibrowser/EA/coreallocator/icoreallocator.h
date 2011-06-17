@@ -35,7 +35,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifndef INCLUDED_eabase_H
-#include <eabase/eabase.h>
+#include <EABase/eabase.h>
 #endif
 
 #include <coreallocator/icoreallocator_interface.h>

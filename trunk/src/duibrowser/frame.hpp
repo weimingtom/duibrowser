@@ -42,10 +42,10 @@ namespace EA {
 }
 
 namespace EA {
-	namespace Internal {
+	namespace WebKit {
 		class IFontServer;
 		class IGlyphCache;
-		class IFontStyle;
+		struct IFontStyle;
 	}
 }
 
@@ -62,12 +62,11 @@ namespace EA {
 	}
 }
 
-using namespace EA::Internal;
 using namespace EA::WebKit;
 using namespace EA::Raster;
 using namespace EA::Allocator;
 
-class MyAllocator;
+//class MyAllocator;
 class WindowImplBase;
 class MainFrame : public WindowImplBase, public ViewNotification
 {
@@ -117,7 +116,7 @@ private:
 	Surface*		surface_;
 	View*			view_;
 	IFontStyle*		font_style_;
-	MyAllocator*	allocator_;
+	//MyAllocator*	allocator_;
 
 	int				logo_image_index;
 	bool			is_loading_;

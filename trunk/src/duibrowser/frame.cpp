@@ -21,7 +21,7 @@
 #include <EAWebKit/EAWebKit.h>
 #include <EAWebkit/EAWebkitAllocator.h>
 #include <EAWebKit/EAWebKitTextInterface.h>
-#include <PPMalloc/EAStackAllocator.h>
+//#include <PPMalloc/EAStackAllocator.h>
 #include <stdlib.h>  // malloc / new
 
 #include "win_impl_base.hpp"
@@ -39,33 +39,33 @@ namespace EA {
 }
 
 using namespace EA::TextWrapper;
-
-class MyAllocator : public Allocator
-{
-public:
-	void* Malloc(size_t size, int flags, const char* pName)
-	{
-		return allocator_.Malloc(size);
-	}
-
-	void* MallocAligned(size_t size, size_t alignment, size_t offset, int flags, const char* pName)
-	{
-		return allocator_.MallocAligned(size, alignment, offset);
-	}
-
-	void  Free(void* p, size_t size)
-	{
-		return allocator_.Free(p);
-	}
-
-	void* Realloc(void* p, size_t size, int flags)
-	{
-		return allocator_.Realloc(p, size);
-	}
-
-private:
-	StackAllocator allocator_;
-};
+//
+//class MyAllocator : public Allocator
+//{
+//public:
+//	void* Malloc(size_t size, int flags, const char* pName)
+//	{
+//		return allocator_.Malloc(size);
+//	}
+//
+//	void* MallocAligned(size_t size, size_t alignment, size_t offset, int flags, const char* pName)
+//	{
+//		return allocator_.MallocAligned(size, alignment, offset);
+//	}
+//
+//	void  Free(void* p, size_t size)
+//	{
+//		return allocator_.Free(p);
+//	}
+//
+//	void* Realloc(void* p, size_t size, int flags)
+//	{
+//		return allocator_.Realloc(p, size);
+//	}
+//
+//private:
+//	StackAllocator allocator_;
+//};
 
 const int kViewTickTimerId = 1001;
 const int kViewTickTimerElapse = 500;
@@ -100,12 +100,12 @@ MainFrame::MainFrame()
 , glyph_cache_(NULL)
 , surface_(NULL)
 , raster_(NULL)
-, allocator_(NULL)
+//, allocator_(NULL)
 , font_style_(NULL)
 , logo_image_index(0)
 , is_loading_(false)
 {
-	allocator_ = new MyAllocator();
+	//allocator_ = new MyAllocator();
 #if defined(UI_BUILD_FOR_WINCE)
 	sprintf(application_name_, "DuiBrowser");
 	sprintf(user_agent_, GetUserAgent().c_str());
@@ -117,8 +117,8 @@ MainFrame::MainFrame()
 
 MainFrame::~MainFrame()
 {
-	delete allocator_;
-	allocator_ = NULL;
+	//delete allocator_;
+	//allocator_ = NULL;
 	PostQuitMessage(0);
 }
 
@@ -389,7 +389,7 @@ void MainFrame::Init()
 		nCount = font_server_->EnumerateFonts(NULL, 0);
 		if (nCount > 0)
 		{
-			EA::Internal::FontDescription* font_description_array = new EA::Internal::FontDescription[nCount];
+			IFontDescription* font_description_array = new IFontDescription[nCount];
 			font_server_->EnumerateFonts(font_description_array, nCount);
 			for (uint32_t index = 0; index < nCount; ++index)
 			{

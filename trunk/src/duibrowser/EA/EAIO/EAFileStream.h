@@ -95,7 +95,7 @@ namespace EA
             kFileOperationWrite,  /// Includes Write, SetSize.
             kFileOperationSeek,   /// Includes SetPosition.
             kFileOperationOpen,   /// Includes Open.
-            kFileOperationClose,  /// Includes Close.
+            kFileOperationClose   /// Includes Close.
         };
 
 
@@ -194,6 +194,9 @@ namespace EA
 
 #if defined(EA_PLATFORM_WINDOWS) || defined(EA_PLATFORM_XENON)
    #include <EAIO/Win32/EAFileStreamWin32.h>
+
+#elif defined(EA_PLATFORM_UNIX) 
+   #include <EAIO/Unix/EAFileStreamUnix.h>
 #else
    #include <EAIO/StdC/EAFileStreamStdC.h>
 #endif

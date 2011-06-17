@@ -46,7 +46,7 @@ namespace EA
     {
         /// GetAllocator
         /// 
-        /// Gets the default EAText ICoreAllocator set by the SetAllocator function.
+        /// Gets the default EAIO ICoreAllocator set by the SetAllocator function.
         /// If SetAllocator is not called, the ICoreAllocator::GetDefaultAllocator 
         /// allocator is returned.
         ///
@@ -58,7 +58,7 @@ namespace EA
         /// This function lets the user specify the default memory allocator this library will use.
         /// For the most part, this library avoids memory allocations. But there are times 
         /// when allocations are required, especially during startup. Currently the Font Fusion
-        /// library which sits under EAText requires the use of a globally set allocator.
+        /// library which sits under EAIO requires the use of a globally set allocator.
         ///
         EAIO_API void SetAllocator(Allocator::ICoreAllocator* pCoreAllocator);
 

@@ -76,12 +76,11 @@ namespace EA
 
             /// EntryString
             /// The string type that DirectoryIterator uses for path entries.
-            typedef eastl::string16 EntryString;
-
-            // To do: Enable PathString as the EntryString. This is a small problem because it means
-            // that users will have to modify their code. There is a plan to switch to a form of eastl 
-            // string which implements a shared base class, but that's not published yet.
-            // typedef Path::PathString EntryString;
+            #if EAIO_DIRECTORY_ITERATOR_USE_PATHSTRING
+                typedef Path::PathString EntryString;
+            #else // Else old mode, for backward compatibility.
+                typedef eastl::string16 EntryString;
+            #endif
 
 
             /// class Entry
@@ -194,7 +193,7 @@ namespace EA
         /// The reason for this is to allow the testing of the presence of a directory
         /// and the testing of the presence of a parent directory.
         ///
-        struct EAIO_API EntryFindData
+        struct EAIO_API EA_PREFIX_ALIGN(8) EntryFindData
         {
             char16_t  mName[kMaxPathLength];                    /// The individual resulting file or directory entry name itself. Not a full path.
             bool      mbIsDirectory;                            /// True if the found file is a directory and not a file.
@@ -202,12 +201,12 @@ namespace EA
             char16_t  mDirectoryPath[kMaxPathLength];           /// The directory specified in EntryFindFirst.
             char16_t  mEntryFilterPattern[kMaxPathLength];      /// The filter pattern specified in EntryFindFirst.
             uintptr_t mPlatformHandle;                          /// Platform or implementation-specific handle, if needed.
-            uint64_t  mPlatformData[kEntryFindDataSize / 8];    /// Platform or implementation-specific data.
+            char      mPlatformData[kEntryFindDataSize];        /// Platform or implementation-specific data.
 
             EntryFindData();
             EntryFindData(const EntryFindData&);
             EntryFindData& operator=(const EntryFindData&);
-        };
+        } EA_POSTFIX_ALIGN(8);
 
 
         /// EntryFindFirst
@@ -276,8 +275,10 @@ namespace EA
     {
 
         inline DirectoryIterator::Entry::Entry(DirectoryEntry entry, const char16_t* pName)
-          : mType(entry),
-            msName(EASTLAllocatorType(EAIO_ALLOC_PREFIX "FileDirectory"))
+          : mType(entry)
+            #if !EAIO_DIRECTORY_ITERATOR_USE_PATHSTRING
+          , msName(EASTLAllocatorType(EAIO_ALLOC_PREFIX "FileDirectory"))
+            #endif
         {
             if(pName)
                 msName.assign(pName);

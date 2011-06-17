@@ -114,8 +114,8 @@ namespace EA
 
 
             /// PathStringBase
-            typedef eastl::fixed_string<char16_t, kNominalPathLength, true, Allocator::EAIOEASTLCoreAllocator> PathStringBase16;
-            typedef eastl::fixed_string<char8_t,  kNominalPathLength, true, Allocator::EAIOEASTLCoreAllocator> PathStringBase8;
+            typedef eastl::fixed_string<char16_t, kNominalPathLength, true, Allocator::EAIOPathStringCoreAllocator> PathStringBase16;
+            typedef eastl::fixed_string<char8_t,  kNominalPathLength, true, Allocator::EAIOPathStringCoreAllocator> PathStringBase8;
 
 
             /// kEndAuto16
@@ -130,7 +130,7 @@ namespace EA
             #endif
 
 
-            /// PathString
+            /// PathString16
             ///
             /// The PathString type is simply a fixed_string of length kNominalPathLength.
             ///
@@ -160,6 +160,11 @@ namespace EA
             #endif
 
 
+
+            /// PathString8
+            ///
+            /// The PathString type is simply a fixed_string of length kNominalPathLength.
+            ///
             class PathString8 : public PathStringBase8
             {
             public:
@@ -207,25 +212,21 @@ namespace EA
             /// Note: For purposes of this function, the drive and/or UNC part of the
             /// path are considered a single component.
             //////////////////////////////////////////////////////////////////////////
-            EAIO_API PathString16::iterator FindComponentFwd(
-                PathString16::iterator first,
-                PathString16::iterator last = kEndAuto16);
+            EAIO_API PathString16::iterator FindComponentFwd(PathString16::iterator first,
+                                                             PathString16::iterator last = kEndAuto16);
 
-            EAIO_API PathString8::iterator FindComponentFwd(
-                PathString8::iterator first,
-                PathString8::iterator last = kEndAuto8);
+            EAIO_API PathString8::iterator FindComponentFwd(PathString8::iterator first,
+                                                            PathString8::iterator last = kEndAuto8);
 
 
             //////////////////////////////////////////////////////////////////////////
             /// Const version of above.
             //////////////////////////////////////////////////////////////////////////
-            EAIO_API PathString16::const_iterator FindComponentFwd(
-                PathString16::const_iterator first,
-                PathString16::const_iterator last = kEndAuto16);
+            EAIO_API PathString16::const_iterator FindComponentFwd(PathString16::const_iterator first,
+                                                                   PathString16::const_iterator last = kEndAuto16);
 
-            EAIO_API PathString8::const_iterator FindComponentFwd(
-                PathString8::const_iterator first,
-                PathString8::const_iterator last = kEndAuto8);
+            EAIO_API PathString8::const_iterator FindComponentFwd(PathString8::const_iterator first,
+                                                                  PathString8::const_iterator last = kEndAuto8);
 
 
             //////////////////////////////////////////////////////////////////////////
@@ -250,25 +251,21 @@ namespace EA
             /// Note: For purposes of this function, the drive and/or UNC part of the
             /// path are considered a single component.
             //////////////////////////////////////////////////////////////////////////
-            EAIO_API PathString16::iterator FindComponentRvs(
-                PathString16::iterator first,
-                PathString16::iterator last = kEndAuto16);
+            EAIO_API PathString16::iterator FindComponentRvs(PathString16::iterator first,
+                                                             PathString16::iterator last = kEndAuto16);
 
-            EAIO_API PathString8::iterator FindComponentRvs(
-                PathString8::iterator first,
-                PathString8::iterator last = kEndAuto8);
+            EAIO_API PathString8::iterator FindComponentRvs(PathString8::iterator first,
+                                                            PathString8::iterator last = kEndAuto8);
 
 
             //////////////////////////////////////////////////////////////////////////
             /// Const version of above.
             //////////////////////////////////////////////////////////////////////////
-            EAIO_API PathString16::const_iterator FindComponentRvs(
-                PathString16::const_iterator first,
-                PathString16::const_iterator last = kEndAuto16);
+            EAIO_API PathString16::const_iterator FindComponentRvs(PathString16::const_iterator first,
+                                                                   PathString16::const_iterator last = kEndAuto16);
 
-            EAIO_API PathString8::const_iterator FindComponentRvs(
-                PathString8::const_iterator first,
-                PathString8::const_iterator last = kEndAuto8);
+            EAIO_API PathString8::const_iterator FindComponentRvs(PathString8::const_iterator first,
+                                                                  PathString8::const_iterator last = kEndAuto8);
 
 
             //////////////////////////////////////////////////////////////////////////
@@ -318,15 +315,13 @@ namespace EA
             ///     GetPathComponentStart(begin, end, -2) ==> "local/foo/"
             ///
             //////////////////////////////////////////////////////////////////////////
-            EAIO_API PathString16::iterator GetPathComponentStart(
-                PathString16::iterator first,
-                PathString16::iterator last,
-                int32_t nIndex);
+            EAIO_API PathString16::iterator GetPathComponentStart(PathString16::iterator first,
+                                                                  PathString16::iterator last,
+                                                                  int32_t nIndex);
 
-            EAIO_API PathString8::iterator GetPathComponentStart(
-                PathString8::iterator first,
-                PathString8::iterator last,
-                int32_t nIndex);
+            EAIO_API PathString8::iterator GetPathComponentStart(PathString8::iterator first,
+                                                                 PathString8::iterator last,
+                                                                 int32_t nIndex);
 
 
             //////////////////////////////////////////////////////////////////////////
@@ -352,21 +347,43 @@ namespace EA
             ///     GetPathComponentEnd(begin, end, -2) ==> "/bar/"                 // Second from end is "foo/bar/" ==> "/bar/"
             ///
             //////////////////////////////////////////////////////////////////////////
-            EAIO_API PathString16::iterator GetPathComponentEnd(
-                PathString16::iterator first,
-                PathString16::iterator last,
-                int32_t nIndex);
+            EAIO_API PathString16::iterator GetPathComponentEnd(PathString16::iterator first,
+                                                                PathString16::iterator last,
+                                                                int32_t nIndex);
 
-            EAIO_API PathString8::iterator GetPathComponentEnd(
-                PathString8::iterator first,
-                PathString8::iterator last,
-                int32_t nIndex);
+            EAIO_API PathString8::iterator GetPathComponentEnd(PathString8::iterator first,
+                                                               PathString8::iterator last,
+                                                               int32_t nIndex);
+
+
+            //////////////////////////////////////////////////////////////////////////
+            /// Returns the directory as a string. 
+            /// Directory always ends with a path separator.
+            /// If no directory is present then the return value will be empty.
+            //////////////////////////////////////////////////////////////////////////
+            EAIO_API PathString16 GetDirectoryString(PathString16::const_iterator first,
+                                                     PathString16::const_iterator last = kEndAuto16);
+
+            EAIO_API PathString8 GetDirectoryString(PathString8::const_iterator first,
+                                                    PathString8::const_iterator last = kEndAuto8);
+
+
+            //////////////////////////////////////////////////////////////////////////
+            /// Returns the file name (including any extension) as a string. 
+            /// Directory always ends with a path separator.
+            /// If no directory is present then the return value will be empty.
+            //////////////////////////////////////////////////////////////////////////
+            EAIO_API PathString16 GetFileNameString(PathString16::const_iterator first,
+                                                    PathString16::const_iterator last = kEndAuto16);
+
+            EAIO_API PathString8 GetFileNameString(PathString8::const_iterator first,
+                                                   PathString8::const_iterator last = kEndAuto8);
 
 
             //////////////////////////////////////////////////////////////////////////
             /// Return the character immediately following the last directory separator.
+            /// Thus this returns the file name (including any extension). 
             /// Returns path.end() if not found.
-            /// (const version)
             //////////////////////////////////////////////////////////////////////////
             EAIO_API PathString16::const_iterator GetFileName(const PathString16& path);
 
@@ -376,20 +393,30 @@ namespace EA
             //////////////////////////////////////////////////////////////////////////
             /// Return the character immediately following the last directory separator.
             /// Returns a pointer to the terminating NULL if not found.
-            /// (raw string version)
             //////////////////////////////////////////////////////////////////////////
-            EAIO_API PathString16::iterator GetFileName(
-                PathString16::const_iterator first,
-                PathString16::const_iterator last = kEndAuto16);
+            EAIO_API PathString16::iterator GetFileName(PathString16::const_iterator first,
+                                                        PathString16::const_iterator last = kEndAuto16);
 
-            EAIO_API PathString8::iterator GetFileName(
-                PathString8::const_iterator first,
-                PathString8::const_iterator last = kEndAuto8);
+            EAIO_API PathString8::iterator GetFileName(PathString8::const_iterator first,
+                                                       PathString8::const_iterator last = kEndAuto8);
+
+
+            //////////////////////////////////////////////////////////////////////////
+            /// Returns the file extension (including '.' char) as a string. 
+            /// The extension is defined beginning with the last '.' found in the file 
+            /// name. If no '.' is found in the file name then the return value is empty.
+            /// If no directory is present then the return value will be empty.
+            //////////////////////////////////////////////////////////////////////////
+            EAIO_API PathString16 GetFileExtensionString(PathString16::const_iterator first,
+                                                         PathString16::const_iterator last = kEndAuto16);
+
+            EAIO_API PathString8 GetFileExtensionString(PathString8::const_iterator first,
+                                                        PathString8::const_iterator last = kEndAuto8);
 
 
             //////////////////////////////////////////////////////////////////////////
             /// Returns a pointer to the file extension (including the '.' character)
-            /// or a pointer to the path.end() if there is none. (const version)
+            /// or a pointer to the path.end() if there is none.
             //////////////////////////////////////////////////////////////////////////
             EAIO_API PathString16::const_iterator GetFileExtension(const PathString16& path);
 
@@ -399,22 +426,24 @@ namespace EA
             //////////////////////////////////////////////////////////////////////////
             /// Returns a pointer to the file extension (including the '.' character)
             /// or a pointer to the end of the string if there is none.
-            /// (raw string version)
             //////////////////////////////////////////////////////////////////////////
-            EAIO_API PathString16::iterator GetFileExtension(
-                PathString16::const_iterator first,
-                PathString16::const_iterator last = kEndAuto16);
+            EAIO_API PathString16::iterator GetFileExtension(PathString16::const_iterator first,
+                                                             PathString16::const_iterator last = kEndAuto16);
 
-            EAIO_API PathString8::iterator GetFileExtension(
-                PathString8::const_iterator first,
-                PathString8::const_iterator last = kEndAuto8);
+            EAIO_API PathString8::iterator GetFileExtension(PathString8::const_iterator first,
+                                                            PathString8::const_iterator last = kEndAuto8);
 
 
             //////////////////////////////////////////////////////////////////////////
             /// Returns a pointer to the character immediately following the separator
-            /// that divides the drive letter or UNC path from the rest of the path.
+            /// that divides the drive letter sequence or UNC path from the rest of the path.
             /// If there is none, then the start of the string is returned.
-            /// (const version)
+            /// Example use:
+            ///     "C:\a\b.c" => "\a\b.c"
+            ///     "\\Computer\Directory\FileName" => "\Directory\FileName"
+            ///     "\\?\UNC\Computer\Directory\FileName" => "\Computer\Directory\FileName" (this is "long UNC")
+            ///     "\\?\C:\a\b.c" => "\a\b.c"      (or should this return C:\a\b.c)
+            ///     "/a/b/c" => "/a/b/c"
             //////////////////////////////////////////////////////////////////////////
             EAIO_API PathString16::const_iterator GetLocalRoot(const PathString16& path);
 
@@ -425,15 +454,12 @@ namespace EA
             /// Returns a pointer to the character immediately following the separator
             /// that divides the drive letter or UNC path from the rest of the path.
             /// If there is none, then the start of the string is returned.
-            /// (raw string version)
             //////////////////////////////////////////////////////////////////////////
-            EAIO_API PathString16::iterator GetLocalRoot(
-                PathString16::iterator first,
-                PathString16::iterator last = kEndAuto16);
+            EAIO_API PathString16::iterator GetLocalRoot(PathString16::iterator first,
+                                                         PathString16::iterator last = kEndAuto16);
 
-            EAIO_API PathString8::iterator GetLocalRoot(
-                PathString8::iterator first,
-                PathString8::iterator last = kEndAuto8);
+            EAIO_API PathString8::iterator GetLocalRoot(PathString8::iterator first,
+                                                        PathString8::iterator last = kEndAuto8);
 
 
             //////////////////////////////////////////////////////////////////////////
@@ -444,15 +470,13 @@ namespace EA
             ///
             /// The return value is the destination path.
             //////////////////////////////////////////////////////////////////////////
-            EAIO_API PathString16& Append(
-                PathString16& dst,
-                PathString16::const_iterator suffix_first,
-                PathString16::const_iterator suffix_last = kEndAuto16);
+            EAIO_API PathString16& Append(PathString16& dst,
+                                          PathString16::const_iterator suffix_first,
+                                          PathString16::const_iterator suffix_last = kEndAuto16);
 
-            EAIO_API PathString8& Append(
-                PathString8& dst,
-                PathString8::const_iterator suffix_first,
-                PathString8::const_iterator suffix_last = kEndAuto8);
+            EAIO_API PathString8& Append(PathString8& dst,
+                                         PathString8::const_iterator suffix_first,
+                                         PathString8::const_iterator suffix_last = kEndAuto8);
 
 
             //////////////////////////////////////////////////////////////////////////
@@ -475,15 +499,13 @@ namespace EA
             ///
             /// The return value is the destination path.
             //////////////////////////////////////////////////////////////////////////
-            EAIO_API PathString16& Join(
-                PathString16& dst,
-                PathString16::const_iterator suffix_first,
-                PathString16::const_iterator suffix_last = kEndAuto16);
+            EAIO_API PathString16& Join(PathString16& dst,
+                                        PathString16::const_iterator suffix_first,
+                                        PathString16::const_iterator suffix_last = kEndAuto16);
 
-            EAIO_API PathString8& Join(
-                PathString8& dst,
-                PathString8::const_iterator suffix_first,
-                PathString8::const_iterator suffix_last = kEndAuto8);
+            EAIO_API PathString8& Join(PathString8& dst,
+                                       PathString8::const_iterator suffix_first,
+                                       PathString8::const_iterator suffix_last = kEndAuto8);
 
 
             //////////////////////////////////////////////////////////////////////////
@@ -576,13 +598,11 @@ namespace EA
             /// A relative path is one that starts with a directory name (no leading
             /// slash) or a relative path specifier.
             //////////////////////////////////////////////////////////////////////////
-            EAIO_API bool IsRelative(
-                PathString16::const_iterator first,
-                PathString16::const_iterator last = kEndAuto16);
+            EAIO_API bool IsRelative(PathString16::const_iterator first,
+                                     PathString16::const_iterator last = kEndAuto16);
 
-            EAIO_API bool IsRelative(
-                PathString8::const_iterator first,
-                PathString8::const_iterator last = kEndAuto8);
+            EAIO_API bool IsRelative(PathString8::const_iterator first,
+                                     PathString8::const_iterator last = kEndAuto8);
 
 
             //////////////////////////////////////////////////////////////////////////
@@ -629,15 +649,13 @@ namespace EA
             ///
             /// Note: Both paths must be in simplified form.
             //////////////////////////////////////////////////////////////////////////
-            EAIO_API PathString16& ComputeRelative(
-                PathString16& result,
-                const PathString16& src,
-                const PathString16& target);
+            EAIO_API PathString16& ComputeRelative(PathString16& result,
+                                                   const PathString16& src,
+                                                   const PathString16& target);
 
-            EAIO_API PathString8& ComputeRelative(
-                PathString8& result,
-                const PathString8& src,
-                const PathString8& target);
+            EAIO_API PathString8& ComputeRelative(PathString8& result,
+                                                  const PathString8& src,
+                                                  const PathString8& target);
 
 
             //////////////////////////////////////////////////////////////////////////
@@ -685,7 +703,7 @@ namespace EA
 
 
             //////////////////////////////////////////////////////////////////////////
-            /// Return true if this path has a trailing separator (raw string version)
+            /// Return true if this path has a trailing separator.
             //////////////////////////////////////////////////////////////////////////
             EAIO_API bool GetHasTrailingSeparator(PathString16::const_iterator first, size_t nLength = kLengthNull);
 
@@ -694,14 +712,16 @@ namespace EA
 
             //////////////////////////////////////////////////////////////////////////
             /// Add a trailing separator if there isn't one already.
+            /// The separator is added in the case of an empty path.
             //////////////////////////////////////////////////////////////////////////
             EAIO_API PathString16& EnsureTrailingSeparator(PathString16& path);
 
             EAIO_API PathString8& EnsureTrailingSeparator(PathString8& path);
 
             //////////////////////////////////////////////////////////////////////////
-            /// Add a trailing separator if there isn't one already. Returns false
-            /// if no separator was added.
+            /// Add a trailing separator if there isn't one already. 
+            /// Returns true if a separator was added.
+            /// The separator is added in the case of an empty path.
             //////////////////////////////////////////////////////////////////////////
             EAIO_API bool EnsureTrailingSeparator(char16_t* pDirName, size_t nMaxPermittedLength);
 
@@ -958,6 +978,100 @@ namespace EA
                 base_type::operator+=(c);
                 return *this;
             }
+
+
+
+            ///////////////////////////////////////////////////////////////////
+            // Misc
+            ///////////////////////////////////////////////////////////////////
+
+            inline PathString16::iterator StrEnd(PathString16::iterator it)
+            {
+                while(*it) 
+                    ++it;
+                return it;
+            }
+
+            inline PathString8::iterator StrEnd(PathString8::iterator it)
+            {
+                while(*it) 
+                    ++it;
+                return it;
+            }
+
+            inline PathString16::iterator StrEnd(PathString16::const_iterator it)
+            {
+                PathString16::iterator itEnd = const_cast<PathString16::iterator>(it);
+                while(*itEnd)
+                    ++itEnd;
+                return itEnd;
+            }
+
+            inline PathString8::iterator StrEnd(PathString8::const_iterator it)
+            {
+                PathString8::iterator itEnd = const_cast<PathString8::iterator>(it);
+                while(*itEnd) 
+                    ++itEnd;
+                return itEnd;
+            }
+
+
+            inline
+            EAIO_API PathString16 GetDirectoryString(PathString16::const_iterator first,
+                                                     PathString16::const_iterator last)
+            {
+                return PathString16(first, GetFileName(first, last));
+            }
+
+            inline
+            EAIO_API PathString8 GetDirectoryString(PathString8::const_iterator first,
+                                                    PathString8::const_iterator last)
+            {
+                return PathString8(first, GetFileName(first, last));
+            }
+
+
+            inline
+            EAIO_API PathString16 GetFileNameString(PathString16::const_iterator first,
+                                                    PathString16::const_iterator last)
+            {
+                if(last == kEndAuto16) 
+                    last = StrEnd(first);
+
+                return PathString16(GetFileName(first, last), last);
+            }
+
+            inline
+            EAIO_API PathString8 GetFileNameString(PathString8::const_iterator first,
+                                                   PathString8::const_iterator last)
+            {
+                if(last == kEndAuto8) 
+                    last = StrEnd(first);
+
+                return PathString8(GetFileName(first, last), last);
+            }
+
+
+            inline
+            EAIO_API PathString16 GetFileExtensionString(PathString16::const_iterator first,
+                                                         PathString16::const_iterator last)
+            {
+                if(last == kEndAuto16) 
+                    last = StrEnd(first);
+
+                return PathString16(GetFileExtension(first, last), last);
+            }
+
+            inline
+            EAIO_API PathString8 GetFileExtensionString(PathString8::const_iterator first,
+                                                        PathString8::const_iterator last)
+            {
+                if(last == kEndAuto8) 
+                    last = StrEnd(first);
+
+                return PathString8(GetFileExtension(first, last), last);
+            }
+
 
         } // namespace Path
 

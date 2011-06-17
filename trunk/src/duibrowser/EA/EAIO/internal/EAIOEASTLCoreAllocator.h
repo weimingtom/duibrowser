@@ -118,6 +118,30 @@ namespace EA
         bool operator!=(const EAIOEASTLCoreAllocator& a, const EAIOEASTLCoreAllocator& b);
 
 
+
+        /// EAIOPathStringCoreAllocator
+        ///
+        /// Specific for EAIO/PathString
+        ///
+        class EAIO_API EAIOPathStringCoreAllocator : public EAIOEASTLCoreAllocator
+        {
+        public:
+            EAIOPathStringCoreAllocator(const char* pName = EASTL_NAME_VAL(EAIO_ALLOC_PREFIX "PathString"))
+              : EAIOEASTLCoreAllocator(pName) { }
+
+            EAIOPathStringCoreAllocator(const char* pName, ICoreAllocator* pAllocator)
+              : EAIOEASTLCoreAllocator(pName, pAllocator) { }
+
+            EAIOPathStringCoreAllocator(const EAIOEASTLCoreAllocator& x)
+              : EAIOEASTLCoreAllocator(x) { }
+
+            EAIOPathStringCoreAllocator(const EAIOEASTLCoreAllocator& x, const char* pName)
+              : EAIOEASTLCoreAllocator(x, pName) { }
+
+            EAIOPathStringCoreAllocator& operator=(const EAIOEASTLCoreAllocator& x)
+                { EAIOEASTLCoreAllocator::operator=(x); return *this; }
+        };
+
     } // namespace Allocator
 
 } // namespace EA
