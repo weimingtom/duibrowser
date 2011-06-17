@@ -2510,13 +2510,20 @@ void FrameLoader::reload()
     request.setCachePolicy(ReloadIgnoringCacheData);
     request.setHTTPHeaderField("Cache-Control", "max-age=0");
 
-    // If we're about to re-post, set up action so the application can warn the user.
-    if (request.httpMethod() == "POST")
-        loader->setTriggeringAction(NavigationAction(request.url(), NavigationTypeFormResubmitted));
+    // 6/4/10 Chris Sidhall - Reload did not call linkhooks for the base request. 
+    // This is to fix a problem where on refresh, the post did not trigger a linkhook callback.
+    // The linkhook system was originally set up before this flow change.  If we put the linkhook deeper in the load, 
+    // it can call linkhook multiple times for a same request so this seems like a better location.
+    bool intercepted = applyLinkHooks(request);
+    if(!intercepted) {
+        // If we're about to re-post, set up action so the application can warn the user.
+        if (request.httpMethod() == "POST")
+            loader->setTriggeringAction(NavigationAction(request.url(), NavigationTypeFormResubmitted));
 
-    loader->setOverrideEncoding(m_documentLoader->overrideEncoding());
-    
-    load(loader.get(), FrameLoadTypeReload, 0);
+        loader->setOverrideEncoding(m_documentLoader->overrideEncoding());
+
+        load(loader.get(), FrameLoadTypeReload, 0);
+    }
 }
 
 bool FrameLoader::shouldAllowNavigation(Frame* targetFrame) const

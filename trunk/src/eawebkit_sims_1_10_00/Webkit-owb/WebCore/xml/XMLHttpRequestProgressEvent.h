@@ -24,6 +24,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
+*/
+
 #ifndef XMLHttpRequestProgressEvent_h
 #define XMLHttpRequestProgressEvent_h
 
