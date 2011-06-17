@@ -107,10 +107,12 @@ PassRefPtr<Node> HTMLElement::cloneNode(bool deep)
     if (!clone)
         return 0;
 
+	// BEG_EA - Bugfix from https://bugs.webkit.org/attachment.cgi?id=48167&action=diff
+	clone->copyNonAttributeProperties(this);
+
     if (namedAttrMap)
         clone->attributes()->setAttributes(*namedAttrMap);
-
-    clone->copyNonAttributeProperties(this);
+	// END_EA
 
     if (deep)
         cloneChildNodes(clone.get());

@@ -909,9 +909,13 @@ void HTMLInputElement::copyNonAttributeProperties(const Element *source)
 {
     const HTMLInputElement *sourceElem = static_cast<const HTMLInputElement *>(source);
 
-    m_value = sourceElem->m_value;
-    m_checked = sourceElem->m_checked;
-    m_indeterminate = sourceElem->m_indeterminate;
+	m_value = sourceElem->m_value;
+// BEG_EA - Bugfix from https://bugs.webkit.org/attachment.cgi?id=48167&action=diff
+	setChecked(sourceElem->m_checked);
+	m_defaultChecked = sourceElem->m_defaultChecked;
+	m_useDefaultChecked = sourceElem->m_useDefaultChecked;
+// END_EA
+	m_indeterminate = sourceElem->m_indeterminate;
     
     HTMLFormControlElementWithState::copyNonAttributeProperties(source);
 }

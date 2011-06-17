@@ -48,6 +48,7 @@
 #include <wtf/PassRefPtr.h>
 #include <wtf/RefPtr.h>
 #include <wtf/Vector.h>
+#include <EARaster/EARaster.h> 
 
 namespace KJS {
     namespace Bindings {
@@ -174,9 +175,11 @@ namespace WebCore {
 
         static bool isCallingPlugin();
 
+    
+    protected:    
+        PluginView(Frame* parentFrame, const IntSize&, PluginPackage*, Element*, const KURL&, const Vector<String>& paramNames, const Vector<String>& paramValues, const String& mimeType, bool loadManually); // CS - Made constructor protected from private
+        Frame* GetPluginViewParentFrame() const { return m_parentFrame; } // Added to get access
     private:
-        PluginView(Frame* parentFrame, const IntSize&, PluginPackage*, Element*, const KURL&, const Vector<String>& paramNames, const Vector<String>& paramValues, const String& mimeType, bool loadManually);
-
         void setParameters(const Vector<String>& paramNames, const Vector<String>& paramValues);
         void init();
         bool start();
@@ -187,7 +190,7 @@ namespace WebCore {
         NPError handlePostReadFile(Vector<char>& buffer, uint32 len, const char* buf);
         static void freeStringArray(char** stringArray, int length);
         void setCallingPlugin(bool) const;
-
+  
         Frame* m_parentFrame;
         RefPtr<PluginPackage> m_plugin;
         Element* m_element;
@@ -260,6 +263,49 @@ namespace WebCore {
         bool m_isJavaScriptPaused;
 
         static PluginView* s_currentPluginView;
+    };
+
+
+    // 10/15/10 CSidhall - Added to notify app about movie info
+    class MoviePluginView : public PluginView {
+    public:
+        MoviePluginView(Frame* parentFrame, const IntSize& s, PluginPackage* pPlug, Element* pElem, const KURL& kurl, const Vector<String>& paramNames, const Vector<String>& paramValues, const String& mimeType, bool loadManually); 
+        virtual ~MoviePluginView();    
+        virtual void paint(GraphicsContext*, const IntRect&);
+        
+        EA::Raster::ISurface* getMovieSurface(){ return m_pMovieSurface; }
+        int getMovieWidth() const { return m_movieWidth; }    
+        int getMovieHeight() const { return m_movieHeight; }    
+        bool isMovieUpdateActive() const { return m_isMovieUpdateActive; }
+        bool isMovieLooping() const { return m_loopFlag; }
+        bool isMoviePaused() const { return m_pauseFlag; }
+        bool isMovieAutoPlay() const { return m_autoPlayFlag; }
+        bool isMoviePreload() const { return m_preloadFlag; }
+        const EA::Raster::Rect& getMovieRect() const { return m_movieRect; } 
+
+    private:
+        void movieTimerFired(Timer<MoviePluginView>* );
+        void startMovieTimer(const double delay);
+        void stopMovieTimer();
+        void setMovieSurface(EA::Raster::ISurface* pSurface){ m_pMovieSurface = pSurface; }
+        void setMovieRect(int x, int y, int w, int h) { m_movieRect.x=x; m_movieRect.y=y; m_movieRect.w =w; m_movieRect.h = h; }
+        EA::Raster::ISurface* createMovieSurface(const int width, const int height);
+        void destroyMovieSurface();
+        bool notify(bool terminate);
+
+        Timer<MoviePluginView>  m_movieTimer;           // Timer to pulse the API so that it can refresh the movie texture.         
+        EA::Raster::ISurface*    m_pMovieSurface;        // We need to keep the source texture of the movie so that we can redraw without needed the API to do it
+        EA::Raster::Rect        m_movieRect;            // Movie Rect used by the surface.
+        int                     m_movieWidth;           // The movie width used by the surface
+        int                     m_movieHeight;          // The movie height used by the surface
+        double                  m_triggerDelay;         // API delay trigger timer interval
+        WebCore::String         m_scrURI;               // The scr file URI
+        bool                    m_isMovieUpdateActive;  // If active, we trigger the API pulse callbacks          
+        bool                    m_removeSurfaceFlag;     // Surface should be removed
+        bool                    m_loopFlag;              // Loop request  
+        bool                    m_pauseFlag;             // Pause request 
+        bool                    m_autoPlayFlag;          // AutoPlay request 
+        bool                    m_preloadFlag;           // Preload request  
     };
 
 } // namespace WebCore

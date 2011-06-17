@@ -29,6 +29,7 @@
 #include "ChromeClient.h"
 #include "FloatRect.h"
 #include "Frame.h"
+#include "FrameView.h"
 #include "FrameTree.h"
 #include "HTMLFormElement.h"
 #include "HTMLInputElement.h"
@@ -377,7 +378,18 @@ void Chrome::setToolTip(const HitTestResult& result)
     if (toolTip.isEmpty())
         toolTip = result.title();
 
-    m_client->setToolTip(toolTip);
+    int handleID = (int) result.innerNode();
+	if(handleID)
+	{
+		WebCore::IntPoint location(result.point().x(), result.point().y());
+
+		WebCore::FrameView* pFrameView = result.innerNode()->document()->view(); //Can be NULL
+		if(pFrameView)
+		{
+			location.move(pFrameView->x() - pFrameView->scrollOffset().width(), pFrameView->y() - pFrameView->scrollOffset().height());
+		}
+		m_client->setToolTip(toolTip, location, handleID);  // 6/10/10 CSidhall - Added location to pass to client.
+	}
 }
 
 void Chrome::print(Frame* frame)

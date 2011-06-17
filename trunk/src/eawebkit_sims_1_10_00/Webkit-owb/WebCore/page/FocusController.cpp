@@ -52,6 +52,7 @@
 #include "SelectionController.h"
 #include "Widget.h"
 #include <wtf/Platform.h>
+#include <EAWebKit/EAWebKitView.h>
 
 namespace WebCore {
 
@@ -257,9 +258,11 @@ static void clearSelectionIfNeeded(Frame* oldFocusedFrame, Frame* newFocusedFram
     s->clear();
 }
 
-bool FocusController::setFocusedNode(Node* node, PassRefPtr<Frame> newFocusedFrame)
+bool FocusController::setFocusedNode(Node* node, PassRefPtr<Frame> newFocusedFrame, bool userInputCausedFocus)
 {
     RefPtr<Frame> oldFocusedFrame = focusedFrame();
+	Frame* newFocusedFramePtr = newFocusedFrame.get();
+	
     RefPtr<Document> oldDocument = oldFocusedFrame ? oldFocusedFrame->document() : 0;
     
     Node* oldFocusedNode = oldDocument ? oldDocument->focusedNode() : 0;
@@ -279,10 +282,41 @@ bool FocusController::setFocusedNode(Node* node, PassRefPtr<Frame> newFocusedFra
     }
     
     RefPtr<Document> newDocument = node ? node->document() : 0;
-    
-    if (newDocument && newDocument->focusedNode() == node) {
-        m_page->editorClient()->setInputMethodState(node->shouldUseInputMethod());
-        return true;
+    // Note by Arpit Baldeva: If on console(true by default on consoles/can be enabled on PC through emulation), 
+	// we detect if the node was focused due to the user input or through javascript.
+	// If the node was focused by user input(such as click), we present the editor(emulated keyboard on consoles, debug log on PC).
+	// If the node was focused by javascript, we make the cursor jump to the node. In addition, we blur <input>/<textarea> element 
+	// so that the user click can bring up the emulated keyboard.
+#if PLATFORM(PS3) || PLATFORM(XBOX)
+	bool onConsole = true;
+#elif PLATFORM(WIN_OS)
+	EA::WebKit::View* pView= EA::WebKit::GetView( newFocusedFramePtr );
+	ASSERT(pView);
+	bool onConsole = (pView ? pView->IsEmulatingConsoleOnPC() : false);
+#else
+	#error "Unknown Platform"
+#endif
+
+		
+	if (newDocument && newDocument->focusedNode() == node)  
+	{
+		if(onConsole)
+		{
+			if(userInputCausedFocus)
+			{
+				m_page->editorClient()->setInputMethodState(node->shouldUseInputMethod()); 
+			}
+			else
+			{
+				HandleAutoFocus(node, newFocusedFramePtr);
+			}
+		}
+		else
+		{
+			m_page->editorClient()->setInputMethodState(node->shouldUseInputMethod());
+		}
+        
+		return true;
     }
     
     if (oldDocument && oldDocument != newDocument)
@@ -293,11 +327,43 @@ bool FocusController::setFocusedNode(Node* node, PassRefPtr<Frame> newFocusedFra
     if (newDocument)
         newDocument->setFocusedNode(node);
     
-    m_page->editorClient()->setInputMethodState(node->shouldUseInputMethod());
-
-    return true;
+	if(onConsole)
+	{
+		if(userInputCausedFocus)
+		{
+			m_page->editorClient()->setInputMethodState(node->shouldUseInputMethod());
+		}
+		else 
+		{
+			HandleAutoFocus(node, newFocusedFramePtr);
+		}
+	}
+	else
+	{
+		m_page->editorClient()->setInputMethodState(node->shouldUseInputMethod());
+	}
+  
+	return true;
 }
 
+void FocusController::HandleAutoFocus(Node* node, Frame* newFocusedFramePtr)
+{
+	EA::WebKit::View* pView= EA::WebKit::GetView( newFocusedFramePtr );
+	ASSERT(pView);
+	if(pView) 
+	{
+		pView->MoveMouseCursorToNode(node);
+	}
+
+	if (node && node->isHTMLElement())
+	{
+		if(node->hasTagName(WebCore::HTMLNames::inputTag) || node->hasTagName(WebCore::HTMLNames::textareaTag)) 
+		{
+			HTMLElement* pElement = static_cast<HTMLElement*> (node);
+			pElement->blur();
+		}
+	}
+}
 void FocusController::setActive(bool active)
 {
     if (m_isActive == active)
