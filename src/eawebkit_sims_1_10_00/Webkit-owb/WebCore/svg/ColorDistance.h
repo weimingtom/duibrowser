@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ColorDistance_h
@@ -32,7 +32,7 @@ namespace WebCore {
     
     class Color;
 
-    class ColorDistance: public WTF::FastAllocBase {
+    class ColorDistance/*: public WTF::FastAllocBase*/ {
     public:
         ColorDistance();
         ColorDistance(const Color& fromColor, const Color& toColor);

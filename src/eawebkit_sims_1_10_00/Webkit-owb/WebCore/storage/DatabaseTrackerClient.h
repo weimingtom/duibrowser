@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef DatabaseTrackerClient_h
@@ -39,7 +39,7 @@ namespace WebCore {
 class SecurityOrigin;
 class String;
 
-class DatabaseTrackerClient: public WTF::FastAllocBase {
+class DatabaseTrackerClient/*: public WTF::FastAllocBase*/ {
 public:
     virtual ~DatabaseTrackerClient() { }
     virtual void dispatchDidModifyOrigin(SecurityOrigin*) = 0;

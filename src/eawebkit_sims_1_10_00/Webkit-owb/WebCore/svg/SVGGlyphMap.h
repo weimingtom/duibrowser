@@ -18,7 +18,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGGlyphMap_h
@@ -45,7 +45,7 @@ namespace WebCore {
         GlyphMapLayer children;
     };
 
-    class SVGGlyphMap: public WTF::FastAllocBase {
+    class SVGGlyphMap/*: public WTF::FastAllocBase*/ {
 
     public:
         SVGGlyphMap() : m_currentPriority(0) { }

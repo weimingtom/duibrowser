@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef XPathStep_h
@@ -54,7 +54,7 @@ namespace WebCore {
                 SelfAxis
             };
             
-            class NodeTest: public WTF::FastAllocBase {
+            class NodeTest/*: public WTF::FastAllocBase*/ {
             public:
                 enum Kind {
                     TextNodeTest, CommentNodeTest, ProcessingInstructionNodeTest, AnyNodeTest, NameTest,

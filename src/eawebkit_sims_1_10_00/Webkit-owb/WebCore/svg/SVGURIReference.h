@@ -21,7 +21,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGURIReference_h
@@ -35,7 +35,7 @@ namespace WebCore {
 
     class MappedAttribute;
 
-    class SVGURIReference: public WTF::FastAllocBase {
+    class SVGURIReference/*: public WTF::FastAllocBase*/ {
     public:
         SVGURIReference();
         virtual ~SVGURIReference();

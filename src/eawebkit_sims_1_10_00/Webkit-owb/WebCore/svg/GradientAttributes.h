@@ -20,7 +20,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef GradientAttributes_h
@@ -31,7 +31,7 @@
 
 namespace WebCore
 {
-    struct GradientAttributes: public WTF::FastAllocBase {
+    struct GradientAttributes/*: public WTF::FastAllocBase*/ {
         GradientAttributes()
             : m_spreadMethod(SPREADMETHOD_PAD)
             , m_boundingBoxMode(true)

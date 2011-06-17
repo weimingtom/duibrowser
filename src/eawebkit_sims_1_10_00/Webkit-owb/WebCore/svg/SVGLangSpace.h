@@ -21,7 +21,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGLangSpace_h
@@ -36,7 +36,7 @@ namespace WebCore {
     class MappedAttribute;
     class QualifiedName;
 
-    class SVGLangSpace: public WTF::FastAllocBase {
+    class SVGLangSpace/*: public WTF::FastAllocBase*/ {
     public:
         SVGLangSpace();
         virtual ~SVGLangSpace();

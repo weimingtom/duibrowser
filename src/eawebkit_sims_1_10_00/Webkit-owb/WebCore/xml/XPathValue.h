@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef XPathValue_h
@@ -56,7 +56,7 @@ namespace WebCore {
         };
 
         // Copying Value objects makes their data partially shared, so care has to be taken when dealing with copies.
-        class Value: public WTF::FastAllocBase {
+        class Value/*: public WTF::FastAllocBase*/ {
         public:
             enum Type { NodeSetValue, BooleanValue, NumberValue, StringValue };
             

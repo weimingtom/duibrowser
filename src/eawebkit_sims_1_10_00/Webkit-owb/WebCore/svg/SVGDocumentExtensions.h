@@ -21,7 +21,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGDocumentExtensions_h
@@ -53,7 +53,7 @@ class SVGStyledElement;
 class SVGSVGElement;
 class TimeScheduler;
 
-class SVGDocumentExtensions: public WTF::FastAllocBase {
+class SVGDocumentExtensions/*: public WTF::FastAllocBase*/ {
 public:
     SVGDocumentExtensions(Document*);
     ~SVGDocumentExtensions();

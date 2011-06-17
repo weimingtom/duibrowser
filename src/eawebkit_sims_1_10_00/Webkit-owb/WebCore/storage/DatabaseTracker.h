@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 
@@ -53,7 +53,7 @@ class SecurityOrigin;
 struct SecurityOriginHash;
 struct SecurityOriginTraits;
 
-class DatabaseTracker: public WTF::FastAllocBase {
+class DatabaseTracker/*: public WTF::FastAllocBase*/ {
 public:
     void setDatabaseDirectoryPath(const String&);
     const String& databaseDirectoryPath() const;

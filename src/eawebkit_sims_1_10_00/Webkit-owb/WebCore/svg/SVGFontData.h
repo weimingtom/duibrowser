@@ -19,7 +19,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGFontData_h
@@ -31,7 +31,7 @@
 
 namespace WebCore {
 
-class SVGFontData: public WTF::FastAllocBase {
+class SVGFontData/*: public WTF::FastAllocBase*/ {
 public:
     SVGFontData(SVGFontFaceElement*);
     virtual ~SVGFontData();

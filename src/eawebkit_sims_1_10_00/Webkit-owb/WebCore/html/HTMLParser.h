@@ -22,7 +22,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef HTMLParser_h
@@ -62,7 +62,8 @@ typedef HashMap<AtomicStringImpl*, CreateErrorCheckFunc> FunctionMap;
  */
 class HTMLParser : Noncopyable {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -91,6 +92,7 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
+#endif //NO_MACRO_NEW
 public:
 //+daw ca 23/07 static and global management
     static FunctionMap* gFunctionMapList();

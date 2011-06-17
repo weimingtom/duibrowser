@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef TimeRanges_h
@@ -60,7 +60,7 @@ private:
     TimeRanges() { }
     TimeRanges(float start, float end);
     
-    struct Range: public WTF::FastAllocBase {
+    struct Range/*: public WTF::FastAllocBase*/ {
         Range() { }
         Range(float start, float end) {
             m_start = start;

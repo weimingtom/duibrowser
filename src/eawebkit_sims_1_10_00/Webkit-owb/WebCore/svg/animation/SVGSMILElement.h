@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 
@@ -125,7 +125,7 @@ private:
 
         // This represents conditions on elements begin or end list that need to be resolved on runtime
         // for example <animate begin="otherElement.begin + 8s; button.click" ... />
-        struct Condition: public WTF::FastAllocBase {
+        struct Condition/*: public WTF::FastAllocBase*/ {
             enum Type { EventBase, Syncbase, AccessKey };
             Condition(Type, BeginOrEnd beginOrEnd, const String& baseID, const String& name, SMILTime offset, int repeats = -1);
             Type m_type;

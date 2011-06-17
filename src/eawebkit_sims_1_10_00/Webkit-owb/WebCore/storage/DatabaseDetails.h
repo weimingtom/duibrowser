@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef DatabaseDetails_h
@@ -38,7 +38,7 @@
 
 namespace WebCore {
 
-class DatabaseDetails: public WTF::FastAllocBase {
+class DatabaseDetails/*: public WTF::FastAllocBase*/ {
 public:
     DatabaseDetails()
         : m_expectedUsage(0)

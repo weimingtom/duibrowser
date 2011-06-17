@@ -21,7 +21,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGListTraits_h
@@ -39,13 +39,13 @@ namespace WebCore {
     struct SVGListTraits { };
 
     template<typename Item>
-    struct SVGListTraits<true, Item>: public WTF::FastAllocBase
+    struct SVGListTraits<true, Item>/*: public WTF::FastAllocBase*/
     {
         static Item nullItem() { return Item(); } 
     };
 
     template<>
-    struct SVGListTraits<false, double>: public WTF::FastAllocBase
+    struct SVGListTraits<false, double>/*: public WTF::FastAllocBase*/
     {
         static double nullItem() { return 0.0; }
     };

@@ -21,7 +21,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGAnimatedPoints_h
@@ -34,7 +34,7 @@ namespace WebCore
 {
     class SVGPointList;
 
-    class SVGAnimatedPoints: public WTF::FastAllocBase
+    class SVGAnimatedPoints/*: public WTF::FastAllocBase*/
     {
     public:
         SVGAnimatedPoints();

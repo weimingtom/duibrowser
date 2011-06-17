@@ -22,7 +22,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef HTMLTokenizer_h
@@ -56,7 +56,7 @@ class PreloadScanner;
  * of attributes. Can also represent text. In this case the id = 0 and
  * text contains the text.
  */
-class Token: public WTF::FastAllocBase {
+class Token/*: public WTF::FastAllocBase*/ {
 public:
     Token() : beginTag(true), flat(false), brokenXMLStyle(false), m_sourceInfo(0) { }
     ~Token() { }
@@ -103,7 +103,7 @@ enum DoctypeState {
     DoctypeBogus
 };
 
-class DoctypeToken: public WTF::FastAllocBase {
+class DoctypeToken/*: public WTF::FastAllocBase*/ {
 public:
     DoctypeToken() {}
     
@@ -242,7 +242,7 @@ private:
         SearchEnd = 8
     };
 
-    class State: public WTF::FastAllocBase {
+    class State/*: public WTF::FastAllocBase*/ {
     public:
         State() : m_bits(0) { }
 

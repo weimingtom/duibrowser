@@ -22,7 +22,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef HTMLFormElement_h
@@ -113,7 +113,7 @@ public:
     // FIXME: Change this to be private after getting rid of all the clients.
     Vector<HTMLFormControlElement*> formElements;
 
-    class CheckedRadioButtons: public WTF::FastAllocBase {
+    class CheckedRadioButtons/*: public WTF::FastAllocBase*/ {
     public:
         void addButton(HTMLFormControlElement*);
         void removeButton(HTMLFormControlElement*);

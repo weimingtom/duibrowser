@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef OriginUsageRecord_h
@@ -42,7 +42,7 @@
 
 namespace WebCore {
 
-class OriginUsageRecord: public WTF::FastAllocBase {
+class OriginUsageRecord/*: public WTF::FastAllocBase*/ {
 public:
     OriginUsageRecord();
     
@@ -52,7 +52,7 @@ public:
     unsigned long long diskUsage();
 
 private:
-    struct DatabaseEntry: public WTF::FastAllocBase {
+    struct DatabaseEntry/*: public WTF::FastAllocBase*/ {
         DatabaseEntry() : size(OriginUsageRecord::unknownDiskUsage()) { }
         DatabaseEntry(const String& theFilename, unsigned long long theSize) : filename(theFilename), size(theSize) { }
         String filename;

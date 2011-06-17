@@ -21,7 +21,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGFitToViewBox_h
@@ -36,7 +36,7 @@ namespace WebCore {
     class AffineTransform;
     class SVGPreserveAspectRatio;
 
-    class SVGFitToViewBox: public WTF::FastAllocBase {
+    class SVGFitToViewBox/*: public WTF::FastAllocBase*/ {
     public:
         SVGFitToViewBox();
         virtual ~SVGFitToViewBox();

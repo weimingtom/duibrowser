@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef CanvasRenderingContext2D_h
@@ -184,7 +184,7 @@ namespace WebCore {
     private:
         CanvasRenderingContext2D(HTMLCanvasElement*);
 
-        struct State: public WTF::FastAllocBase {
+        struct State/*: public WTF::FastAllocBase*/ {
             State();
 
             RefPtr<CanvasStyle> m_strokeStyle;

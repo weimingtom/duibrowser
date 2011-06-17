@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGTransformDistance_h
@@ -34,7 +34,7 @@ namespace WebCore {
     
     class AffineTransform;
         
-    class SVGTransformDistance: public WTF::FastAllocBase {
+    class SVGTransformDistance/*: public WTF::FastAllocBase*/ {
     public:
         SVGTransformDistance();
         SVGTransformDistance(const SVGTransform& fromTransform, const SVGTransform& toTransform);
