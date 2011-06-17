@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SubstituteData_h
@@ -40,7 +40,7 @@
 
 namespace WebCore {
 
-    class SubstituteData: public WTF::FastAllocBase {
+    class SubstituteData/*: public WTF::FastAllocBase*/ {
     public:
         SubstituteData() { }
 

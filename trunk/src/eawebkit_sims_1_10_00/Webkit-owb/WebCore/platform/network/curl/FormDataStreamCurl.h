@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef FormatDataStreamCurl_h
@@ -39,7 +39,7 @@
 
 namespace WebCore {
 
-class FormDataStream: public WTF::FastAllocBase {
+class FormDataStream/*: public WTF::FastAllocBase*/ {
 public:
     FormDataStream(ResourceHandle* handle)
         : m_resourceHandle(handle)

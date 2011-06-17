@@ -27,7 +27,7 @@
  */
  
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef FontPlatformData_H
@@ -44,7 +44,7 @@
 
 namespace WebCore {
 
-class FontPlatformData: public WTF::FastAllocBase {
+class FontPlatformData/*: public WTF::FastAllocBase*/ {
 public:
     enum FontState { UNINITIALIZED, DELETED, VALID };
 

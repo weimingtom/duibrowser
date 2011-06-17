@@ -48,19 +48,20 @@
 #include "RenderPartObject.h"
 #include "RenderTheme.h"
 #include "RenderView.h"
+#include <EAWebKit/internal/EAWebKitViewHelper.h> // For multiview support
 
 namespace WebCore {
 
 using namespace HTMLNames;
 
-struct ScheduledEvent: public WTF::FastAllocBase {
+struct ScheduledEvent/*: public WTF::FastAllocBase*/ {
     RefPtr<Event> m_event;
     RefPtr<EventTargetNode> m_eventTarget;
     bool m_tempEvent;
 };
 #include <wtf/FastAllocBase.h>
 
-class FrameViewPrivate: public WTF::FastAllocBase {
+class FrameViewPrivate/*: public WTF::FastAllocBase*/ {
 public:
     FrameViewPrivate(FrameView* view)
         : m_slowRepaintObjectCount(0)
@@ -771,6 +772,9 @@ void FrameView::endDeferredRepaints()
 
 void FrameView::layoutTimerFired(Timer<FrameView>*)
 {
+    EA::WebKit::View* pView = EA::WebKit::GetView(this);
+    SET_AUTO_ACTIVE_VIEW(pView);   // For mutliple view support for could be fired inside another view currently
+
 #ifdef INSTRUMENT_LAYOUT_SCHEDULING
     if (m_frame->document() && !m_frame->document()->ownerElement())
        OWB_PRINTF("Layout timer fired at %d\n", m_frame->document()->elapsedTime());
@@ -984,6 +988,9 @@ void FrameView::performPostLayoutTasks()
 
 void FrameView::postLayoutTimerFired(Timer<FrameView>*)
 {
+    EA::WebKit::View* pView = EA::WebKit::GetView(this);
+    SET_AUTO_ACTIVE_VIEW(pView);   // For mutliple view support for could be fired inside another view currently
+    
     performPostLayoutTasks();
 }
 

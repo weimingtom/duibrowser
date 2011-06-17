@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef InspectorClient_h
@@ -37,7 +37,7 @@ class Node;
 class Page;
 class String;
 
-class InspectorClient: public WTF::FastAllocBase {
+class InspectorClient/*: public WTF::FastAllocBase*/ {
 public:
     virtual ~InspectorClient() {  }
 

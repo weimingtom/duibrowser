@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SharedBuffer_h
@@ -53,8 +53,8 @@ namespace WebCore {
 class SharedBuffer : public RefCounted<SharedBuffer> {
 public:
     static PassRefPtr<SharedBuffer> create() { return adoptRef(new SharedBuffer); }
-    static PassRefPtr<SharedBuffer> create(const char* c, int i) { return adoptRef(new SharedBuffer(c, i)); }
-    static PassRefPtr<SharedBuffer> create(const unsigned char* c, int i) { return adoptRef(new SharedBuffer(c, i)); }
+    static PassRefPtr<SharedBuffer> create(const char* c, int i, int expectedLength = 0) { return adoptRef(new SharedBuffer(c, i, expectedLength)); }
+    static PassRefPtr<SharedBuffer> create(const unsigned char* c, int i, int expectedLength = 0) { return adoptRef(new SharedBuffer(c, i, expectedLength)); }
 
     static PassRefPtr<SharedBuffer> createWithContentsOfFile(const String& filePath);
 
@@ -83,8 +83,8 @@ public:
     
 private:
     SharedBuffer();
-    SharedBuffer(const char*, int);
-    SharedBuffer(const unsigned char*, int);
+    SharedBuffer(const char*, int, int);
+    SharedBuffer(const unsigned char*, int, int);
     
     void clearPlatformData();
     void maybeTransferPlatformData();

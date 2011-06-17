@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef EventHandler_h
@@ -84,7 +84,8 @@ extern const int GeneralDragHysteresis;
 
 class EventHandler : Noncopyable {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -113,6 +114,7 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
+#endif //NO_MACRO_NEW
 public:
     EventHandler(Frame*);
     ~EventHandler();
@@ -219,7 +221,7 @@ public:
 #endif
 
 private:
-    struct EventHandlerDragState: public WTF::FastAllocBase {
+    struct EventHandlerDragState/*: public WTF::FastAllocBase*/ {
         RefPtr<Node> m_dragSrc; // element that may be a drag source, for the current mouse gesture
         bool m_dragSrcIsLink;
         bool m_dragSrcIsImage;

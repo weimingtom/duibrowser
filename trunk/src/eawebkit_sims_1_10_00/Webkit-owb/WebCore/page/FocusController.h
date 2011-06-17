@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef FocusController_h
@@ -42,7 +42,7 @@ namespace WebCore {
     class Node;
     class Page;
 
-    class FocusController: public WTF::FastAllocBase {
+    class FocusController/*: public WTF::FastAllocBase*/ {
     public:
         FocusController(Page*);
 

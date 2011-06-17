@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Settings_h
@@ -48,7 +48,7 @@ namespace WebCore {
         EditableLinkNeverLive
     };
 
-    class Settings: public WTF::FastAllocBase {
+    class Settings/*: public WTF::FastAllocBase*/ {
     public:
         Settings(Page*);
 

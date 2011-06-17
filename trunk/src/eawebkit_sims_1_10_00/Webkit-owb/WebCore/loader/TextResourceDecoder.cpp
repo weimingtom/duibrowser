@@ -20,7 +20,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 
@@ -93,7 +93,7 @@ static TextEncoding findTextEncoding(const char* encodingName, int length)
 }
 
 #include <wtf/FastAllocBase.h>
-class KanjiCode: public WTF::FastAllocBase {
+class KanjiCode/*: public WTF::FastAllocBase*/ {
 public:
     enum Type { ASCII, JIS, EUC, SJIS, UTF16, UTF8 };
     static enum Type judge(const char* str, int length);

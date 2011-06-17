@@ -19,7 +19,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef PopupMenuClient_h
@@ -34,7 +34,7 @@ class FontSelector;
 class String;
 class RenderStyle;
 
-class PopupMenuClient: public WTF::FastAllocBase {
+class PopupMenuClient/*: public WTF::FastAllocBase*/ {
 public:
     virtual ~PopupMenuClient() {}
     virtual void valueChanged(unsigned listIndex, bool fireEvents = true) = 0;

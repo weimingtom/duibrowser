@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SegmentedFontData_h
@@ -38,7 +38,7 @@ namespace WebCore {
 
 class SimpleFontData;
 
-struct FontDataRange: public WTF::FastAllocBase {
+struct FontDataRange/*: public WTF::FastAllocBase*/ {
     FontDataRange(UChar32 from, UChar32 to, const SimpleFontData* fontData)
         : m_from(from)
         , m_to(to)

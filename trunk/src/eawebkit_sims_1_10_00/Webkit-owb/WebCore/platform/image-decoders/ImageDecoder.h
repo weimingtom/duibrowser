@@ -24,25 +24,27 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef IMAGE_DECODER_H_
 #define IMAGE_DECODER_H_
 
+#include <EARaster/internal/EARasterUtils.h>
 #include <wtf/FastAllocBase.h>
 #include "IntRect.h"
 #include "ImageSource.h"
 #include "SharedBuffer.h"
 #include <wtf/Vector.h>
 
+ 
 namespace WebCore {
 
 typedef Vector<unsigned> RGBA32Array;
 
 // The RGBA32Buffer object represents the decoded image data in RGBA32 format.  This buffer is what all
 // decoders write a single frame into.  Frames are then instantiated for drawing by being handed this buffer.
-class RGBA32Buffer: public WTF::FastAllocBase
+class RGBA32Buffer/*: public WTF::FastAllocBase*/
 {
 public:
     enum FrameStatus { FrameEmpty, FramePartial, FrameComplete };
@@ -75,20 +77,26 @@ public:
     void setDisposalMethod(FrameDisposalMethod method) { m_disposalMethod = method; }
     void setHasAlpha(bool alpha) { m_hasAlpha = alpha; }
 
-    static void setRGBA(unsigned& pos, unsigned r, unsigned g, unsigned b, unsigned a)
+    // EA/Alex Mole: always inline this as it's only called from a handful of inner loops
+    static ALWAYS_INLINE void setRGBA(unsigned& pos, unsigned r, unsigned g, unsigned b, unsigned a)
     {
         // We store this data pre-multiplied.
         if (a == 0)
             pos = 0;
         else {
             if (a < 255) {
-                float alphaPercent = a / 255.0f;
-                r = static_cast<unsigned>(r * alphaPercent);
-                g = static_cast<unsigned>(g * alphaPercent);
-                b = static_cast<unsigned>(b * alphaPercent);
+                r = EA::Raster::DivideBy255Rounded(r * a);
+                g = EA::Raster::DivideBy255Rounded(g * a);
+                b = EA::Raster::DivideBy255Rounded(b * a);
             }
             pos = (a << 24 | r << 16 | g << 8 | b);
         }
+    }
+
+    // EA/Alex Mole: add rgb-specific version of setRGBA as the RGBA version is pretty heavyweight
+    static ALWAYS_INLINE void setRGBWithPresetAlpha(unsigned& pos, unsigned r, unsigned g, unsigned b)
+    {
+        pos = ( 0xff000000 | r << 16 | g << 8 | b);
     }
 
 private:
@@ -106,14 +114,25 @@ private:
 // The ImageDecoder class represents a base class for specific image format decoders
 // (e.g., GIF, JPG, PNG, ICO) to derive from.  All decoders decode into RGBA32 format
 // and the base class manages the RGBA32 frame cache.
-class ImageDecoder: public WTF::FastAllocBase
+class ImageDecoder/*: public WTF::FastAllocBase*/
 {
 public:
-    ImageDecoder() :m_sizeAvailable(false), m_failed(false) {}
+    ImageDecoder()
+		: m_sizeAvailable(false),
+		  m_failed(false),
+		  m_lockPrune(false),
+		  m_allDataReceived(false)
+	{
+
+	}
     virtual ~ImageDecoder() {}
 
     // All specific decoder plugins must do something with the data they are given.
-    virtual void setData(SharedBuffer* data, bool allDataReceived) { m_data = data; }
+    virtual void setData(SharedBuffer* data, bool allDataReceived) 
+	{ 
+		m_data = data;
+		m_allDataReceived = allDataReceived;
+	}
 
     // Whether or not the size information has been decoded yet.
     virtual bool isSizeAvailable() const = 0;
@@ -140,12 +159,22 @@ public:
     bool failed() const { return m_failed; }
     void setFailed() { m_failed = true; }
 
+    // 7/14/09 CS - Added
+    bool imagePruneLockStatus() const {return m_lockPrune;}
+    void setImagePruneLockStatus(bool status){m_lockPrune = status;} 
+
 protected:
     RefPtr<SharedBuffer> m_data; // The encoded data.
     Vector<RGBA32Buffer> m_frameBufferCache;
     bool m_sizeAvailable;
     mutable bool m_failed;
     IntSize m_size;
+    bool m_lockPrune;    // 7/14/09 CSidhall - Added to prevent image pruning 
+	//Note by Arpit Baldeva - Add this to only decode when the entire data is available. This is pretty useful in general and would shine on slower connections. 
+	//This avoids memory fragmentation because we keep on creating "zoom surface" for a partially decoded image. Also, we get some speed optimization
+	//for not decoding the partial images.
+	//An example page with a single image using a file transport handler(currently, capped at 4K which is bad) did 400 less allocations.
+	bool m_allDataReceived; 
 };
 
 }

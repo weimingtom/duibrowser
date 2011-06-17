@@ -23,7 +23,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef DocLoader_h
@@ -50,7 +50,7 @@ class HTMLImageLoader;
 class KURL;
 
 // The DocLoader manages the loading of scripts/images/stylesheets for a single document.
-class DocLoader: public WTF::FastAllocBase
+class DocLoader/*: public WTF::FastAllocBase*/
 {
 friend class Cache;
 friend class HTMLImageLoader;

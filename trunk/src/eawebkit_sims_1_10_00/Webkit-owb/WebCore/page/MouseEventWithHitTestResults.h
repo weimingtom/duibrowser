@@ -19,7 +19,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef MouseEventWithHitTestResults_h
@@ -34,7 +34,7 @@ namespace WebCore {
 class PlatformScrollbar;
 
 // FIXME: Why doesn't this class just cache a HitTestResult instead of copying all of HitTestResult's fields over?
-class MouseEventWithHitTestResults: public WTF::FastAllocBase {
+class MouseEventWithHitTestResults/*: public WTF::FastAllocBase*/ {
 public:
     MouseEventWithHitTestResults(const PlatformMouseEvent&, const HitTestResult&);
 

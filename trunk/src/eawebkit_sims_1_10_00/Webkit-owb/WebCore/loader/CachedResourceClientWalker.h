@@ -25,7 +25,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef CachedResourceClientWalker_h
@@ -41,7 +41,7 @@ namespace WebCore {
 
     // Call this "walker" instead of iterator so people won't expect Qt or STL-style iterator interface.
     // Just keep calling next() on this. It's safe from deletions of items.
-    class CachedResourceClientWalker: public WTF::FastAllocBase {
+    class CachedResourceClientWalker/*: public WTF::FastAllocBase*/ {
     public:
         CachedResourceClientWalker(const HashCountedSet<CachedResourceClient*>&);
         CachedResourceClient* next();

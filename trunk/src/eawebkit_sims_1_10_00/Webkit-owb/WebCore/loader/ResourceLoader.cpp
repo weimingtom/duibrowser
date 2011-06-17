@@ -28,7 +28,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -180,7 +180,7 @@ void ResourceLoader::addData(const char* data, int length, bool allAtOnce)
         return;
 
     if (allAtOnce) {
-        m_resourceData = SharedBuffer::create(data, length);
+        m_resourceData = SharedBuffer::create(data, length,m_response.expectedContentLength());
         return;
     }
         
@@ -190,7 +190,7 @@ void ResourceLoader::addData(const char* data, int length, bool allAtOnce)
             m_resourceData->append(data, length);
     } else {
         if (!m_resourceData)
-            m_resourceData = SharedBuffer::create(data, length);
+            m_resourceData = SharedBuffer::create(data, length, m_response.expectedContentLength());
         else
             m_resourceData->append(data, length);
     }

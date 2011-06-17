@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef DragClient_h
@@ -57,7 +57,7 @@ namespace WebCore {
     class Image;
     class HTMLImageElement;
     
-    class DragClient: public WTF::FastAllocBase {
+    class DragClient/*: public WTF::FastAllocBase*/ {
     public:
         virtual void willPerformDragDestinationAction(DragDestinationAction, DragData*) = 0;
         virtual void willPerformDragSourceAction(DragSourceAction, const IntPoint&, Clipboard*) = 0;

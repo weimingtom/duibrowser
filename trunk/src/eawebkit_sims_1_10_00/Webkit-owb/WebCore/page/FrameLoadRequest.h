@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef FrameLoadRequest_h
@@ -36,7 +36,7 @@
 
 namespace WebCore {
 
-    struct FrameLoadRequest: public WTF::FastAllocBase {
+    struct FrameLoadRequest/*: public WTF::FastAllocBase*/ {
     public:
         FrameLoadRequest()
             : m_lockHistory(false)

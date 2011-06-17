@@ -69,7 +69,7 @@
 // Original version of this file can currently be found at: http://mxr.mozilla.org/mozilla1.8/source/netwerk/streamconv/converters/ParseFTPList.h
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef FTPDirectoryParser_h
@@ -93,7 +93,7 @@ namespace WebCore {
 
 typedef struct tm FTPTime;
 
-struct ListState: public WTF::FastAllocBase {
+struct ListState/*: public WTF::FastAllocBase*/ {
     ListState()
         : now(0)
         , listStyle(0)
@@ -121,7 +121,7 @@ enum FTPEntryType {
     FTPJunkEntry
 };
 
-struct ListResult: public WTF::FastAllocBase
+struct ListResult/*: public WTF::FastAllocBase*/
 {
     ListResult()
     { 

@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -49,7 +49,7 @@ namespace WebCore {
 WTFLogChannel LogWebCoreSubresourceLoaderLeaks =  { 0x00000000, "", WTFLogChannelOn };
 
 #include <wtf/FastAllocBase.h>
-struct SubresourceLoaderCounter: public WTF::FastAllocBase {
+struct SubresourceLoaderCounter/*: public WTF::FastAllocBase*/ {
     static unsigned count; 
 
     ~SubresourceLoaderCounter() 

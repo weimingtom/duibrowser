@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef EditorClient_h
@@ -59,14 +59,14 @@ class Selection;
 class String;
 class VisiblePosition;
 
-struct GrammarDetail: public WTF::FastAllocBase {
+struct GrammarDetail/*: public WTF::FastAllocBase*/ {
     int location;
     int length;
     Vector<String> guesses;
     String userDescription;
 };
 
-class EditorClient: public WTF::FastAllocBase {
+class EditorClient/*: public WTF::FastAllocBase*/ {
 public:
     virtual ~EditorClient() {  }
     virtual void pageDestroyed() = 0;

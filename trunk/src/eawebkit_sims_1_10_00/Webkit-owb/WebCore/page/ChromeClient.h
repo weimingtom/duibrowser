@@ -19,7 +19,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ChromeClient_h
@@ -55,7 +55,7 @@ namespace WebCore {
     struct FrameLoadRequest;
     struct WindowFeatures;
 
-    class ChromeClient: public WTF::FastAllocBase {
+    class ChromeClient/*: public WTF::FastAllocBase*/ {
     public:
         virtual void chromeDestroyed() = 0;
         

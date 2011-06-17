@@ -28,7 +28,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -97,7 +97,7 @@
 #include <EAWebKit/EAWebKitLinkHook.h>
 #include <EAWebKit/EAWebkit.h>
 #include "WebView.h"
-
+#include <EAWebKit/internal/EAWebKitViewHelper.h>
 
 #if ENABLE(OFFLINE_WEB_APPLICATIONS)
 #include "ApplicationCache.h"
@@ -129,7 +129,7 @@ using namespace HTMLNames;
 const unsigned int cMaxPendingSourceLengthInLowBandwidthDisplay = 128 * 1024;
 #endif
 
-struct FormSubmission: public WTF::FastAllocBase {
+struct FormSubmission/*: public WTF::FastAllocBase*/ {
     const char* action;
     String url;
     RefPtr<FormData> data;
@@ -151,7 +151,7 @@ struct FormSubmission: public WTF::FastAllocBase {
     }
 };
 
-struct ScheduledRedirection: public WTF::FastAllocBase {
+struct ScheduledRedirection/*: public WTF::FastAllocBase*/ {
     enum Type { redirection, locationChange, historyNavigation, locationChangeDuringLoad };
     Type type;
     double delay;
@@ -4095,8 +4095,9 @@ void FrameLoader::addBackForwardItemClippedAtTarget(bool doClip)
 
     RefPtr<HistoryItem> item = frameLoader->createHistoryItemTree(m_frame, doClip);
     LOG(BackForward, "WebCoreBackForward - Adding backforward item %p for frame %s", item.get(), documentLoader()->url().string().ascii().data());
+    SET_AUTO_ACTIVE_VIEW(EA::WebKit::GetView(m_frame)); // So we get a view in the history notification if needed.
     page->backForwardList()->addItem(item);
-}
+ }
 
 PassRefPtr<HistoryItem> FrameLoader::createHistoryItemTree(Frame* targetFrame, bool clipAtTarget)
 {

@@ -28,7 +28,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef FileChooser_h
@@ -42,7 +42,7 @@ class Document;
 class Font;
 class Icon;
 
-class FileChooserClient: public WTF::FastAllocBase {
+class FileChooserClient/*: public WTF::FastAllocBase*/ {
 public:
     virtual ~FileChooserClient() { }
     virtual void valueChanged() = 0;

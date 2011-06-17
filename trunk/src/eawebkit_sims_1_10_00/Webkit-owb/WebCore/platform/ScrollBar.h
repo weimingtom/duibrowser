@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ScrollBar_h
@@ -47,7 +47,7 @@ class PlatformMouseEvent;
 
 enum ScrollbarControlSize { RegularScrollbar, SmallScrollbar, MiniScrollbar };
 
-class ScrollbarClient: public WTF::FastAllocBase {
+class ScrollbarClient/*: public WTF::FastAllocBase*/ {
 public:
     virtual ~ScrollbarClient() {}
     virtual void valueChanged(Scrollbar*) = 0;

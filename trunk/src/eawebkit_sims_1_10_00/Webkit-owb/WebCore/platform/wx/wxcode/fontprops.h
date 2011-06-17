@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include <wx/defs.h>
@@ -34,7 +34,7 @@ void GetTextExtent( const wxFont& font, const wxString& str, wxCoord *width, wxC
                             wxCoord *descent = NULL, wxCoord *externalLeading = NULL );
 #include <wtf/FastAllocBase.h>
 
-class wxFontPropertie: public WTF::FastAllocBase {
+class wxFontPropertie/*: public WTF::FastAllocBase*/ {
 
 public:
     wxFontProperties(wxFont* font);

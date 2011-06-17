@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ApplicationCacheStorage_h
@@ -46,7 +46,7 @@ class ApplicationCacheGroup;
 class ApplicationCacheResource;
 class KURL;
     
-class ApplicationCacheStorage: public WTF::FastAllocBase {
+class ApplicationCacheStorage/*: public WTF::FastAllocBase*/ {
 public:
     void setCacheDirectory(const String&);
     

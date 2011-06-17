@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WindowFeatures_h
@@ -39,7 +39,7 @@
 
 namespace WebCore {
 
-    struct WindowFeatures: public WTF::FastAllocBase {
+    struct WindowFeatures/*: public WTF::FastAllocBase*/ {
         WindowFeatures()
             : xSet(false)
             , ySet(false)

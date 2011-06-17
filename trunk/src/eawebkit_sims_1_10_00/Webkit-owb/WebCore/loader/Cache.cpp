@@ -74,10 +74,6 @@ void Cache::staticFinalize()
     }
 }
 
-
-
-
-
 Cache::Cache()
 : m_disabled(false)
 , m_pruneEnabled(true)
@@ -91,9 +87,27 @@ Cache::Cache()
 }
 
 // 4/27/09 CSidhall - Added destructor to clean up m_resources to fix memory leak
-// Resource is not refcounted so there is some danger in deleting it but will leak if ignored.
 Cache::~Cache()
 {
+    // First collect the resource candiates for removal because the removal itself removes from the m_resources map directly.
+    // Resources are not ref counted so deleteAllValues can cause problems on EAWebKit exit if fonts are being shared.
+    Vector<CachedResource *> resources;
+    int resourceSize = m_resources.size();   
+    resources.reserveCapacity(resourceSize);
+    CachedResourceMap::iterator end = m_resources.end();
+    for (CachedResourceMap::iterator i = m_resources.begin(); i != end; ++i) {
+        CachedResource *pRes = i->second;
+         resources.append(pRes);
+     }
+
+    // Remove when possible
+    int size = resources.size();
+    for(int i=0; i < size; i++) {
+        if(resources[i])
+            remove(resources[i]);
+    }
+
+    // Clean up anything that was missed by remove. 
     deleteAllValues(m_resources);
 }
 

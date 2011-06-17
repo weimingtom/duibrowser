@@ -19,7 +19,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef PrintContext_h
@@ -35,7 +35,7 @@ class FloatRect;
 class GraphicsContext;
 class IntRect;
 
-class PrintContext: public WTF::FastAllocBase {
+class PrintContext/*: public WTF::FastAllocBase*/ {
 public:
     PrintContext(Frame*);
     ~PrintContext();

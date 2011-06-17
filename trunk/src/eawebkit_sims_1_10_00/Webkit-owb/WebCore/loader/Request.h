@@ -21,7 +21,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Request_h
@@ -35,7 +35,7 @@ namespace WebCore {
     class CachedResource;
     class DocLoader;
 
-    class Request: public WTF::FastAllocBase {
+    class Request/*: public WTF::FastAllocBase*/ {
     public:
         Request(DocLoader*, CachedResource*, bool incremental, bool skipCanLoadCheck, bool sendResourceLoadCallbacks);
         ~Request();

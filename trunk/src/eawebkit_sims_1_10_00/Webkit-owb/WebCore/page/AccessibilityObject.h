@@ -28,7 +28,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef AccessibilityObject_h
@@ -150,7 +150,7 @@ enum AccessibilityRole {
     ListBoxOptionRole
 };
 
-struct VisiblePositionRange: public WTF::FastAllocBase {
+struct VisiblePositionRange/*: public WTF::FastAllocBase*/ {
 
     VisiblePosition start;
     VisiblePosition end;
@@ -165,7 +165,7 @@ struct VisiblePositionRange: public WTF::FastAllocBase {
     bool isNull() const { return start.isNull() || end.isNull(); }
 };
 
-struct PlainTextRange: public WTF::FastAllocBase {
+struct PlainTextRange/*: public WTF::FastAllocBase*/ {
         
     unsigned start;
     unsigned length;

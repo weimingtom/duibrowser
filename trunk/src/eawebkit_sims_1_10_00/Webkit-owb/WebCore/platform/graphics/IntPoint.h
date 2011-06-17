@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef IntPoint_h
@@ -66,7 +66,7 @@ class wxPoint;
 
 namespace WebCore {
 
-class IntPoint: public WTF::FastAllocBase {
+class IntPoint/*: public WTF::FastAllocBase*/ {
 public:
     IntPoint() : m_x(0), m_y(0) { }
     IntPoint(int x, int y) : m_x(x), m_y(y) { }

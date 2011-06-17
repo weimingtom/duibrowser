@@ -19,7 +19,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef IntSizeHash_h
@@ -34,7 +34,7 @@ using WebCore::IntSize;
 
 namespace WTF {
 
-    template<> struct IntHash<IntSize>: public WTF::FastAllocBase {
+    template<> struct IntHash<IntSize>/*: public WTF::FastAllocBase*/ {
         static unsigned hash(const IntSize& key) { return intHash((static_cast<uint64_t>(key.width()) << 32 | key.height())); }
         static bool equal(const IntSize& a, const IntSize& b) { return a == b; }
         static const bool safeToCompareToEmptyOrDeleted = true;

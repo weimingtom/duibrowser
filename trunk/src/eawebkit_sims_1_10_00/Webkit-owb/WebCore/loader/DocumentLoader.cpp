@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -679,7 +679,7 @@ void DocumentLoader::setTitle(const String& title)
         EA::WebKit::View* pView = EA::WebKit::GetView(frame());
         if(pView){
             EA::WebKit::LoadInfo& loadInfo = pView->GetLoadInfo();
-            GET_FIXEDSTRING16(loadInfo.mPageTitle)->assign(trimmed.characters(), trimmed.length());
+            GetFixedString(loadInfo.mPageTitle)->assign(trimmed.characters(), trimmed.length());
         }
         //- CS
     }

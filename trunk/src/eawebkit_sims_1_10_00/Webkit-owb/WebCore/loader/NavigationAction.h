@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef NavigationAction_h
@@ -41,7 +41,7 @@
 
 namespace WebCore {
 
-    class NavigationAction: public WTF::FastAllocBase {
+    class NavigationAction/*: public WTF::FastAllocBase*/ {
     public:
         NavigationAction();
         NavigationAction(const KURL&, NavigationType);

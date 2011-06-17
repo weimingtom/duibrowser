@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef NetworkStateNotifier_h
@@ -41,7 +41,7 @@ typedef const struct __SCDynamicStore * SCDynamicStoreRef;
 
 namespace WebCore {
 
-class NetworkStateNotifier: public WTF::FastAllocBase {
+class NetworkStateNotifier/*: public WTF::FastAllocBase*/ {
 public:
     NetworkStateNotifier();
     void setNetworkStateChangedFunction(void (*)());

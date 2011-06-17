@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ResourceErrorBase_h
@@ -38,7 +38,7 @@ namespace WebCore {
 
 class ResourceError;
 
-class ResourceErrorBase: public WTF::FastAllocBase {
+class ResourceErrorBase/*: public WTF::FastAllocBase*/ {
 public:
     bool isNull() const { return m_isNull; }
 

@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef IconFetcher_h
@@ -43,7 +43,7 @@ struct IconLinkEntry;
 class ResourceHandle;
 class SharedBuffer;
 
-class IconFetcherClient: public WTF::FastAllocBase {
+class IconFetcherClient/*: public WTF::FastAllocBase*/ {
 public:
     virtual void finishedFetchingIcon(PassRefPtr<SharedBuffer> iconData) = 0;
     

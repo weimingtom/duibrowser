@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Gradient_h
@@ -71,7 +71,7 @@ namespace WebCore {
 
         PlatformGradient platformGradient();
 
-        struct ColorStop: public WTF::FastAllocBase {
+        struct ColorStop/*: public WTF::FastAllocBase*/ {
             float stop;
             float red;
             float green;

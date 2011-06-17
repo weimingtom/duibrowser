@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Widget_h
@@ -82,7 +82,7 @@ namespace WebCore {
     class WidgetClient;
     class WidgetPrivate;
 
-    class Widget: public WTF::FastAllocBase {
+    class Widget/*: public WTF::FastAllocBase*/ {
     public:
         Widget();
         virtual ~Widget();

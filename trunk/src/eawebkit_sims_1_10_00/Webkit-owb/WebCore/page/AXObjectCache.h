@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef AXObjectCache_h
@@ -53,14 +53,14 @@ namespace WebCore {
     
     typedef unsigned AXID;
 
-    struct TextMarkerData : public WTF::FastAllocBase {
+    struct TextMarkerData /*: public WTF::FastAllocBase*/ {
         AXID axID;
         Node* node;
         int offset;
         EAffinity affinity;
     };
 
-    class AXObjectCache: public WTF::FastAllocBase {
+    class AXObjectCache/*: public WTF::FastAllocBase*/ {
     public:
         ~AXObjectCache();
         

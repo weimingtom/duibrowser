@@ -18,7 +18,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef FormData_h
@@ -32,7 +32,7 @@ namespace WebCore {
 
 class ChromeClient;
 
-class FormDataElement: public WTF::FastAllocBase {
+class FormDataElement/*: public WTF::FastAllocBase*/ {
 public:
     FormDataElement() : m_type(data) { }
     FormDataElement(const Vector<char>& array) : m_type(data), m_data(array) { }

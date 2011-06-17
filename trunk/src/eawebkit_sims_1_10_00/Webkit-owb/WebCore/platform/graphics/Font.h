@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Font_h
@@ -58,7 +58,7 @@ class SVGPaintServer;
 
 struct GlyphData;
 
-class TextRun: public WTF::FastAllocBase {
+class TextRun/*: public WTF::FastAllocBase*/ {
 public:
     TextRun(const UChar* c, int len, bool allowTabs = false, int xpos = 0, int padding = 0, bool rtl = false, bool directionalOverride = false,
               bool applyRunRounding = true, bool applyWordRounding = true)
@@ -148,7 +148,7 @@ private:
 #endif
 };
 
-class Font: public WTF::FastAllocBase {
+class Font/*: public WTF::FastAllocBase*/ {
 public:
     Font();
     Font(const FontDescription&, short letterSpacing, short wordSpacing);

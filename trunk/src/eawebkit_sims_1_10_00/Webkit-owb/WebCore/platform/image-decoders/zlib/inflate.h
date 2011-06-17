@@ -4,7 +4,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 /* WARNING: this file should *not* be used by applications. It is
@@ -79,7 +79,7 @@ typedef enum {
  */
 
 /* state maintained between inflate() calls.  Approximately 7K bytes. */
-struct inflate_state: public WTF::FastAllocBase {
+struct inflate_state/*: public WTF::FastAllocBase*/ {
     inflate_mode mode;          /* current inflate mode */
     int last;                   /* true if processing last block */
     int wrap;                   /* bit 0 true for zlib, bit 1 true for gzip */

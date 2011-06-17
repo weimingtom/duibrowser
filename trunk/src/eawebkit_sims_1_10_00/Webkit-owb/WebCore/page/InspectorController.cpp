@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -155,7 +155,7 @@ JSValueRef InspectorController::callFunction(JSContextRef context, JSObjectRef t
 
 // ConsoleMessage Struct
 
-struct ConsoleMessage: public WTF::FastAllocBase {
+struct ConsoleMessage/*: public WTF::FastAllocBase*/ {
     ConsoleMessage(MessageSource s, MessageLevel l, const String& m, unsigned li, const String& u)
         : source(s)
         , level(l)
@@ -187,7 +187,7 @@ struct ConsoleMessage: public WTF::FastAllocBase {
 
 // XMLHttpRequestResource Class
 
-struct XMLHttpRequestResource: public WTF::FastAllocBase {
+struct XMLHttpRequestResource/*: public WTF::FastAllocBase*/ {
     XMLHttpRequestResource(KJS::UString& sourceString)
     {
         KJS::JSLock lock;
