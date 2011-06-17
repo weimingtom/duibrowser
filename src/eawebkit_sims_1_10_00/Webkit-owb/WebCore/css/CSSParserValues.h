@@ -19,7 +19,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef CSSParserValues_h
@@ -32,7 +32,7 @@ namespace WebCore {
 
 class CSSValue;
 
-struct CSSParserString: public WTF::FastAllocBase {
+struct CSSParserString/*: public WTF::FastAllocBase*/ {
     UChar* characters;
     int length;
 
@@ -44,7 +44,7 @@ struct CSSParserString: public WTF::FastAllocBase {
 
 struct CSSParserFunction;
 
-struct CSSParserValue: public WTF::FastAllocBase {
+struct CSSParserValue/*: public WTF::FastAllocBase*/ {
     int id;
     bool isInt;
     union {
@@ -63,7 +63,7 @@ struct CSSParserValue: public WTF::FastAllocBase {
     PassRefPtr<CSSValue> createCSSValue();
 };
 
-class CSSParserValueList: public WTF::FastAllocBase {
+class CSSParserValueList/*: public WTF::FastAllocBase*/ {
 public:
     CSSParserValueList()
         : m_current(0)
@@ -91,7 +91,7 @@ private:
     unsigned m_variablesCount;
 };
 
-struct CSSParserFunction: public WTF::FastAllocBase {
+struct CSSParserFunction/*: public WTF::FastAllocBase*/ {
     CSSParserString name;
     CSSParserValueList* args;
 

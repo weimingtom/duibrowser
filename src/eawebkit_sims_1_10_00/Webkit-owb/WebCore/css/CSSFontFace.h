@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef CSSFontFace_h
@@ -68,7 +68,7 @@ public:
 
     SimpleFontData* getFontData(const FontDescription&, bool syntheticBold, bool syntheticItalic);
 
-    struct UnicodeRange: public WTF::FastAllocBase {
+    struct UnicodeRange/*: public WTF::FastAllocBase*/ {
         UnicodeRange(UChar32 from, UChar32 to)
             : m_from(from)
             , m_to(to)

@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef JSEventTargetBase_h
@@ -49,7 +49,7 @@ namespace WebCore {
     class EventTarget;
 
     // Event target properties (shared across all JSEventTarget* classes)
-    struct JSEventTargetProperties: public WTF::FastAllocBase {
+    struct JSEventTargetProperties/*: public WTF::FastAllocBase*/ {
         enum {
             AddEventListener, RemoveEventListener, DispatchEvent,
             OnAbort, OnBlur, OnChange, OnClick, OnContextMenu, OnDblClick, OnError,
@@ -65,7 +65,7 @@ namespace WebCore {
     const AtomicString& eventNameForPropertyToken(int token);
 
     template<class JSEventTarget>
-    class JSEventTargetBase: public WTF::FastAllocBase {
+    class JSEventTargetBase/*: public WTF::FastAllocBase*/ {
     public:
         JSEventTargetBase() { }
 

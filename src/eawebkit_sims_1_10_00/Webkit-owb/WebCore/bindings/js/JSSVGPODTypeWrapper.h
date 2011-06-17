@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef JSSVGPODTypeWrapper_h
@@ -169,7 +169,7 @@ private:
 
 // Caching facilities
 template<typename PODType, typename PODTypeCreator>
-struct PODTypeReadWriteHashInfo: public WTF::FastAllocBase {
+struct PODTypeReadWriteHashInfo/*: public WTF::FastAllocBase*/ {
     typedef PODType (PODTypeCreator::*GetterMethod)() const; 
     typedef void (PODTypeCreator::*SetterMethod)(PODType);
 
@@ -211,7 +211,7 @@ struct PODTypeReadWriteHashInfo: public WTF::FastAllocBase {
 };
 
 template<typename PODType, typename PODTypeCreator>
-struct PODTypeReadWriteHashInfoHash: public WTF::FastAllocBase {
+struct PODTypeReadWriteHashInfoHash/*: public WTF::FastAllocBase*/ {
     static unsigned hash(const PODTypeReadWriteHashInfo<PODType, PODTypeCreator>& info)
     {
         return StringImpl::computeHash(reinterpret_cast<const UChar*>(&info), sizeof(PODTypeReadWriteHashInfo<PODType, PODTypeCreator>) / sizeof(UChar));
@@ -247,7 +247,7 @@ struct PODTypeReadWriteHashInfoTraits : WTF::GenericHashTraits<PODTypeReadWriteH
 };
 
 template<typename PODType, typename PODTypeCreator>
-class JSSVGPODTypeWrapperCache: public WTF::FastAllocBase {
+class JSSVGPODTypeWrapperCache/*: public WTF::FastAllocBase*/ {
 public:
     typedef PODType (PODTypeCreator::*GetterMethod)() const; 
     typedef void (PODTypeCreator::*SetterMethod)(PODType);

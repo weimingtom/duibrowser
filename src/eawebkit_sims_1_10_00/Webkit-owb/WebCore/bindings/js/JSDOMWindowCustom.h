@@ -17,7 +17,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef JSDOMWindowCustom_h
@@ -30,7 +30,7 @@
 
 namespace WebCore {
 
-struct JSDOMWindowBasePrivate: public WTF::FastAllocBase {
+struct JSDOMWindowBasePrivate/*: public WTF::FastAllocBase*/ {
     JSDOMWindowBasePrivate(JSDOMWindowShell* shell)
         : m_evt(0)
         , m_returnValueSlot(0)

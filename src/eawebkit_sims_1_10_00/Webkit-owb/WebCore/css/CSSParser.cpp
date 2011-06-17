@@ -22,7 +22,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -3212,7 +3212,7 @@ bool CSSParser::parseColorFromValue(CSSParserValue* value, RGBA32& c, bool svg)
 
 // This class tracks parsing state for shadow values.  If it goes out of scope (e.g., due to an early return)
 // without the allowBreak bit being set, then it will clean up all of the objects and destroy them.
-struct ShadowParseContext: public WTF::FastAllocBase {
+struct ShadowParseContext/*: public WTF::FastAllocBase*/ {
     ShadowParseContext()
     : allowX(true)
     , allowY(false)
@@ -3388,7 +3388,7 @@ bool CSSParser::parseReflect(int propId, bool important)
     return true;
 }
 
-struct BorderImageParseContext: public WTF::FastAllocBase
+struct BorderImageParseContext/*: public WTF::FastAllocBase*/
 {
     BorderImageParseContext()
     : m_allowBreak(false)
@@ -3836,7 +3836,7 @@ bool CSSParser::parseCanvas(RefPtr<CSSValue>& canvas)
 }
 #include <wtf/FastAllocBase.h>
 
-class TransformOperationInfo: public WTF::FastAllocBase {
+class TransformOperationInfo/*: public WTF::FastAllocBase*/ {
 public:
     TransformOperationInfo(const CSSParserString& name)
     : m_type(CSSTransformValue::UnknownTransformOperation)

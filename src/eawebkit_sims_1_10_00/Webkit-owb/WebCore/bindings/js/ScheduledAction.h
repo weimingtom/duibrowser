@@ -18,7 +18,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ScheduledAction_h
@@ -37,7 +37,7 @@ namespace WebCore {
     * time interval, either once or repeatedly. Used for window.setTimeout()
     * and window.setInterval()
     */
-    class ScheduledAction: public WTF::FastAllocBase {
+    class ScheduledAction/*: public WTF::FastAllocBase*/ {
     public:
         ScheduledAction(KJS::JSValue* function, const KJS::ArgList&);
         ScheduledAction(const String& code)

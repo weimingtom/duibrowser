@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef C_UTILITY_H_
@@ -66,7 +66,7 @@ void convertValueToNPVariant(ExecState*, JSValue*, NPVariant* result);
 JSValue* convertNPVariantToValue(ExecState*, const NPVariant*, RootObject*);
 Identifier identifierFromNPIdentifier(const NPUTF8* name);
 
-struct PrivateIdentifier: public WTF::FastAllocBase {
+struct PrivateIdentifier/*: public WTF::FastAllocBase*/ {
     union {
         const NPUTF8* string;
         int32_t number;

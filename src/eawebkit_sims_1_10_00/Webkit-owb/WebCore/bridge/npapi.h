@@ -35,7 +35,7 @@
  * ***** END LICENSE BLOCK ***** */
  
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
  
@@ -54,7 +54,7 @@
 #define JRIEnv  void
 #endif
 
-#if defined(_WIN32) 
+#if defined(_WIN32) && !defined(_XBOX)
 #    ifndef XP_WIN
 #        define XP_WIN 1
 #    endif /* XP_WIN */

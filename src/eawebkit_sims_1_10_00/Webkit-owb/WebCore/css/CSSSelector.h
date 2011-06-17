@@ -22,7 +22,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef CSSSelector_h
@@ -34,7 +34,7 @@
 namespace WebCore {
 
     // this class represents a selector for a StyleRule
-    class CSSSelector: public WTF::FastAllocBase {
+    class CSSSelector/*: public WTF::FastAllocBase*/ {
     public:
         CSSSelector()
             : m_tagHistory(0)

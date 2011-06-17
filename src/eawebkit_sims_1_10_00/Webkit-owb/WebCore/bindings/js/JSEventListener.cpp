@@ -18,7 +18,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -175,7 +175,7 @@ void JSUnprotectedEventListener::mark()
 #endif
 WTFLogChannel LogWebCoreEventListenerLeaks = { 0x00000000, "", WTFLogChannelOn };
 
-struct EventListenerCounter: public WTF::FastAllocBase {
+struct EventListenerCounter/*: public WTF::FastAllocBase*/ {
     static unsigned count;
     ~EventListenerCounter()
     {

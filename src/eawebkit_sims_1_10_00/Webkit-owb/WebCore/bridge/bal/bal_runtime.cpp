@@ -33,6 +33,10 @@
 #include "bal_instance.h"
 #include "balValuePrivate.h"
 
+/*
+* This file was modified by Electronic Arts Inc Copyright © 2010
+*/
+
 namespace KJS {
 namespace Bindings {
 
@@ -45,7 +49,7 @@ JSValue* BalField::valueFromInstance(ExecState* exec, const Instance* inst) cons
 {
     const BalInstance* instance = static_cast<const BalInstance*>(inst);
     BalObject* obj = instance->getObject();
-    BalValue* val = obj->getProperty(m_ident);
+    BalValue* val = obj->getProperty(m_ident, exec);    // 3/25/10 CSidhall - Added exec so that a bal string can be set in JS.
     JSValue *v;
     if(val->m_obj != NULL)
         v = val->d->balObject(val->m_obj, exec);

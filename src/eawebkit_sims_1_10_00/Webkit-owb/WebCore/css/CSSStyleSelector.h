@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef CSSStyleSelector_h
@@ -66,7 +66,7 @@ class StyleSheet;
 class StyleSheetList;
 class StyledElement;
 
-class MediaQueryResult: public WTF::FastAllocBase {
+class MediaQueryResult/*: public WTF::FastAllocBase*/ {
 public:
     MediaQueryResult(const MediaQueryExp& expr, bool result)
         : m_expression(expr)
@@ -81,7 +81,8 @@ public:
     // This class selects a RenderStyle for a given element based on a collection of stylesheets.
     class CSSStyleSelector : Noncopyable {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -110,7 +111,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    public:
+#endif //NO_MACRO_NEW
+	public:
         static void staticFinalize();
 
         CSSStyleSelector(Document*, const String& userStyleSheet, StyleSheetList*, CSSStyleSheet*, bool strictParsing, bool matchAuthorAndUserStyles);
@@ -207,7 +209,8 @@ void operator delete[](void* p)
 
         class SelectorChecker : public Noncopyable {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -236,7 +239,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-        public:
+#endif //NO_MACRO_NEW
+		public:
             SelectorChecker(Document*, bool strictParsing, bool collectRulesOnly = true);
 
             bool checkSelector(CSSSelector*, Element*) const;
@@ -325,7 +329,7 @@ void operator delete[](void* p)
         HashMap<CSSMutableStyleDeclaration*, RefPtr<CSSMutableStyleDeclaration> > m_resolvedVariablesDeclarations;
     };
 
-    class CSSRuleData: public WTF::FastAllocBase {
+    class CSSRuleData/*: public WTF::FastAllocBase*/ {
     public:
         CSSRuleData(unsigned pos, CSSStyleRule* r, CSSSelector* sel, CSSRuleData* prev = 0)
             : m_position(pos)
@@ -351,7 +355,7 @@ void operator delete[](void* p)
         CSSRuleData* m_next;
     };
 
-    class CSSRuleDataList: public WTF::FastAllocBase {
+    class CSSRuleDataList/*: public WTF::FastAllocBase*/ {
     public:
         CSSRuleDataList(unsigned pos, CSSStyleRule* rule, CSSSelector* sel)
             : m_first(new CSSRuleData(pos, rule, sel))

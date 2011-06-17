@@ -19,7 +19,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -330,7 +330,7 @@ PassRefPtr<CSSValue> CSSMutableStyleDeclaration::getPropertyCSSValue(int propert
 }
 #include <wtf/FastAllocBase.h>
 
-struct PropertyLonghand: public WTF::FastAllocBase {
+struct PropertyLonghand/*: public WTF::FastAllocBase*/ {
     PropertyLonghand()
         : m_properties(0)
         , m_length(0)

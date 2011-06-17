@@ -18,7 +18,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef PausedTimeouts_h
@@ -31,7 +31,7 @@ namespace WebCore {
 
     class ScheduledAction;
 
-    struct PausedTimeout: public WTF::FastAllocBase {
+    struct PausedTimeout/*: public WTF::FastAllocBase*/ {
         int timeoutId;
         int nestingLevel;
         double nextFireInterval;
@@ -41,7 +41,8 @@ namespace WebCore {
 
     class PausedTimeouts : Noncopyable {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -70,7 +71,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    public:
+#endif //NO_MACRO_NEW
+	public:
         PausedTimeouts(PausedTimeout* array, size_t length)
             : m_array(array)
             , m_length(length)

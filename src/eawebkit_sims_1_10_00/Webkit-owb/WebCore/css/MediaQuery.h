@@ -26,7 +26,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef MediaQuery_h
@@ -39,7 +39,7 @@
 namespace WebCore {
 class MediaQueryExp;
 
-class MediaQuery: public WTF::FastAllocBase
+class MediaQuery/*: public WTF::FastAllocBase*/
 {
 public:
     enum Restrictor {
