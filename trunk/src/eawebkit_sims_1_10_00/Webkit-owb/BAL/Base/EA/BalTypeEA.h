@@ -43,7 +43,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <EABase/eabase.h>
 #include <EAWebKit/EAWebKitInput.h>
 #include <EAWebKit/EAWebKitTextInterface.h>
-
+#include <EARaster/EARaster.h>
 
 struct BalResizeEvent
 {
@@ -78,7 +78,7 @@ typedef EA::WebKit::MouseWheelEvent  BalEventScroll;
 
 
 // Fonts
-typedef EA::Internal::IFont BalFontFace;
+typedef EA::WebKit::IFont BalFontFace;
 typedef void             BalFont;
 
 
@@ -98,10 +98,10 @@ namespace WKAL {
 typedef WKAL::Color          BalColor;
 typedef EA::Raster::Point    BalPoint;
 typedef EA::Raster::Rect     BalRectangle;
-typedef EA::Raster::Surface  BalSurface;
-typedef EA::Raster::Surface  BalMenu;
-typedef EA::Raster::Surface  BalWidget;
-typedef EA::Raster::Surface  PlatformGraphicsContext;
+typedef EA::Raster::ISurface  BalSurface;
+typedef EA::Raster::ISurface  BalMenu;
+typedef EA::Raster::ISurface  BalWidget;
+typedef EA::Raster::ISurface  PlatformGraphicsContext;
 
 
 // UI

@@ -51,14 +51,24 @@ namespace WKAL {
 
 struct FontPlatformDataCacheKey/*: public WTF::FastAllocBase*/ {
     FontPlatformDataCacheKey(const AtomicString& family = AtomicString(), unsigned size = 0, unsigned weight = 0, bool italic = false,
-                             bool isPrinterFont = false, FontRenderingMode renderingMode = NormalRenderingMode)
+        bool isPrinterFont = false, FontRenderingMode renderingMode = NormalRenderingMode, const EA::WebKit::TextEffectData* pEffectData = 0  )
         : m_family(family)
         , m_size(size)
         , m_weight(weight)
         , m_italic(italic)
         , m_printerFont(isPrinterFont)
         , m_renderingMode(renderingMode)
+        , m_effectData()
     {
+        if(pEffectData)
+        {
+            m_effectData.type = pEffectData->type;
+            m_effectData.x = pEffectData->x;
+            m_effectData.y = pEffectData->y;
+            m_effectData.blur = pEffectData->blur;
+            m_effectData.c = pEffectData->c;
+            m_effectData.cBase = pEffectData->cBase;
+        }
     }
 
     FontPlatformDataCacheKey(HashTableDeletedValueType) : m_size(hashTableDeletedSize()) { }
@@ -68,7 +78,7 @@ struct FontPlatformDataCacheKey/*: public WTF::FastAllocBase*/ {
     {
         return equalIgnoringCase(m_family, other.m_family) && m_size == other.m_size && 
                m_weight == other.m_weight && m_italic == other.m_italic && m_printerFont == other.m_printerFont &&
-               m_renderingMode == other.m_renderingMode;
+               m_renderingMode == other.m_renderingMode && m_effectData == other.m_effectData;
     }
 
     AtomicString m_family;
@@ -77,18 +87,23 @@ struct FontPlatformDataCacheKey/*: public WTF::FastAllocBase*/ {
     bool m_italic;
     bool m_printerFont;
     FontRenderingMode m_renderingMode;
-
+    EA::WebKit::TextEffectData m_effectData;
 private:
     static unsigned hashTableDeletedSize() { return 0xFFFFFFFFU; }
 };
 
 inline unsigned computeHash(const FontPlatformDataCacheKey& fontKey)
 {
-    unsigned hashCodes[4] = {
+    unsigned hashCodes[] = {
         CaseFoldingHash::hash(fontKey.m_family),
         fontKey.m_size,
         fontKey.m_weight,
-        static_cast<unsigned>(fontKey.m_italic) << 2 | static_cast<unsigned>(fontKey.m_printerFont) << 1 | static_cast<unsigned>(fontKey.m_renderingMode)
+        static_cast<unsigned>(fontKey.m_italic) << 2 | static_cast<unsigned>(fontKey.m_printerFont) << 1 | static_cast<unsigned>(fontKey.m_renderingMode),
+        static_cast<unsigned> (fontKey.m_effectData.type),
+        static_cast<unsigned> (fontKey.m_effectData.x),
+        static_cast<unsigned> (fontKey.m_effectData.y), 
+        fontKey.m_effectData.c,                         // (We can ignore tracking the blur since not used currently)
+        fontKey.m_effectData.cBase
     };
     return StringImpl::computeHash(reinterpret_cast<UChar*>(hashCodes), sizeof(hashCodes) / sizeof(UChar));
 }
@@ -181,7 +196,7 @@ FontPlatformData* FontCache::getCachedFontPlatformData(const FontDescription& fo
     }
 
     FontPlatformDataCacheKey key(familyName, fontDescription.computedPixelSize(), fontDescription.weight(), fontDescription.italic(),
-                                 fontDescription.usePrinterFont(), fontDescription.renderingMode());
+                                 fontDescription.usePrinterFont(), fontDescription.renderingMode(), &fontDescription.getTextEffectData());
     FontPlatformData* result = 0;
     bool foundResult;
     FontPlatformDataCache::iterator it = gFontPlatformDataCache->find(key);
@@ -407,7 +422,7 @@ const FontData* FontCache::getFontData(const Font& font, int& familyIndex, FontS
             result = getSimilarFontPlatformData(font);
 
             FontPlatformDataCacheKey key(familyName, fontDescription.computedPixelSize(), fontDescription.weight(), fontDescription.italic(),
-                                 fontDescription.usePrinterFont(), fontDescription.renderingMode());
+                                 fontDescription.usePrinterFont(), fontDescription.renderingMode(),&fontDescription.getTextEffectData());
             gFontPlatformDataCache->set(key,result);
         }
         //- CS 

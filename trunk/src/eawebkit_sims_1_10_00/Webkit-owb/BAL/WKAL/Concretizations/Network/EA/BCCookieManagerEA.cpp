@@ -48,6 +48,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <wtf/FastAllocBase.h>
 #include <eastl/fixed_vector.h>
 
+#include <EAIO/PathString.h>
+
 #ifndef _MSC_VER
     #define stricmp strcasecmp
 #endif
@@ -453,7 +455,21 @@ namespace EA
             {
                 EA::WebKit::FileSystem* fileSystem = EA::WebKit::GetFileSystem();
                 EA::WebKit::FileSystem::FileObject fileObject = fileSystem->CreateFileObject();
-                if(fileSystem->OpenFile(fileObject, mParams.mCookieFilePath.c_str(), FileSystem::kWrite))
+                
+				const char8_t* pCookieFilePath = mParams.mCookieFilePath.c_str();
+				if(!fileSystem->FileExists(pCookieFilePath))
+				{
+					EA::IO::Path::PathString8 pathStr(pCookieFilePath);
+					const EA::IO::Path::PathString8::iterator fileIter = EA::IO::Path::GetFileName(pathStr.begin(),pathStr.end());
+					EA::IO::Path::PathString8 dirStr;
+					dirStr.assign(pathStr.begin(),fileIter);
+					if(!fileSystem->MakeDirectory(dirStr.c_str()))//Create a Directory(not the file). File creation fails without the pre-existing directory path.
+					{
+						EAW_ASSERT_FORMATTED(false,"Could not create directory for cookie file path %s\n",pCookieFilePath);
+					}
+				}
+				
+				if(fileSystem->OpenFile(fileObject, mParams.mCookieFilePath.c_str(), FileSystem::kWrite))
                 {
 					// Create the file buffer initially so as the checksum can be calculated.
 					char* pCookieFileBuffer = EAWEBKIT_NEW("CookieFileBuffer") char8_t[mParams.mMaxCookieFileSize];

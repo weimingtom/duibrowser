@@ -42,7 +42,7 @@ namespace WKAL {
 
 FontFallbackList::FontFallbackList()
     : m_familyIndex(0)
-    , m_pitch(EA::Internal::kPitchDefault)
+    , m_pitch(EA::WebKit::kPitchDefault)
     , m_loadingCustomFonts(false)
     , m_fontSelector(0)
 {
@@ -53,7 +53,7 @@ void FontFallbackList::invalidate(PassRefPtr<FontSelector> fontSelector)
     releaseFontData();
     m_fontList.clear();
     m_familyIndex = 0;    
-    m_pitch = EA::Internal::kPitchDefault;
+    m_pitch = EA::WebKit::kPitchDefault;
     m_loadingCustomFonts = false;
     m_fontSelector = fontSelector;
 }
@@ -80,7 +80,7 @@ void FontFallbackList::determinePitch(const Font* font) const
         if (numRanges == 1)
             m_pitch = segmentedFontData->rangeAt(0).fontData()->pitch();
         else
-            m_pitch = EA::Internal::kPitchVariable;
+            m_pitch = EA::WebKit::kPitchVariable;
     }
 }
 

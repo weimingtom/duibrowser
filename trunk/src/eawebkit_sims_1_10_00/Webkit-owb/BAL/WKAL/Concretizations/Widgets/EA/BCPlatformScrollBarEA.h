@@ -78,8 +78,8 @@ public:
 
     void autoscrollTimerFired(Timer<PlatformScrollbar>*);
 
-    void SetScrollDrawInfo(EA::WebKit::ScrollbarDrawInfo& sbi, const IntRect& scrollViewDirtyRect);
-
+    void SetScrollDrawInfo(GraphicsContext* context, EA::WebKit::ScrollbarDrawInfo& sbi, const IntRect& scrollViewDirtyRect);
+	void SetIsFromPopup(bool isPopup);
 
     IntRect trackRect() const;
     IntRect thumbRect() const;
@@ -104,7 +104,7 @@ private:
 
     void paintRectWithBorder(GraphicsContext* context, const IntRect& rect, const Color& innerColor, const Color& outerColor) const;
     void paintArrowPoint(GraphicsContext* context, IntPoint& peak, IntPoint& pA, IntPoint& pB, const IntPoint& drift) const;
-    void paintTrack(GraphicsContext* context, const IntRect& rect, bool start, const IntRect& damageRect) const;
+    bool paintTrack(GraphicsContext* context, const IntRect& rect, bool start, const IntRect& damageRect) const;
     void paintButton(GraphicsContext* context, const IntRect& rect, bool start, const IntRect& damageRect) const;
     void paintThumb(GraphicsContext* context, const IntRect& rect, const IntRect& damageRect) const;
     bool hasThumb() const;
@@ -130,6 +130,7 @@ private:
     ScrollbarPart m_hoveredPart;
     ScrollbarPart m_pressedPart;
     int m_pressedPos;
+	bool m_isFromPopup;	
     Timer<PlatformScrollbar> m_scrollTimer;
 };
 

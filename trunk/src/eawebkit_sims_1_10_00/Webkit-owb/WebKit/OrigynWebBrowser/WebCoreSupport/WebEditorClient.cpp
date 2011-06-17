@@ -53,6 +53,34 @@ using namespace HTMLNames;
 
 #include <wtf/FastAllocBase.h>
 
+struct KeyBoardClassMap
+{
+	EA::WebKit::KeyboardType mKeyboardType;
+	const char*	mKeyboardClass;			
+};
+static KeyBoardClassMap sKeyBoardClassMap[ ] =
+{
+	{EA::WebKit::kDefaultKeyBoard,					"eaw-kb-default"},
+	{EA::WebKit::kNumericKeyBoard,					"eaw-kb-numeric"},
+	{EA::WebKit::kJapaneseFullKeyBoard,				"eaw-kb-japanese-full"},
+	{EA::WebKit::kJapaneseHiraganaKeyBoard,			"eaw-kb-japanese-hiragana"},
+	{EA::WebKit::kJapaneseKatakanaKeyBoard,			"eaw-kb-japanese-katakana"},
+	{EA::WebKit::kRussianFullKeyBoard,				"eaw-kb-russian"},
+	{EA::WebKit::kKoreanFullKeyBoard,				"eaw-kb-korean"},
+	{EA::WebKit::kTraditionalChineseFullKeyBoard,	"eaw-kb-traditional-chinese"},
+	{EA::WebKit::kSimplifiedChineseKeyBoard,		"eaw-kb-simplified-chinese"},
+	{EA::WebKit::kLatinFullKeyBoard,				"eaw-kb-latin-full"},
+	{EA::WebKit::kURLKeyBoard,						"eaw-kb-url"},
+	{EA::WebKit::kPasswordKeyBoard,					"eaw-kb-password"},
+	{EA::WebKit::kEmailKeyBoard,					"eaw-kb-email"},
+	{EA::WebKit::kGamerTagKeyBoard,					"eaw-kb-gamertag"},
+	{EA::WebKit::kPhoneKeyBoard,					"eaw-kb-phone"},
+	{EA::WebKit::kIPAddressKeyBoard,				"eaw-kb-ipaddress"},
+	
+	
+	{EA::WebKit::kCountKeyBoardTypes,				0}
+};
+
 class WebUndoCommand/*: public WTF::FastAllocBase*/ {
 public:
     WebUndoCommand() {DS_CONSTRUCT();}
@@ -685,36 +713,74 @@ void WebEditorClient::setInputMethodState(bool enabled)
     // CSidhall 1/22/09 Addded notify user app of text input state for possible virtual keyboard...
     // We can't fully trust the enabled flag because the input field might be a password in which case we still
     // want to activate the keyboard input. So we do our own checking and also get extra info...   
-    bool    inputActive = enabled;
-    bool    searchActive = false;
-    bool    passwordActive = false;
     
+	//Note by Arpit Baldeva: We are interested in the <input> and <textarea> elements. The problem is that we can't rely on the shouldUseInputMethod() of node to reliably detect an
+	//editable node since it does not include password(as noted above). Webkit trunk has some cryptic comment explaining why that is the right thing to do. So we do as follows. 
+	// We could add a new method to the class hierarchy to achieve following but want to minimize the changes inside core layer.
+
+	bool inputActive	= enabled;
+    bool searchActive	= false;
+    bool passwordActive = false;
+	EA::WebKit::KeyboardType kbType = EA::WebKit::kDefaultKeyBoard;
+
     WebFrame* pFocusedFrame = m_webView->focusedFrame();
-    if(pFocusedFrame) {    
+    if(pFocusedFrame) 
+	{    
         WebCore::Document* pDOM = pFocusedFrame->DOMDocument();
-        if(pDOM) {
+        if(pDOM)
+		{
             WebCore::Node* pNode = pDOM->focusedNode();
-            if( (pNode) && (pNode->focused()) && (pNode->isElementNode()) && (pNode->hasTagName( inputTag )) ) {
-                HTMLInputElement* pInputElement = static_cast<HTMLInputElement*> (pNode);
-                
-                // Get the flags
-                inputActive = pInputElement->isTextField();
-                searchActive = pInputElement->isSearchField();
-                passwordActive = pInputElement->isPasswordField();
+            if( pNode && pNode->isHTMLElement())
+			{
+				if(pNode->hasTagName(WebCore::HTMLNames::inputTag) ) 
+				{	
+					HTMLInputElement* pInputElement = static_cast<HTMLInputElement*> (pNode);
+                	// Get the flags
+					inputActive		= pInputElement->isTextField();
+					searchActive	= pInputElement->isSearchField();
+					passwordActive	= pInputElement->isPasswordField();
+				}
+/*				//Note by Arpit Baldeva: This will always come back as true but provided the commented out code here for the sack of clarity
+				else if(pNode->hasTagName(WebCore::HTMLNames::textareaTag))
+				{
+					inputActive = enabled;
+				}
+*/
+
+				HTMLElement* pElement = static_cast<HTMLElement*> (pNode);
+				if(pElement->hasClass())
+				{
+					const WebCore::ClassNames& classNames = pElement->classNames();
+					for(int i = 0; i < EA::WebKit::kCountKeyBoardTypes; ++i)
+					{
+						if(classNames.contains(sKeyBoardClassMap[i].mKeyboardClass))
+						{
+							kbType = sKeyBoardClassMap[i].mKeyboardType;
+							break;
+						}
+					}
+				}
+				// Update - 12/20/2010. Since we have the password information available from the HTML, we use it
+				// if the keyboard is not overridden.
+				if(passwordActive && (kbType == EA::WebKit::kDefaultKeyBoard))
+				{
+					kbType = EA::WebKit::kPasswordKeyBoard;
+				}
             }        
         }
     }
 
-    // Probably many different ways to get the view but this works
-    EA::WebKit::View* pView= EA::WebKit::GetView( m_webView->mainFrame() );
+    EA::WebKit::View* pView= EA::WebKit::GetView(m_webView);
     ASSERT(pView);
-    if(pView) {
+    if(pView) 
+	{
         // Store the current settings
         EA::WebKit::TextInputStateInfo& textInfo = pView->GetTextInputStateInfo();
-        textInfo.mpView = pView;
-        textInfo.mIsActivated =  inputActive;
-        textInfo.mIsPasswordField = passwordActive;
-        textInfo.mIsSearchField = searchActive;
+        textInfo.mpView				= pView;
+        textInfo.mIsActivated		= inputActive;
+        textInfo.mIsPasswordField	= passwordActive;
+        textInfo.mIsSearchField		= searchActive;
+		textInfo.mKeyboardType		= kbType;
 
         // Notify the local app
         EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();

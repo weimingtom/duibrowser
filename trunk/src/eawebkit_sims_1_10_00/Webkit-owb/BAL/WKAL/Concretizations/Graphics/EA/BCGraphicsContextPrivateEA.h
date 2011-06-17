@@ -46,6 +46,7 @@ namespace WKAL {
             , shadowBlur(0)
             , origin(0,0)
             , clipRectRestore(0,0,0,0)
+            , transform()
         {
         }
 
@@ -61,7 +62,8 @@ namespace WKAL {
         Color shadowColor;
         IntSize origin;
         IntRect clipRectRestore;
-        
+        AffineTransform transform;
+
         void setClipRectRestore(const IntRect &r) {clipRectRestore = r  ;}
         const IntRect getClipRectRestore(void) const {return clipRectRestore ;}
     };

@@ -40,6 +40,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <EAWebKit/internal/EAWebKitEASTLHelpers.h>
 #include <EAWebKit/EAWebKitTransport.h>
 #include <EASTL/list.h>
+#include <EASTL/hash_map.h>
 
 
 namespace WebCore
@@ -69,6 +70,7 @@ namespace EA
             void Tick();
             bool HasJobs() const { return !mTransportInfoList.empty(); }
             bool ProvideCredentialsHeader(EA::WebKit::TransportInfo& ti);
+			void SaveCancelMessageData(const WebCore::ResourceHandle* pRH, const char* data, size_t length);
 
         protected:
             struct SavedCredentials
@@ -81,8 +83,12 @@ namespace EA
             };
 
             typedef eastl::list<SavedCredentials, EASTLAllocator> SavedCredentialsList;
-
             typedef eastl::list<EA::WebKit::TransportInfo, EASTLAllocator> TransportInfoList;
+			
+			typedef eastl::pair<const uintptr_t, FixedString8_256> ResourceHandleCancelMessagePair;
+			typedef eastl::hash_map<uintptr_t, FixedString8_256, eastl::hash<uintptr_t>,
+				eastl::equal_to<uintptr_t>, EASTLAllocator> ResourceHandleCancelMessageMap;
+
 
             void Proceed(EA::WebKit::TransportInfo& ti, const EA::WebKit::AuthenticationInfo& ai);
             void Cancel(EA::WebKit::TransportInfo& ti);
@@ -93,6 +99,7 @@ namespace EA
             WebCore::ResourceHandleManager* mpResourceHandleManager;
             SavedCredentialsList            mSavedCredentialsList;
             TransportInfoList               mTransportInfoList;
+			ResourceHandleCancelMessageMap	mResourceHandleCancelMessageMap;
         };
 
     } // namespace WebKit

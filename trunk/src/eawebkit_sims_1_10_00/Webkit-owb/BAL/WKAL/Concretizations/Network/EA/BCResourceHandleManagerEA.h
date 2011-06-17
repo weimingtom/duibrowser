@@ -50,18 +50,19 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BCAuthenticationManagerEA.h"
 
 //Note by Arpit Baldeva:If following is defined as 1, it will dump the files received by the transport handler to a location at the disk. 
-#ifdef _DEBUG
-    // Make sure not to have this active in a final release build.
-    #define EAWEBKIT_DUMP_TRANSPORT_FILES 1
-#endif
-
+// You'll also need to call SetDebugFileDumpStatus(const bool enabled) at runtime.
 #ifndef EAWEBKIT_DUMP_TRANSPORT_FILES
-	#define EAWEBKIT_DUMP_TRANSPORT_FILES 0
+	#ifdef _DEBUG
+		// Make sure not to have this active in a final release build.
+		#define EAWEBKIT_DUMP_TRANSPORT_FILES 1
+	#else
+		#define EAWEBKIT_DUMP_TRANSPORT_FILES 0
+	#endif
 #endif
 
 #if EAWEBKIT_DUMP_TRANSPORT_FILES
     #include <EAIO/EAFileStream.h>
-	#include <eaio/EAFileUtil.h>
+	#include <EAIO/EAFileUtil.h>
 #endif
 
 #if USE(CURL)
@@ -230,7 +231,7 @@ protected:
 
     #if EAWEBKIT_DUMP_TRANSPORT_FILES
         bool                                m_DebugWriteFileImages;     // Used to enable writing received file contents to disk.
-        EA::WebKit::FixedString16_256           m_DebugFileImageDirectory;  
+        EA::WebKit::FixedString16_256       m_DebugFileImageDirectory;  
     #endif
 
 public:

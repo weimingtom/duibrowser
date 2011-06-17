@@ -45,10 +45,10 @@ int findNextWordFromIndex(const UChar* chars, int len, int position, bool forwar
     ///    "Hello   world   hello   world"
     ///     ^    ^  ^    ^  ^    ^  ^    ^
 
-    EA::Internal::IFontServer* pServer = EA::WebKit::GetFontServer();
+    EA::WebKit::IFontServer* pServer = EA::WebKit::GetFontServer();
     if(!pServer)
         return 0;
-    return pServer->FindNextWordFromIndex((EA::Internal::Char*) chars, len, position, forward);
+    return pServer->FindNextWordFromIndex((EA::WebKit::Char*) chars, len, position, forward);
  }
 
 void findWordBoundary(const UChar* chars, int len, int position, int* start, int* end)
@@ -58,9 +58,9 @@ void findWordBoundary(const UChar* chars, int len, int position, int* start, int
     ///    "Hello   world   hello   world"
     ///     ^    ^  ^    ^  ^    ^  ^    ^
 
-    EA::Internal::IFontServer* pServer = EA::WebKit::GetFontServer();
+    EA::WebKit::IFontServer* pServer = EA::WebKit::GetFontServer();
     if(pServer)    
-        pServer->FindWordBoundary( (EA::Internal::Char*)chars, len, position, start, end);
+        pServer->FindWordBoundary( (EA::WebKit::Char*)chars, len, position, start, end);
 }
 
 } // namespace WebCore

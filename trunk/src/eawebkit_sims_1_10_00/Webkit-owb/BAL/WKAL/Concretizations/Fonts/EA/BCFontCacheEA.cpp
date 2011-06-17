@@ -147,7 +147,7 @@ void FontCache::getTraitsInFamily(const AtomicString& familyName, Vector<unsigne
 {
     // What we need to do is find all fonts that are of the given familyName and for each
     // one add a vector entry of its properties defined in enum FontTraitsMask.
-    EA::Internal::IFontServer* const pFontServer = EA::WebKit::GetFontServer(); 
+    EA::WebKit::IFontServer* const pFontServer = EA::WebKit::GetFontServer(); 
     if(!pFontServer)
         return;
 
@@ -157,14 +157,14 @@ void FontCache::getTraitsInFamily(const AtomicString& familyName, Vector<unsigne
         const size_t kCapacity = 16;
     #endif
 
-    EA::Internal::FontDescription  pFontDescriptionArrayLocal[kCapacity];
-    EA::Internal::FontDescription* pFontDescriptionArrayAllocated = NULL;
-    EA::Internal::FontDescription* pFontDescriptionArray;
+    EA::WebKit::IFontDescription  pFontDescriptionArrayLocal[kCapacity];
+    EA::WebKit::IFontDescription* pFontDescriptionArrayAllocated = NULL;
+    EA::WebKit::IFontDescription* pFontDescriptionArray;
 
     // FontServer has only one basic font enumeration function, and it simply copies all 
     // FontDescription data to the user. We need to wade through it.
     uint32_t count = pFontServer->EnumerateFonts(NULL, 0);
-    pFontDescriptionArray = (count <= kCapacity) ? pFontDescriptionArrayLocal : (pFontDescriptionArrayAllocated = new EA::Internal::FontDescription[count]);
+    pFontDescriptionArray = (count <= kCapacity) ? pFontDescriptionArrayLocal : (pFontDescriptionArrayAllocated = new EA::WebKit::IFontDescription[count]);
     count = pFontServer->EnumerateFonts(pFontDescriptionArray, count);
 
     // Make an alias to the family name for frequent use below.
@@ -172,16 +172,16 @@ void FontCache::getTraitsInFamily(const AtomicString& familyName, Vector<unsigne
 
     for(uint32_t i = 0; i < count; ++i)
     {
-        const EA::Internal::FontDescription& fd = pFontDescriptionArray[i];
+        const EA::WebKit::IFontDescription& fd = pFontDescriptionArray[i];
 
         if(EA::Internal::Stricmp(fd.mFamily, pFamilyName) == 0) // If the family name matches...
         {
             unsigned traitsMask = 0;
 
             // WebKit doesn't recognize the CSS oblique style (http://www.w3schools.com/css/pr_font_font-style.asp), so we pretend oblique is the same as italic.
-            traitsMask |= (fd.mStyle == EA::Internal::kStyleNormal) ? WKAL::FontStyleNormalMask : WKAL::FontStyleItalicMask;
+            traitsMask |= (fd.mStyle == EA::WebKit::kStyleNormal) ? WKAL::FontStyleNormalMask : WKAL::FontStyleItalicMask;
 
-            traitsMask |= (fd.mVariant == EA::Internal::kVariantNormal) ? WKAL::FontVariantNormalMask : WKAL::FontVariantSmallCapsMask;
+            traitsMask |= (fd.mVariant == EA::WebKit::kVariantNormal) ? WKAL::FontVariantNormalMask : WKAL::FontVariantSmallCapsMask;
 
             // Convert EAText mfWeight (float values in range of 100.f to 900.f) to WebKit's
             // FontWeightNNNMask (bits in the range of 1<<4 to 1<<12).

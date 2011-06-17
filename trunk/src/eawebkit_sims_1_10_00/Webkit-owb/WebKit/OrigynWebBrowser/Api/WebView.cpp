@@ -301,6 +301,7 @@ WebView::WebView()
 , m_closeWindowTimer(this, &WebView::closeWindowTimerFired)
 , m_topLevelParent(0)
 , d(new WebViewPrivate(this))
+, m_toolTipPopup()
 {
 
     AtomicString::init();
@@ -781,6 +782,7 @@ void WebView::onScroll(BalEventScroll ev)
 void WebView::onResize(BalResizeEvent ev)
 {
     d->onResize(ev);
+    ResetToolTip();
 }
 
 void WebView::onQuit(BalQuitEvent ev)
@@ -1167,7 +1169,7 @@ void WebView::initializeToolTipWindow()
     ::SetWindowPos(m_toolTipHwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);*/
 }
 
-void WebView::setToolTip(const String& toolTip)
+void WebView::setToolTip(const WebCore::String toolTip, WebCore::IntPoint location, const int handleID)
 {
     /*if (!m_toolTipHwnd)
         return;
@@ -1187,6 +1189,57 @@ void WebView::setToolTip(const String& toolTip)
     }
 
     ::SendMessage(m_toolTipHwnd, TTM_ACTIVATE, !m_toolTip.isEmpty(), 0);*/
+
+
+    //+ 6/10/10 Chris Sidhall - Added API support for tooltip callback to user
+
+    // We are currently only interestd in the tool tip if we have an active string to display
+    if(toolTip.isEmpty())
+        return; // We might want to use this to shut down the tool tip display if active
+
+    // Callback notifivation
+    EA::WebKit::ToolTipInfo info;
+
+    // Find view
+    EA::WebKit::View* pView =EA::WebKit::GetView(this);
+    if(!pView) 
+        pView = EA::WebKit::AutoSetActiveView::GetActiveView(); // User default if not found
+    info.mpView = pView;
+        
+    // Load notification with string
+    String tip = toolTip;
+    const UChar* chars = tip.charactersWithNullTermination();
+    EA::WebKit::GetFixedString(info.mName)->assign(chars);
+    
+
+    info.mLocation.set(location.x(),location.y());
+    info.mHandleID = handleID;
+
+    // View Notification callback
+    bool responseFlag = false;
+    EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
+    if(pVN)
+        responseFlag = pVN->SetToolTip(info);
+    
+    if(!responseFlag) {
+      
+        EA::WebKit::Parameters& param = EA::WebKit::GetParameters();
+        if(param.mbEnableDefaultToolTip)
+        {
+            // Grab info from user in case there were changes
+            tip = GetFixedString(info.mName)->c_str();
+            location.set(info.mLocation.x,info.mLocation.y);
+
+            WKAL::TextPopupData data(&tip, &location, pView, handleID);
+            m_toolTipPopup.show(data); 
+        }
+    }
+    //-CS
+}
+
+void WebView::ResetToolTip()
+{
+    m_toolTipPopup.hide();  
 }
 
 #if ENABLE(ICON_DATABASE)
@@ -2352,6 +2405,10 @@ void WebView::setViewWindow(BalWidget* view)
 IntPoint WebView::scrollOffset()
 {
     IntSize offsetIntSize = m_page->mainFrame()->view()->scrollOffset();
+	// 10/21/10 - abaldeva: We should examine if this API should return the scroll offset of the main frame
+	// or focused frame. We should probably deprecate this API and the caller should ensure to use
+	// correct scroll offset from the node itself.
+	// IntSize offsetIntSize = m_page->focusController()->focusedOrMainFrame()->view()->scrollOffset();
     return IntPoint(offsetIntSize.width(), offsetIntSize.height());
 }
 

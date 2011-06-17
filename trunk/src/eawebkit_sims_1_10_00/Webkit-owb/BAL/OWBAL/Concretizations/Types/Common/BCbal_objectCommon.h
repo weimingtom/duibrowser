@@ -92,7 +92,7 @@ public:
     BalObject();
     virtual ~BalObject();
     void invalidate();
-    bool hasMethod(const char *name);
+    virtual bool hasMethod(const char *name);
     virtual WebCore::String getName() { return ""; };
     virtual BalValue *invoke(const char *name, Vector<BalValue *> args, KJS::ExecState* exec=0); // 3/25/10 CSidhall - Added passing exec. Fixes a binding return string alloc problem.
     bool hasProperty(const char *name);

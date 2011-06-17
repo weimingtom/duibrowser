@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2011 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -41,9 +41,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FrameView.h"
 #include "PlatformMouseEvent.h"
 #include "EventHandler.h"
-#include "EARaster.h"
+#include <EARaster/EARaster.h>
 #include <EAWebKit/EAWebKit.h>
 #include <EAWebKit/internal/EAWebKitViewHelper.h> // For multiview support
+#include "WebView.h"
 
 using namespace WebCore;
 static int cHorizontalWidth = 15;
@@ -77,7 +78,8 @@ PlatformScrollbar::PlatformScrollbar(ScrollbarClient* client, ScrollbarOrientati
     , m_hoveredPart(NoPart)
     , m_pressedPart(NoPart)
     , m_pressedPos(0)
-    , m_scrollTimer(this, &PlatformScrollbar::autoscrollTimerFired)
+    , m_isFromPopup(false) 
+	,m_scrollTimer(this, &PlatformScrollbar::autoscrollTimerFired)
 {
     vSize = Widget::height();
     hSize = Widget::width();
@@ -156,25 +158,25 @@ IntRect PlatformScrollbar::trackRect() const
     return IntRect(x(), y() + cVerticalButtonHeight, cVerticalWidth, height() - 2 * cVerticalButtonHeight);
 }
 
-void PlatformScrollbar::paintTrack(GraphicsContext* context, const IntRect& rect, bool start, const IntRect& damageRect) const
+bool PlatformScrollbar::paintTrack(GraphicsContext* context, const IntRect& rect, bool start, const IntRect& damageRect) const
 {
     IntRect paintRect = hasButtons() ? trackRepaintRect(rect, m_orientation, controlSize()) : rect;
     
     if (!damageRect.intersects(paintRect))
-        return;
+        return false;
 
     context->save();
     context->drawRect(rect);
     context->fillRect(rect, Color::darkGray);
     context->restore();
+    return true;
 }
 
 void PlatformScrollbar::paintRectWithBorder(GraphicsContext* context, const IntRect& rect, const Color& innerColor, const Color& outerColor) const
 {
+    context->save();
     context->drawRect(rect);
     context->fillRect(rect, Color::gray);
-
-    Color tmp = context->strokeColor();
 
     context->setStrokeColor(Color::lightGray);
     context->drawLine( rect.topLeft(), rect.topRight() );
@@ -188,8 +190,7 @@ void PlatformScrollbar::paintRectWithBorder(GraphicsContext* context, const IntR
     context->drawLine( inner.topLeft(), inner.bottomLeft() );
     context->drawLine( inner.topRight(), inner.bottomRight() );
     context->drawLine( inner.bottomLeft(), inner.bottomRight() );
-
-    context->setStrokeColor(tmp);
+    context->restore();
 }
 
 void PlatformScrollbar::paintArrowPoint(GraphicsContext* context, IntPoint& peak, IntPoint& pA, IntPoint& pB, const IntPoint& drift) const
@@ -260,8 +261,8 @@ void PlatformScrollbar::paintButton(GraphicsContext* context, const IntRect& rec
         }
     }
 
-    EA::Raster::Surface* pSurface = context->platformContext();
-    EA::Raster::SimpleTriangle(pSurface, arrowX, arrowY, 3, o, Color(0xff000000));  // To consider: Make this color configurable or make it it match the text color or something.
+    EA::Raster::ISurface* pSurface = context->platformContext();
+    EA::WebKit::GetEARasterInstance()->SimpleTriangle(pSurface, arrowX, arrowY, 3, o, Color(0xff000000));  // To consider: Make this color configurable or make it it match the text color or something.
 
     context->restore();
 }
@@ -312,8 +313,9 @@ void PlatformScrollbar::splitTrack(const IntRect& trackRect, IntRect& beforeThum
 
 void PlatformScrollbar::paintThumb(GraphicsContext* context, const IntRect& rect, const IntRect& damageRect) const
 {
-    if (!damageRect.intersects(rect))
-        return;
+ // 10/27/10 CSidahll -Removed rect check for needs to draw if the track has filled the background.
+ //    if (!damageRect.intersects(rect))
+ //       return;
 
     context->save();
     paintRectWithBorder(context, rect, Color::gray, Color::lightGray);
@@ -348,15 +350,18 @@ int PlatformScrollbar::thumbLength() const
     return length;
 }
 
-void PlatformScrollbar::SetScrollDrawInfo(EA::WebKit::ScrollbarDrawInfo& sbi, const IntRect& scrollViewDirtyRect)
+void PlatformScrollbar::SetScrollDrawInfo(GraphicsContext *context, EA::WebKit::ScrollbarDrawInfo& sbi, const IntRect& scrollViewDirtyRect)
 {
-    EA::Raster::Surface* const pSurface = containingWindow();
+	// Note by Gautam Narain : 07/12/2010 : we really want the surface we want to draw into and not the main webview surface.
+	// containingWindow gives us the main web view surface so for a custom scrollbar positioning gets messed up if we use this
+	// function
+    EA::Raster::ISurface* const pSurface = context->platformContext();
     ASSERT(pSurface);
+    sbi.mpSurface = pSurface;	
 
-    sbi.mpSurface = pSurface;
     IntRectToEARect( scrollViewDirtyRect, sbi.mDirtyRect );
-
     sbi.mIsVertical = orientation() == VerticalScrollbar;
+
     switch(getHoveredPart())
     {
     case BackButtonPart:
@@ -371,11 +376,28 @@ void PlatformScrollbar::SetScrollDrawInfo(EA::WebKit::ScrollbarDrawInfo& sbi, co
     default:
         sbi.mHoverPart = EA::WebKit::ScrollbarDrawInfo::None;
         break;
-    }
+    }	
+
     IntRectToEARect( thumbRect(), sbi.mRectThumb );
     IntRectToEARect( trackRect(), sbi.mRectTrack );
     IntRectToEARect( forwardButtonRect(), sbi.mRectFwdBtn );
     IntRectToEARect( backButtonRect(), sbi.mRectBackBtn );
+
+	// add the offset for all our rectangles
+	int width = context->origin().width();
+	int height = context->origin().height();
+
+	sbi.mRectBackBtn.x += width;
+	sbi.mRectBackBtn.y += height;
+
+	sbi.mRectFwdBtn.x += width;
+	sbi.mRectFwdBtn.y += height;
+
+	sbi.mRectThumb.x += width;
+	sbi.mRectThumb.y += height;
+
+	sbi.mRectTrack.x += width;
+	sbi.mRectTrack.y += height;
 }
 
 void PlatformScrollbar::paint(GraphicsContext* context, const IntRect& damageRect)
@@ -383,15 +405,17 @@ void PlatformScrollbar::paint(GraphicsContext* context, const IntRect& damageRec
     EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
     EA::WebKit::ScrollbarDrawInfo sbi;
     
-    EA::Raster::Surface* const pSurface = containingWindow();
+    EA::Raster::ISurface* const pSurface = containingWindow();
     EA::WebKit::View* pView = NULL;
     if(pSurface)
-        pView = static_cast<EA::WebKit::View*>(pSurface->mpUserData);  
+        pView = static_cast<EA::WebKit::View*>(pSurface->GetUserData());  
     
     sbi.mpView = pView;
-    SetScrollDrawInfo(sbi, damageRect);
+	sbi.mpSurface = context->platformContext();	
+
+    SetScrollDrawInfo(context, sbi, damageRect);
     if(!pVN || !pVN->DrawScrollbar(sbi))
-        defaultpaint(context, damageRect);
+        defaultpaint(context, damageRect);	
 }
 
 void PlatformScrollbar::defaultpaint(GraphicsContext* context, const IntRect& damageRect)
@@ -409,16 +433,18 @@ void PlatformScrollbar::defaultpaint(GraphicsContext* context, const IntRect& da
         return;
 
     IntRect track = trackRect();
-    paintTrack(context, track, true, damageRect);
+    bool didRepaint = paintTrack(context, track, true, damageRect);
 
     if (hasButtons()) {
         paintButton(context, backButtonRect(), true, damageRect);
         paintButton(context, forwardButtonRect(), false, damageRect);
     }
 
-     if (hasThumb() && damageRect.intersects(track)) {
+    // 10/17/10 CSidhall - fixed a repaint issue as the thumb needs to repaint if the track repainted. 
+    if (hasThumb() && didRepaint) {
         IntRect startTrackRect, thumbRect, endTrackRect;
         splitTrack(track, startTrackRect, thumbRect, endTrackRect);
+		
         paintThumb(context, thumbRect, damageRect);
     }
 
@@ -474,37 +500,71 @@ int PlatformScrollbar::verticalScrollbarWidth()
 
 void PlatformScrollbar::updateViewOnMouseHover()
 {
-    EA::Raster::Surface* const pSurface = containingWindow();
+	EA::Raster::ISurface* const pSurface = containingWindow();	
+
     EA::WebKit::View* pView = NULL;
     if(pSurface)
-        pView = static_cast<EA::WebKit::View*>(pSurface->mpUserData);   // EAWebKit uses userData as a View pointer...
+        pView = static_cast<EA::WebKit::View*>(pSurface->GetUserData());   
    
-    const EA::WebKit::ViewParameters& vPm = pView->GetParameters();
-    if(vPm.mbRedrawScrollbarOnCursorHover)
-    {
-        EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
-        if(pVN != NULL)
+	// Todo : 7/30/2010 Gautam Narain: There seems to be no way of setting the mbRedrawScrollbarOnCursorHover to true. It also looks like this parameter is never ever used.
+	// However we need the following code to execute because otherwise the scrollbar seems laggy and is missing draw cycles due to which scrollbar 
+	// update doesn't seem to be happening during a mouse out event. 
+    //const EA::WebKit::ViewParameters& vPm = pView->GetParameters();
+    //if(vPm.mbRedrawScrollbarOnCursorHover)
+    //{
+ 
+        // Build a dmg rect based on all the scroll parts.
+        IntRect dmgRect;
+        switch ((int)m_hoveredPart)
         {
-            GraphicsContext context(pSurface);
-
-            IntRect dmgRect;
-            switch ((int)m_hoveredPart)
-            {
-            case BackButtonPart:
-                dmgRect = backButtonRect();
-                break;
-            case ForwardButtonPart:
-                 dmgRect = forwardButtonRect();
-                break;
-            case ThumbPart:
-                 dmgRect = thumbRect();
-                break;
+        case BackButtonPart:
+            dmgRect = backButtonRect();
+            break;
+        case ForwardButtonPart:
+             dmgRect = forwardButtonRect();
+            break;
+        case ThumbPart:
+             dmgRect = thumbRect();
+            break;
+		default:
+			dmgRect = thumbRect();
+			dmgRect.unite(forwardButtonRect());
+			dmgRect.unite(backButtonRect());
+			break;
+		}
+		
+		// Todo : Gautam Narain - Find a way to be able to not worry about whether we are a popup or not and be able to do a mouse out event. 
+		if(!m_isFromPopup)
+        {
+		   
+            // 3/09/11 EA CSidhall - Changed to add offsets from parents when building the dirty rect.
+            int xOffset=0;
+            int yOffset=0;
+            
+            ScrollView* pParent = parent();
+            ScrollView* pFirstParent = pParent;
+            while(pParent) {
+                xOffset += pParent->x();       
+                yOffset += pParent->y();    
+                if(pParent != pFirstParent) {    
+                    // We only want the scroll offset from higher parents
+                    xOffset -= pParent->contentsX();
+                    yOffset -= pParent->contentsY();
+                }
+                pParent = pParent->parent();
             }
-            paint(&context, dmgRect);
-            EA::WebKit::ViewUpdateInfo vui = { pView,  x(), y(), width(), height() };
-            pVN->ViewUpdate(vui);
-        }
-    }
+
+            dmgRect.move(xOffset, yOffset);
+
+            // Add the dirty rect
+            if(pView->GetWebView()) {
+                pView->GetWebView()->addToDirtyRegion(dmgRect);
+                FrameView *pFrameView = static_cast<FrameView *>(this->parent());	
+                if(pFrameView)
+                    pFrameView->SetDirty(true);
+            }
+		}
+	//}
 }
 
 bool PlatformScrollbar::handleMouseMoveEvent(const PlatformMouseEvent& evt)
@@ -518,8 +578,8 @@ bool PlatformScrollbar::handleMouseMoveEvent(const PlatformMouseEvent& evt)
     if (m_pressedPart != NoPart)
         m_pressedPos = (m_orientation == HorizontalScrollbar ? convertFromContainingWindow(evt.pos()).x() : convertFromContainingWindow(evt.pos()).y());
 
-    ScrollbarPart part = hitTest(evt);    
-    if (part != m_hoveredPart) 
+    ScrollbarPart part = hitTest(evt); 			
+    if (part != m_hoveredPart && !spActiveAutoScrollThumb) 
     {
         if (m_pressedPart != NoPart) 
         {
@@ -553,11 +613,12 @@ bool PlatformScrollbar::handleMouseMoveEvent(const PlatformMouseEvent& evt)
 
 bool PlatformScrollbar::handleMouseOutEvent(const PlatformMouseEvent& evt)
 {
-    invalidatePart(m_hoveredPart);
-    m_hoveredPart = NoPart;
-
-    updateViewOnMouseHover();
-
+	if(!spActiveAutoScrollThumb)
+	{
+		invalidatePart(m_hoveredPart);				
+		m_hoveredPart = NoPart;
+		updateViewOnMouseHover();		
+	}
     return true;
 }
 
@@ -570,7 +631,8 @@ bool PlatformScrollbar::handleMousePressEvent(const PlatformMouseEvent& evt)
         registerAutoScrollThumb(this);    
 
     m_pressedPos = (m_orientation == HorizontalScrollbar ? convertFromContainingWindow(evt.pos()).x() : convertFromContainingWindow(evt.pos()).y());
-    invalidatePart(m_pressedPart);
+    invalidatePart(m_pressedPart);		
+
     autoscrollPressedPart(cInitialTimerDelay);
     return true;
 }
@@ -584,7 +646,7 @@ bool PlatformScrollbar::handleMouseReleaseEvent(const PlatformMouseEvent& evt)
 
     if (parent() && parent()->isFrameView())
         static_cast<FrameView*>(parent())->frame()->eventHandler()->setMousePressed(evt.button(), false);
-
+	
     return true;
 }
 
@@ -624,7 +686,7 @@ ScrollbarPart PlatformScrollbar::hitTest(const PlatformMouseEvent& evt)
 void PlatformScrollbar::invalidatePart(ScrollbarPart part)
 {
     if (part == NoPart)
-        return;
+        return;		
 
     IntRect result;    
     switch (part) {
@@ -646,7 +708,7 @@ void PlatformScrollbar::invalidatePart(ScrollbarPart part)
         }
     }
     result.move(-x(), -y());
-    invalidateRect(result);
+    invalidateRect(result);	
 }
 
 void PlatformScrollbar::autoscrollPressedPart(double delay)
@@ -749,10 +811,14 @@ void PlatformScrollbar::autoscrollTimerFired(Timer<PlatformScrollbar>*)
 
 void PlatformScrollbar::endAutoScrollThumb()
 {
-    invalidatePart(m_pressedPart);
+    invalidatePart(m_pressedPart);	
     m_pressedPart = NoPart;
+
+	// 8/18/10 Gautam Narain m_hoveredPart should be set to NoPart. If mouse is on the hovered part then the mouse move or mouse out should take
+	// care of setting the hover again.
+	m_hoveredPart = NoPart;
     m_pressedPos = 0;
-    stopTimerIfNeeded();
+    stopTimerIfNeeded();	
 }
 
 void PlatformScrollbar::moveAutoScrollThumb(const PlatformMouseEvent& evt)
@@ -823,4 +889,8 @@ void PlatformScrollbar::updateAutoScrollThumbWithMouseRelease()
     }
 }
 
-
+// Todo : Gautam Narain - Find a way to be able to not worry about whether we are a popup or not. 
+void PlatformScrollbar::SetIsFromPopup(bool isFromPopup)
+{
+	m_isFromPopup = isFromPopup;
+}

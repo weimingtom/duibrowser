@@ -33,6 +33,7 @@
 #include "FontFamily.h"
 #include "FontRenderingMode.h"
 #include "FontTraitsMask.h"
+#include <EAWebKit/EAWebKitTextInterface.h>
 
 namespace WKAL {
 
@@ -58,6 +59,7 @@ public:
     FontDescription()
         : m_specifiedSize(0)
         , m_computedSize(0)
+        , m_effectData()    
         , m_italic(false)
         , m_smallCaps(false)
         , m_isAbsoluteSize(false)
@@ -89,6 +91,8 @@ public:
     int keywordSize() const { return m_keywordSize; }
 
     FontTraitsMask traitsMask() const;
+    const EA::WebKit::TextEffectData& getTextEffectData() const { return m_effectData; }
+    EA::WebKit::Effect getTextEffectType() const { return m_effectData.type; }
 
     void setFamily(const FontFamily& family) { m_familyList = family; }
     void setComputedSize(float s) { m_computedSize = s; }
@@ -101,6 +105,9 @@ public:
     void setUsePrinterFont(bool p) { m_usePrinterFont = p; }
     void setRenderingMode(FontRenderingMode mode) { m_renderingMode = mode; }
     void setKeywordSize(int s) { m_keywordSize = s; }
+    void setEffect(EA::WebKit::Effect type,int x, int y, int blur, EA::WebKit::Color c, EA::WebKit::Color cBase )
+        {m_effectData.type = type; m_effectData.x = x; m_effectData.y=y; m_effectData.blur = blur, m_effectData.c = c; m_effectData.cBase = cBase; }
+
 
 private:
     FontFamily m_familyList; // The list of font families to be used.
@@ -108,6 +115,8 @@ private:
     float m_specifiedSize;   // Specified CSS value. Independent of rendering issues such as integer
                              // rounding, minimum font sizes, and zooming.
     float m_computedSize;    // Computed size adjusted for the minimum font size and the zoom factor.  
+    
+    EA::WebKit::TextEffectData m_effectData; // For Shadows and other text effects
 
     bool m_italic : 1;
     bool m_smallCaps : 1;
@@ -136,7 +145,8 @@ inline bool FontDescription::operator==(const FontDescription& other) const
         && m_genericFamily == other.m_genericFamily
         && m_usePrinterFont == other.m_usePrinterFont
         && m_renderingMode == other.m_renderingMode
-        && m_keywordSize == other.m_keywordSize;
+        && m_keywordSize == other.m_keywordSize
+        && m_effectData ==other.m_effectData;
 }
 
 }

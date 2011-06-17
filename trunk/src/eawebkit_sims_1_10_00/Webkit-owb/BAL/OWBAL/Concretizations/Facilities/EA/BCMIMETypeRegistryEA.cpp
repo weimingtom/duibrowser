@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2008-2009
+* This file was modified by Electronic Arts Inc Copyright © 2008-2010
 */
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -71,6 +71,8 @@ static const ExtensionMap extensionMap [] =
     { "xml", "text/xml" },
     { "xsl", "text/xsl" },
     { "xhtml", "application/xhtml+xml" },
+    { "avi", "movie/avi" },
+    { "flv", "movie/flv" },
     { 0, 0 }
 };
 

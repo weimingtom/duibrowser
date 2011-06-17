@@ -92,65 +92,75 @@ typedef struct _COMPRESSION_HEADER
     \Input              const int sourceSize  size of the source to compress
     \Input              const int outSizeMax  size of the out buffer. This is used to control the 
                         compression rate 
+    \Input              int width  source image width to compress
+    \Input              int height  source image height to compress
+    \Input              int stride  source image line stride        
+
 
     \Output             int size in bytes that is output
                         0 if fail.  It will fail if it overflows the pOut buffer size            
 
-    \Version    1.0        01/12/09 Created
+    \Version    1.0    01/12/09 Created
+                1.1    11/10/10 Added stride
 */
 /*************************************************************************************************F*/
-static int CompressToAlphaRLE(const void* pIn, void* pOut, const int sourceSize, const int outSizeMax)
+static int CompressToAlphaRLE(const void* pIn, void* pOut, const int sourceSize, const int outSizeMax, const int width, const int height, const int stride)
 {
     static const int COMPRESSED_INFO_SIZE = 5;      // 1 bytes for the token count and 4 bytes for the ARGB value to stamp
-
-    int* pSource = (int*) pIn;    
+    
+    int* pColumn = (int*) pIn;
     char* pDst = (char*) pOut;    
-    char* pRefSouce = (char *) &pSource[0];
-    int refSource = pSource[0];                 // Init the first ARGB value
+    char* pRefSouce = (char *) &pColumn;
+    int refSource = pColumn[0];                 // Init the first ARGB value
     int curSource;
     int count=0;
-    const int loopCount = sourceSize >> 2;      // 4 bytes per loop
     int usedSize = sizeof(COMPRESSION_HEADER);   // Reserve 4 bytes offset for size
+  
 
-    for(int i=0; i < loopCount; i++) {
-        curSource = pSource[i];            
-        if(curSource == refSource) {
-           // Increment the token count since the ARGB value is same as last            
-            count++;
-        }  
-        else {
-            // End of token so store       
-            while(count > 0) {
-                int tokenSize;
-                // Store the count                        
-                if(count > MAX_RLE_TOKEN_SIZE) {
-                    tokenSize = MAX_RLE_TOKEN_SIZE;
+    for(int h=0; h < height; h++){
+        for(int w=0; w < width; w++) {
+
+            curSource = pColumn[w];            
+            
+            if(curSource == refSource) {
+               // Increment the token count since the ARGB value is same as last            
+                count++;
+            }  
+            else {
+                // End of token so store       
+                while(count > 0) {
+                    int tokenSize;
+                    // Store the count                        
+                    if(count > MAX_RLE_TOKEN_SIZE) {
+                        tokenSize = MAX_RLE_TOKEN_SIZE;
+                    }
+                    else {
+                        tokenSize = count;
+                    }    
+
+                    // Check for buffer overflow and easly exit in case of bad compression rate
+                    // 5 = 4 bytes ARGB + 1 byte RLE count
+                    if((usedSize + COMPRESSED_INFO_SIZE) > outSizeMax) {
+                        // Overflow handling:  bigger than what we want so so forget about it.  
+                        return 0; 
+                    }
+
+                    // Store token and ARGB
+                    pDst[usedSize+0] = tokenSize;    
+                    pDst[usedSize+1] = pRefSouce[0];                                       
+                    pDst[usedSize+2] = pRefSouce[1];       
+                    pDst[usedSize+3] = pRefSouce[2];       
+                    pDst[usedSize+4] = pRefSouce[3];       
+                    usedSize += COMPRESSED_INFO_SIZE;                
+                    count -= MAX_RLE_TOKEN_SIZE;
                 }
-                else {
-                    tokenSize = count;
-                }    
-
-                // Check for buffer overflow and easly exit in case of bad compression rate
-                // 5 = 4 bytes ARGB + 1 byte RLE count
-                if((usedSize + COMPRESSED_INFO_SIZE) > outSizeMax) {
-                    // Overflow handling:  bigger than what we want so so forget about it.  
-                    return 0; 
-                }
-
-                // Store token and ARGB
-                pDst[usedSize+0] = tokenSize;    
-                pDst[usedSize+1] = pRefSouce[0];                                       
-                pDst[usedSize+2] = pRefSouce[1];       
-                pDst[usedSize+3] = pRefSouce[2];       
-                pDst[usedSize+4] = pRefSouce[3];       
-                usedSize += COMPRESSED_INFO_SIZE;                
-                count -= MAX_RLE_TOKEN_SIZE;
+            
+                pRefSouce = (char *) &pColumn[w];
+                count = 1;     
+                refSource = curSource;
             }
-        
-            pRefSouce = (char *) &pSource[i];
-            count = 1;     
-            refSource = curSource;
         }
+           pColumn += (stride >> 2);
     }
 
     // Clean up if we have a count remain. Normally just 1.
@@ -178,7 +188,8 @@ static int CompressToAlphaRLE(const void* pIn, void* pOut, const int sourceSize,
         usedSize += COMPRESSED_INFO_SIZE;                
         count -= MAX_RLE_TOKEN_SIZE;
     }
-
+    
+ 
     // Add the RLE header with the updated size info
     COMPRESSION_HEADER header;
     header.size = usedSize;
@@ -209,20 +220,25 @@ static int CompressToAlphaRLE(const void* pIn, void* pOut, const int sourceSize,
     \Input              const int sourceSize  size of the source to compress
     \Input              const int outSizeMax  size of the out buffer. This is used to control the 
                         compression rate 
+    \Input              int width  source image width to compress
+    \Input              int height source image height to compress
+    \Input              int stride  source image line stride        
+
 
     \Output             int size in bytes that is output
                         0 if fail.  It will fail if it overflows the pOut buffer size            
 
-    \Version    1.0        01/12/09 Created
+    \Version    1.0    01/12/09 Created
+                1.1    11/10/10 Added stride
+
 */
 /*************************************************************************************************F*/
-static int CompressToNoAlphaRLE(const void* pIn, void* pOut, const int sourceSize, const int outSizeMax)
+static int CompressToNoAlphaRLE(const void* pIn, void* pOut, const int sourceSize, const int outSizeMax, const int width, const int height, const int stride)
 {
     const static int ALPHA_SHIFT = 24;  // Shift offset to the location of alpha (ARGB has alpha at 24)
  
-    int* pSource = (int*) pIn;    
-    int colorRef = pSource[0];                  // First ARGB value
-    const int loopSize = sourceSize >> 2;       // Loop counter in ints
+    int* pColumn = (int*) pIn;
+    int colorRef = pColumn[0];                  // First ARGB value
     const int alphaMask = 0xff << ALPHA_SHIFT; 
     const int alphaRef = colorRef & alphaMask;  // Get the alpha value (hopefully the same for the full image)
     const int colorMask = ~(alphaMask);
@@ -230,49 +246,52 @@ static int CompressToNoAlphaRLE(const void* pIn, void* pOut, const int sourceSiz
     int colorCount = 0;      
     int colorSource;
 
-    int* pDst = (int*) pOut + (usedSize >> 2);   
+    int* pDst = (int*) pOut + (usedSize >> 2);   // Adjust for header
 
-    for(int i=0; i < loopSize; i++) {
-        colorSource = pSource[i];     
-        if(colorSource == colorRef) {
-           // Build the token count            
-            colorCount++;
-        }  
-        else {
-            // Store the color toke but clip it to char size       
-            while(colorCount > 0) {
-                // Check for buffer overflow
-                
-                int expectedSize = usedSize + sizeof(int);
-                if(expectedSize > outSizeMax) {
-                   // Overflow handling: this RLE is bigger than our target size.  
-                   return 0; 
+    for(int h=0; h < height; h++){
+        for(int w=0; w < width; w++) {
+
+            colorSource = pColumn[w];            
+            if(colorSource == colorRef) {
+               // Build the token count            
+                colorCount++;
+            }  
+            else {
+                // Store the color toke but clip it to char size       
+                while(colorCount > 0) {
+                    // Check for buffer overflow
+                    
+                    int expectedSize = usedSize + sizeof(int);
+                    if(expectedSize > outSizeMax) {
+                       // Overflow handling: this RLE is bigger than our target size.  
+                       return 0; 
+                    }
+                    // Store the count but keep it under 255     
+                    int tokenCount;
+                    if(colorCount > MAX_RLE_TOKEN_SIZE) {
+                        tokenCount = MAX_RLE_TOKEN_SIZE;
+                    }
+                    else {
+                        tokenCount = colorCount;
+                    }    
+                    
+                    // Store the token count in the alpha 
+                    colorRef &=colorMask;
+                    tokenCount <<=ALPHA_SHIFT;
+                    colorRef |=tokenCount;
+                    *pDst = colorRef;    // Store RGB + token as alpha
+                    pDst++;
+                    usedSize+= sizeof(int); ;
+                    colorCount -=MAX_RLE_TOKEN_SIZE;          
                 }
-                // Store the count but keep it under 255     
-                int tokenCount;
-                if(colorCount > MAX_RLE_TOKEN_SIZE) {
-                    tokenCount = MAX_RLE_TOKEN_SIZE;
-                }
-                else {
-                    tokenCount = colorCount;
-                }    
-                
-                // Store the token count in the alpha 
-                colorRef &=colorMask;
-                tokenCount <<=ALPHA_SHIFT;
-                colorRef |=tokenCount;
-                *pDst = colorRef;    // Store RGB + token as alpha
-                pDst++;
-                usedSize+= sizeof(int); ;
-                colorCount -=MAX_RLE_TOKEN_SIZE;          
+            
+                // Set up the next token
+                colorCount = 1;     // 1 since we know the next one is different already 
+                colorRef = colorSource; 
             }
-        
-            // Set up the next token
-            colorCount = 1;     // 1 since we know the next one is different already 
-            colorRef = colorSource; 
         }
+           pColumn += (stride >> 2);
     }
-
     //Last loop for any remainder (a least 1 token expected)   
     while(colorCount > 0) {
         // check for buffer overflow
@@ -328,18 +347,21 @@ static int CompressToNoAlphaRLE(const void* pIn, void* pOut, const int sourceSiz
     \Input              const int outSizeMax  size of the out buffer. This is used to control the 
                         compression rate 
     \Input              bool hasAlpha   Needed to determine which RLE to use
-                      
+    \Input              int w  source image width to compress
+    \Input              int h  source image height to compress
+    \Input              int stride  source image line stride                   
 
     \Output             int size in bytes that is output
                         0 if fail.  It will fail if it overflows the pOut buffer size            
 
-    \Version    1.0        01/12/09 Created
+    \Version    1.0    01/12/09 Created
+                1.1    11/10/10 Added stride
 */
 /*************************************************************************************************F*/
-int CompressToRLE(const void* pSource, void* pOut, const int sourceSize, const int outSizeMax, const bool hasAlpha)
+int CompressToRLE(const void* pSource, void* pOut, const int sourceSize, const int outSizeMax, const bool hasAlpha, const int w, const int h, const int stride)
 {
     static const int MIN_RLE_SIZE = 64;   // Not worth even considering if under this size in bytes
-    
+
     if( (pOut == NULL) || (pSource == NULL) || (sourceSize <= 0) || (outSizeMax <= 0) ) {
         EAW_ASSERT(0);
         return 0;
@@ -351,10 +373,10 @@ int CompressToRLE(const void* pSource, void* pOut, const int sourceSize, const i
     
     // Switch between alpha or non alpha version
     if(hasAlpha == true) {
-        return CompressToAlphaRLE(pSource, pOut, sourceSize, outSizeMax);
+        return CompressToAlphaRLE(pSource, pOut, sourceSize, outSizeMax, w, h, stride);
     }
     else {
-        return CompressToNoAlphaRLE(pSource, pOut, sourceSize, outSizeMax);
+        return CompressToNoAlphaRLE(pSource, pOut, sourceSize, outSizeMax, w, h, stride);
     }
 }
 
@@ -377,11 +399,17 @@ int CompressToRLE(const void* pSource, void* pOut, const int sourceSize, const i
 
     \Version    1.0        01/12/09 Created
     \Version    1.1        06/29/09 Added support for PS3 and 360
+    \Version    1.2        11/8/10 Added stride
 */
 /*************************************************************************************************F*/
-int DecompressFromRLE(const void* pIn, void* pOut, const int dstSize)
+int DecompressFromRLE(const void* pIn, void* pOut, const int w, const int h, const int stride, const int dstSize)
 {
     int outSize =0;
+    int curIndex=0; 
+    int curRow =1;
+
+    const int curStride = (stride >> 2);    
+
 
     COMPRESSION_HEADER *pHeader = (COMPRESSION_HEADER*) pIn;
     
@@ -418,7 +446,20 @@ int DecompressFromRLE(const void* pIn, void* pOut, const int dstSize)
 
                 // Store raw value back
                 while(token-- > 0) {
-                    pDst[outSize] = colorValue;
+                    
+                    // Consider limiting this checking with if the token is within overflow range instead but none of this
+                    // is optimized anyway...
+                    if(curIndex >= w)
+                    {
+                        pDst +=curStride;
+                        curIndex = 0;
+                        curRow++;    
+                        EAW_ASSERT(curRow <= h);        // A memory overflow might occur
+
+                    }
+                    
+                    pDst[curIndex] = colorValue;
+                    curIndex++;
                     outSize++;
                 }    
             }
@@ -455,10 +496,23 @@ int DecompressFromRLE(const void* pIn, void* pOut, const int dstSize)
                     return 0;
                 }
 
+                // Store raw value back
                 while(token-- > 0) {
-                    pDst[outSize] = colorValue;
+                    
+                    // Consider limiting this checking with if the token is within overflow range instead but none of this
+                    // is optimized anyway...
+                    if(curIndex >= w)
+                    {
+                        pDst +=curStride;
+                        curIndex = 0;
+                        curRow++;    
+                        EAW_ASSERT(curRow <= h);        // A memory overflow might occur
+                    }
+                    
+                    pDst[curIndex] = colorValue;
+                    curIndex++;
                     outSize++;
-                }       
+                }        
             }
             outSize <<= 2;         
         }
@@ -528,88 +582,127 @@ byte CLAMP_BYTE( int x ) { return ( (x) < 0 ? (0) : ( (x) > 255 ? 255 : (x) ) );
 #define COCG_TO_G( co, cg )         ( cg )
 #define COCG_TO_B( co, cg )         ( - co - cg )
  
-void ConvertRGBToCoCg_Y( byte *image, int width, int height ) {
-    for ( int i = 0; i < width * height; i++ ) {
+void ConvertRGBToCoCg_Y( byte *pImage, int width, int height, int stride ) {
+
+   byte *pImageRow = pImage;
+    
+    for ( int h = 0; h < height; h++) {
+
+        for ( int w = 0; w < width; w++ ) {
+        
+            byte *pImageColumn = pImageRow + (w << 2);
 #ifdef EA_SYSTEM_LITTLE_ENDIAN
-        int r = image[i*4+0];
-        int g = image[i*4+1];
-        int b = image[i*4+2];
-        int a = image[i*4+3];
+            int r = pImageColumn[0];
+            int g = pImageColumn[1];
+            int b = pImageColumn[2];
+            int a = pImageColumn[3];
 #else
-        int a = image[i*4+0];
-        int b = image[i*4+1];
-        int g = image[i*4+2];
-        int r = image[i*4+3];
-      
+            int a = pImageColumn[0];
+            int b = pImageColumn[1];
+            int g = pImageColumn[2];
+            int r = pImageColumn[3];
 #endif
-       image[i*4+0] = CLAMP_BYTE( RGB_TO_YCOCG_CO( r, g, b ) + 128 );
-       image[i*4+1] = CLAMP_BYTE( RGB_TO_YCOCG_CG( r, g, b ) + 128 );
-       image[i*4+2] = a;
-       image[i*4+3] = CLAMP_BYTE( RGB_TO_YCOCG_Y( r, g, b ) );
+           pImageColumn[0] = CLAMP_BYTE( RGB_TO_YCOCG_CO( r, g, b ) + 128 );
+           pImageColumn[1] = CLAMP_BYTE( RGB_TO_YCOCG_CG( r, g, b ) + 128 );
+           pImageColumn[2] = a;
+           pImageColumn[3] = CLAMP_BYTE( RGB_TO_YCOCG_Y( r, g, b ) );
+        }
+        pImageRow +=stride;             // Next line
     }
 }
-
 // Chris S Note- Added this to use a different outImage if needed
-void ConvertRGBToCoCg_Y( byte *image, byte *outImage, int width, int height ) {
-    for ( int i = 0; i < width * height; i++ ) {
-#ifdef EA_SYSTEM_LITTLE_ENDIAN
-        int r = image[i*4+0];
-        int g = image[i*4+1];
-        int b = image[i*4+2];
-        int a = image[i*4+3];
-#else
-        int a = image[i*4+0];
-        int b = image[i*4+1];
-        int g = image[i*4+2];
-        int r = image[i*4+3];
-#endif
-        outImage[i*4+0] = CLAMP_BYTE( RGB_TO_YCOCG_CO( r, g, b ) + 128 );
-        outImage[i*4+1] = CLAMP_BYTE( RGB_TO_YCOCG_CG( r, g, b ) + 128 );
-        outImage[i*4+2] = a;
-        outImage[i*4+3] = CLAMP_BYTE( RGB_TO_YCOCG_Y( r, g, b ) );
+void ConvertRGBToCoCg_Y( byte *pImage, byte *pOutImage, int width, int height, int strideIn, int strideOut ) {
 
+  byte *pImageRow = pImage;
+  byte *pOutImageRow = pOutImage;
+    
+    for ( int h = 0; h < height; h++) {
+        for ( int w = 0; w < width; w++ ) {
+            
+            byte *pImageColumn = pImageRow + (w << 2);
+            byte *pOutImageColumn = pOutImageRow + (w << 2);
+
+#ifdef EA_SYSTEM_LITTLE_ENDIAN
+            int r = pImageColumn[0];
+            int g = pImageColumn[1];
+            int b = pImageColumn[2];
+            int a = pImageColumn[3];
+#else
+            int a = pImageColumn[0];
+            int b = pImageColumn[1];
+            int g = pImageColumn[2];
+            int r = pImageColumn[3];
+#endif
+            pOutImageColumn[0] = CLAMP_BYTE( RGB_TO_YCOCG_CO( r, g, b ) + 128 );
+            pOutImageColumn[1] = CLAMP_BYTE( RGB_TO_YCOCG_CG( r, g, b ) + 128 );
+            pOutImageColumn[2] = a;
+            pOutImageColumn[3] = CLAMP_BYTE( RGB_TO_YCOCG_Y( r, g, b ) );
+        }
+        pImageRow +=strideIn;             // Next line
+        pOutImageRow +=strideOut;         
    }
 }
 
-void ConvertCoCg_YToRGB( byte *image, int width, int height ) {
-    for ( int i = 0; i < width * height; i++ ) {
-        int y  = image[i*4+3];
-        int co = image[i*4+0] - 128;
-        int cg = image[i*4+1] - 128;
-        int a  = image[i*4+2];
-#ifdef EA_SYSTEM_LITTLE_ENDIAN       
-        image[i*4+0] = CLAMP_BYTE( y + COCG_TO_R( co, cg ) );
-        image[i*4+1] = CLAMP_BYTE( y + COCG_TO_G( co, cg ) );
-        image[i*4+2] = CLAMP_BYTE( y + COCG_TO_B( co, cg ) );
-        image[i*4+3] = a;
-#else
-        image[i*4+3] = CLAMP_BYTE( y + COCG_TO_R( co, cg ) );
-        image[i*4+2] = CLAMP_BYTE( y + COCG_TO_G( co, cg ) );
-        image[i*4+1] = CLAMP_BYTE( y + COCG_TO_B( co, cg ) );
-        image[i*4+0] = a;
-#endif
+void ConvertCoCg_YToRGB( byte *image, int width, int height, int stride ) {
 
+    byte *pImageRow = image;
+    
+    for ( int h = 0; h < height; h++) {
+        for ( int w = 0; w < width; w++ ) {
+            
+            byte *pImageColumn = pImageRow + (w << 2);
+
+            int co = pImageColumn[0] - 128;
+            int cg = pImageColumn[1] - 128;
+            int a  = pImageColumn[2];
+            int y  = pImageColumn[3];
+
+    #ifdef EA_SYSTEM_LITTLE_ENDIAN       
+            pImageColumn[0] = CLAMP_BYTE( y + COCG_TO_R( co, cg ) );
+            pImageColumn[1] = CLAMP_BYTE( y + COCG_TO_G( co, cg ) );
+            pImageColumn[2] = CLAMP_BYTE( y + COCG_TO_B( co, cg ) );
+            pImageColumn[3] = a;
+    #else
+            pImageColumn[0] = a;
+            pImageColumn[1] = CLAMP_BYTE( y + COCG_TO_B( co, cg ) );
+            pImageColumn[2] = CLAMP_BYTE( y + COCG_TO_G( co, cg ) );
+            pImageColumn[3] = CLAMP_BYTE( y + COCG_TO_R( co, cg ) );
+    #endif
+        }
+        pImageRow +=stride;             // Next line
     }
 }
 
 // Note: Added this version to not even load the alpha from the source
-void ConvertCoCg_YToRGB( byte *image, byte *outImage, int width, int height ) {
-    for ( int i = 0; i < width * height; i++ ) {
-        int y  = image[i*4+3];
-        int co = image[i*4+0] - 128;
-        int cg = image[i*4+1] - 128;
-#ifdef EA_SYSTEM_LITTLE_ENDIAN  
-        outImage[i*4+0] = CLAMP_BYTE( y + COCG_TO_R( co, cg ) );
-        outImage[i*4+1] = CLAMP_BYTE( y + COCG_TO_G( co, cg ) );
-        outImage[i*4+2] = CLAMP_BYTE( y + COCG_TO_B( co, cg ) );
-        outImage[i*4+3] = 255;
-#else
-       outImage[i*4+3] = CLAMP_BYTE( y + COCG_TO_R( co, cg ) );
-       outImage[i*4+2] = CLAMP_BYTE( y + COCG_TO_G( co, cg ) );
-       outImage[i*4+1] = CLAMP_BYTE( y + COCG_TO_B( co, cg ) );
-       outImage[i*4+0] = 255;
-#endif
+void ConvertCoCg_YToRGB( byte *pImage, byte *pOutImage, int width, int height, int strideIn, int strideOut ) {
 
+    byte *pImageRow = pImage;
+    byte *pOutImageRow = pOutImage;
+    
+    for ( int h = 0; h < height; h++) {
+        for ( int w = 0; w < width; w++ ) {
+            
+            byte *pImageColumn = pImageRow + (w << 2);
+            byte *pOutImageColumn = pOutImageRow + (w << 2);
+
+            int co = pImageColumn[0] - 128;
+            int cg = pImageColumn[1] - 128;
+            int y  = pImageColumn[3];
+
+#ifdef EA_SYSTEM_LITTLE_ENDIAN  
+            pOutImageColumn[0] = CLAMP_BYTE( y + COCG_TO_R( co, cg ) );
+            pOutImageColumn[1] = CLAMP_BYTE( y + COCG_TO_G( co, cg ) );
+            pOutImageColumn[2] = CLAMP_BYTE( y + COCG_TO_B( co, cg ) );
+            pOutImageColumn[3] = 255;
+#else
+           pOutImageColumn[0] = 255;
+           pOutImageColumn[1] = CLAMP_BYTE( y + COCG_TO_B( co, cg ) );
+           pOutImageColumn[2] = CLAMP_BYTE( y + COCG_TO_G( co, cg ) );
+           pOutImageColumn[3] = CLAMP_BYTE( y + COCG_TO_R( co, cg ) );
+#endif
+        }
+        pImageRow +=strideIn;             // Next line
+        pOutImageRow +=strideOut;         
     }
 }
 
@@ -688,16 +781,16 @@ ALWAYS_INLINE void EmitDoubleWord( dword i ) {
     globalOutData += 4;
 }
  
-ALWAYS_INLINE void ExtractBlock( const byte *inPtr, const int width, byte *colorBlock ) {
+ALWAYS_INLINE void ExtractBlock( const byte *inPtr, const int width, const int stride, byte *colorBlock ) {
     for ( int j = 0; j < 4; j++ ) {
         memcpy( &colorBlock[j*4*4], inPtr, 4*4 );
-        inPtr += width * 4;
+        inPtr += stride;
     }
 }
 
 // This box extract replicates the last rows and columns if the row or columns are not 4 texels aligned
 // This is so we don't get random pixels which could affect the color interpolation
-void ExtractBlock( const byte *inPtr, const int width, const int widthRemain, const int heightRemain, byte *colorBlock ) {
+void ExtractBlock( const byte *inPtr, const int width, const int stride, const int widthRemain, const int heightRemain, byte *colorBlock ) {
    int *pBlock32 = (int *) colorBlock;  // Since we are using ARGA, we assume 4 byte alignment is already being used
    int *pSource32 = (int*) inPtr; 
   
@@ -716,7 +809,7 @@ void ExtractBlock( const byte *inPtr, const int width, const int widthRemain, co
         pBlock32 +=4;    
         hIndex++;
         if(hIndex < (heightRemain-1)) {
-            pSource32 +=width;
+            pSource32 +=(stride >> 2);
         }
    }
 }
@@ -753,10 +846,7 @@ void GetMinMaxYCoCg( byte *colorBlock, byte *minColor, byte *maxColor ) {
             maxColor[3] = colorBlock[i*4+3];
         }
     }
-
-
 }
-
 
 
 // EA/Alex Mole: abs isn't inlined and gets called a *lot* in this code :)
@@ -857,8 +947,6 @@ void SelectYCoCgDiagonal( const byte *colorBlock, byte *minColor, byte *maxColor
     byte c2 = c0 ^ c1;
     c0 = c2;
     c0 ^= c1 ^= mask &=c2;
-
-    
     
     minColor[1] = c0;
     maxColor[1] = c1;
@@ -956,7 +1044,7 @@ void EmitColorIndices( const byte *colorBlock, const byte *minColor, const byte 
 
 /*F*************************************************************************************************/
 /*!
-    \Function    CompressYCoCgDXT5( const byte *inBuf, byte *outBuf, const int width, const int height ) 
+    \Function    CompressYCoCgDXT5( const byte *inBuf, byte *outBuf, const int width, const int height, const int stride ) 
 
     \Description        This is the C version of the YcoCgDXT5.  
                   
@@ -982,15 +1070,17 @@ void EmitColorIndices( const byte *colorBlock, const byte *minColor, const byte 
 
     \Input              const byte *inBuf   Input buffer of the YCoCG textel data
     \Input              const byte *outBuf  Output buffer for the compressed data
-    \Input              int width           original width 
-    \Input              int height          original height
+    \Input              int width           in source width 
+    \Input              int height          in source height
+    \Input              int stride          in source in buffer stride in bytes
 
     \Output             int ouput size
 
-    \Version    1.1        CSidhall 01/12/09 modified to account for non aligned textures
+    \Version    1.1     CSidhall 01/12/09 modified to account for non aligned textures
+                1.2     1/10/10 Added stride
 */
 /*************************************************************************************************F*/
-int CompressYCoCgDXT5( const byte *inBuf, byte *outBuf, const int width, const int height ) {
+int CompressYCoCgDXT5( const byte *inBuf, byte *outBuf, const int width, const int height , const int stride) {
  
     int outputBytes =0;
 
@@ -999,18 +1089,19 @@ int CompressYCoCgDXT5( const byte *inBuf, byte *outBuf, const int width, const i
     byte maxColor[4];
     
     globalOutData = outBuf;
-   
-    for ( int j = 0; j < height; j += 4, inBuf += width * 4*4 ) {
+    int blockLineSize = stride * 4;  // 4 lines per loop
+
+    for ( int j = 0; j < height; j += 4, inBuf +=blockLineSize ) {
         int heightRemain = height - j;    
         for ( int i = 0; i < width; i += 4 ) {
   
             // Note: Modified from orignal source so that it can handle the edge blending better with non aligned 4x textures
             int widthRemain = width - i;
             if ((heightRemain < 4) || (widthRemain < 4) ) {
-                ExtractBlock( inBuf + i * 4, width,  widthRemain, heightRemain,  block );  
+                ExtractBlock( inBuf + i * 4, width, stride, widthRemain, heightRemain,  block );  
             }
             else {
-                ExtractBlock( inBuf + i * 4, width, block );
+                ExtractBlock( inBuf + i * 4, width, stride, block );
             }
             // A simple min max extract for each color channel including alpha             
             GetMinMaxYCoCg( block, minColor, maxColor );
@@ -1168,36 +1259,35 @@ static void RestoreChromaBlock( const void * pSource, byte *colorBlock)
 }
 
 // This stores a 4x4 texel block but can overflow the output rectangle size if it is not 4 texels aligned in size
-int ALWAYS_INLINE StoreBlock( const byte *colorBlock, const int width, byte *outPtr ) {
+int ALWAYS_INLINE StoreBlock( const byte *colorBlock, const int stride, byte *outPtr ) {
    
-    int lineWidth = width * 4;
-
     for ( int j = 0; j < 4; j++ ) {
         memcpy( (void*) outPtr,&colorBlock[j*4*4], 4*4 );
-        outPtr += lineWidth;
+        outPtr += stride;
     }
     return 64;
 }
 
 // This store only the texels that are within the width and height boundaries so does not overflow
-int StoreBlock( const byte *colorBlock , const int width, const int widthRemain, const int heightRemain,  byte *outPtr) 
+int StoreBlock( const byte *colorBlock , const int stride, const int widthRemain, const int heightRemain,  byte *outPtr) 
 {
-   int outCount =0;
+    int outCount =0;
+    int width = stride >> 2;    // Convert to int offsets
 
-   int *pBlock32 = (int *) colorBlock;  // Since we are using ARGB, we assume 4 byte alignment is already being used
-   int *pOutput32 = (int*) outPtr; 
-  
+    int *pBlock32 = (int *) colorBlock;  // Since we are using ARGB, we assume 4 byte alignment is already being used
+    int *pOutput32 = (int*) outPtr; 
+
     int widthMax = 4;
     if(widthRemain < 4) {
         widthMax = widthRemain;
     }
-    
+
     int heightMax = 4;
     if(heightRemain < 4) {
         heightMax = heightRemain;    
     }
 
-   for(int j =0; j < heightMax; j++) {
+    for(int j =0; j < heightMax; j++) {
         for(int i=0; i < widthMax; i++) {
             pOutput32[i] = pBlock32[i];    
             outCount +=4;       
@@ -1206,8 +1296,8 @@ int StoreBlock( const byte *colorBlock , const int width, const int widthRemain,
         // Set up offset for next texel row source (keep existing if we are at the end)
         pBlock32 +=4;    
         pOutput32 +=width;
-   }
-   return outCount;
+    }
+    return outCount;
 }
 
 
@@ -1215,7 +1305,7 @@ int StoreBlock( const byte *colorBlock , const int width, const int widthRemain,
 
 /*F*************************************************************************************************/
 /*!
-    \Function    DeCompressYCoCgDXT5( const byte *inBuf, byte *outBuf, const int width, const int height ) 
+    \Function    DeCompressYCoCgDXT5( const byte *inBuf, byte *outBuf, const int width, const int height, const int stride ) 
 
     \Description  Decompression for YCoCgDXT5  
                   Bascially does the reverse order of he compression.  
@@ -1242,21 +1332,23 @@ int StoreBlock( const byte *colorBlock , const int width, const int widthRemain,
     \Input          byte *outBuf, 
     \Input          const int width
     \input          const int height 
+    \input          const int stride for inBuf
 
     \Output         int size output in bytes
         
 
     \Version    1.0        01/12/09 Created
                 1.1        12/21/09 Alex Mole: removed branches from tight inner loop
+                1.2        11/10/10 CSidhall: Added stride for textures with different image and canvas sizes.
 */
 /*************************************************************************************************F*/
-int DeCompressYCoCgDXT5( const byte *inBuf, byte *outBuf, const int width, const int height ) 
+int DeCompressYCoCgDXT5( const byte *inBuf, byte *outBuf, const int width, const int height, const int stride ) 
 {
     byte colorBlock[64];    // 4x4 texel work space a linear array 
     int outByteCount =0;
     const byte *pCurInBuffer = inBuf;
 
-    int blockLineSize = width * 4 * 4;  // 4 bytes + 4 lines
+    int blockLineSize = stride * 4;  // 4 lines per loop
     for( int j = 0; j < ( height & ~3 ); j += 4, outBuf += blockLineSize )
     {
         int i;
@@ -1264,7 +1356,7 @@ int DeCompressYCoCgDXT5( const byte *inBuf, byte *outBuf, const int width, const
         {
             RestoreLumaAlphaBlock(pCurInBuffer, colorBlock);
             RestoreChromaBlock(pCurInBuffer, colorBlock);           
-            outByteCount += StoreBlock(colorBlock, width, outBuf + i * 4);
+            outByteCount += StoreBlock(colorBlock, stride, outBuf + i * 4);
             pCurInBuffer += 16; // 16 bytes per block of compressed data
         }
 
@@ -1276,7 +1368,7 @@ int DeCompressYCoCgDXT5( const byte *inBuf, byte *outBuf, const int width, const
             RestoreLumaAlphaBlock(pCurInBuffer, colorBlock);
             RestoreChromaBlock(pCurInBuffer, colorBlock);
            
-            outByteCount += StoreBlock(colorBlock , width, widthRemain, 4 /* heightRemain >= 4 */, outBuf + i * 4);
+            outByteCount += StoreBlock(colorBlock , stride, widthRemain, 4 /* heightRemain >= 4 */, outBuf + i * 4);
 
             pCurInBuffer += 16; // 16 bytes per block of compressed data
         }
@@ -1293,7 +1385,7 @@ int DeCompressYCoCgDXT5( const byte *inBuf, byte *outBuf, const int width, const
             RestoreChromaBlock(pCurInBuffer, colorBlock);
            
             int widthRemain = width - i;
-            outByteCount += StoreBlock(colorBlock , width, widthRemain, heightRemain,  outBuf + i * 4);
+            outByteCount += StoreBlock(colorBlock , stride, widthRemain, heightRemain,  outBuf + i * 4);
 
             pCurInBuffer += 16; // 16 bytes per block of compressed data
         }
@@ -1309,7 +1401,7 @@ int DeCompressYCoCgDXT5( const byte *inBuf, byte *outBuf, const int width, const
 
 /*F*************************************************************************************************/
 /*!
-    \Function          PackIntoRLE(EA::Raster::Surface* pImage, bool hasAlpha)
+    \Function          PackIntoRLE(EA::Raster::ISurface* pImage, bool hasAlpha)
 
     \Description       This packs an image into an RLE compressed format.
                        It also handles the buffer allocations and replaces the full ARGB buffer with
@@ -1318,26 +1410,28 @@ int DeCompressYCoCgDXT5( const byte *inBuf, byte *outBuf, const int width, const
                         It returns the compressed buffer size and it is up to the caller to correct the live
                         cache size.
                       
-    \Input             EA::Raster::Surface* pImage  Pointer to the source ARGB image info
+    \Input             EA::Raster::ISurface* pImage  Pointer to the source ARGB image info
     \Input             bool hasAlpha
 
     \Output                      
 
     \Version    1.0        01/12/09 Created
     \Version    1.1        06/29/09 Added support for PS3 and 360
+    \Version    1.2        11/5/10 Have the compressed memory use userData instead of mpData and use freedata  
+                           instead of delete since memory now might be external.
 */
 /*************************************************************************************************F*/
-int PackIntoRLE(EA::Raster::Surface* pImage, bool hasAlpha)
+int PackIntoRLE(EA::Raster::ISurface* pImage, bool hasAlpha)
 {
     int outBufferSize = 0;
 
-    if( (pImage->mSurfaceFlags & EA::Raster::kFlagIgnoreCompressRLE) != 0 ) 
+    if( (pImage->GetSurfaceFlags() & EA::Raster::kFlagIgnoreCompressRLE) != 0 ) 
             return false;
 
 #if EAWEBKIT_USE_RLE_COMPRESSION
-
-    // Allocate an out buffer (but will end up keeping it if it matches the compressed size).
-    int sourceSize = pImage->mWidth * pImage->mHeight * pImage->mPixelFormat.mBytesPerPixel;
+     
+     // Allocate an out buffer (but will end up keeping it if it matches the compressed size).
+    int sourceSize = pImage->GetWidth() * pImage->GetHeight() * pImage->GetPixelFormat().mBytesPerPixel;
     outBufferSize = sourceSize >> 1;  // 50% compression rate expected
     char* pOutBuffer = EAWEBKIT_NEW("RLE") char[outBufferSize]; //WTF::fastNewArray<char>(outBufferSize);
     EAW_ASSERT(pOutBuffer);
@@ -1355,31 +1449,28 @@ int PackIntoRLE(EA::Raster::Surface* pImage, bool hasAlpha)
     // The alpha status has already been checked during the various image unpacks 
     int outputSize = 0;
        
-    outputSize = CompressToRLE(pImage->mpData, pOutBuffer, sourceSize, outBufferSize, hasAlpha);
+    outputSize = CompressToRLE(pImage->GetData(), pOutBuffer, sourceSize, outBufferSize, hasAlpha, pImage->GetWidth(), pImage->GetHeight(),pImage->GetStride());
 
     if(outputSize <= 0) {
         // Compression failed to fit in the output buffer or was too small to compress
         // Signal not to evaluate for compression again since we failed getting a good rate with this image                     
-        pImage->mSurfaceFlags |= EA::Raster::kFlagIgnoreCompressRLE;
+        pImage->SetSurfaceFlags(pImage->GetSurfaceFlags() | EA::Raster::kFlagIgnoreCompressRLE);
         EAWEBKIT_DELETE[] pOutBuffer;//WTF::fastDeleteArray<char> (pOutBuffer);
         return false;
     }
     else {
         EAW_ASSERT(outputSize <= outBufferSize);                        
  
-        // Remove the original AGRB buffer since we have a good compressed version
-        // 7/10/09 CSidhall - Added to protect original owner
-        if((pImage->mSurfaceFlags&EA::Raster::kFlagOtherOwner) == 0)
-            EAWEBKIT_DELETE[] ((char*)pImage->mpData);//WTF::fastDeleteArray<char> ((char*)pImage->mpData);            
-        pImage->mSurfaceFlags &=~(EA::Raster::kFlagOtherOwner);
-        pImage->mpData = NULL;
+        // Remove the original AGRB buffer since we have a good compressed version and don't need it anymore
+        pImage->FreeData();
+            
 
         // Check if we should just keep the existing buffer (if close enough in size);
         const static int CLOSE_ENOUGH_SIZE = 1024 * 10;  // 10K 
         int bufferDelta = outBufferSize - outputSize;
         if(bufferDelta <= CLOSE_ENOUGH_SIZE) {
             // Replace with the new compressed buffer
-            pImage->mpData = pOutBuffer; 
+            pImage->SetUserData(pOutBuffer); 
         }
         else {
             // Allocate a small buffer instead of using the default one as we might save some more mem
@@ -1388,18 +1479,19 @@ int PackIntoRLE(EA::Raster::Surface* pImage, bool hasAlpha)
                 memcpy(pCompactBuffer, pOutBuffer, outputSize);
 
                 // Replace with the new compressed buffer
-                pImage->mpData = pCompactBuffer;                                    
-				EAWEBKIT_DELETE[] pOutBuffer;//WTF::fastDeleteArray<char> (pOutBuffer);    // Remove the bigger buffer 
+                pImage->SetUserData(pCompactBuffer); 
+
+                EAWEBKIT_DELETE[] pOutBuffer;//WTF::fastDeleteArray<char> (pOutBuffer);    // Remove the bigger buffer 
                 outBufferSize = outputSize;
             }
             else {
                 // Use the bigger one anyway since we are out of mem (Might be an impossible case because we just freed mpData...)  
-                pImage->mpData = pOutBuffer;    
+                 pImage->SetUserData(pOutBuffer);  
             } 
         }
 
-        // Set to compressed format type 
-        pImage->mSurfaceFlags |= EA::Raster::kFlagCompressedRLE;
+        // Set to compressed format type. This also signals that the userData is a buffer 
+        pImage->SetSurfaceFlags(pImage->GetSurfaceFlags() | EA::Raster::kFlagCompressedRLE);
  
     }
 
@@ -1411,7 +1503,7 @@ int PackIntoRLE(EA::Raster::Surface* pImage, bool hasAlpha)
 
 /*F*************************************************************************************************/
 /*!
-    \Function       PackIntoYCOCGDXT5(EA::Raster::Surface* pImage, bool hasAlpha)   
+    \Function       PackIntoYCOCGDXT5(EA::Raster::ISurface* pImage, bool hasAlpha)   
 
     \Description    This packs the YCoCg compression using DXT5.  
                     It also handles the buffer allocation replaces the full size ARGB buffer with the 
@@ -1419,7 +1511,7 @@ int PackIntoRLE(EA::Raster::Surface* pImage, bool hasAlpha)
                     It returns the compressed buffer size and it is up to the caller to correct the live
                     cache size.
                       
-    \Input         EA::Raster::Surface* pImage Pointer to the source ARGB image info
+    \Input         EA::Raster::ISurface* pImage Pointer to the source ARGB image info
     \Input         bool hasAlpha    This version does not support alpha...
   
                       
@@ -1429,27 +1521,30 @@ int PackIntoRLE(EA::Raster::Surface* pImage, bool hasAlpha)
 
     \Version    1.0        01/12/09 Created
     \Version    1.1        06/29/09 Added support for PS3 and 360
+    \Version    1.2        11/5/10 Have the compressed memory use userData instead of mpData and use freedata  
+                           instead of delete since memory now might be external.
 */
 /*************************************************************************************************F*/
-int PackIntoYCOCGDXT5(EA::Raster::Surface* pImage, bool hasAlpha)
+int PackIntoYCOCGDXT5(EA::Raster::ISurface* pImage, bool hasAlpha)
 {
     int outBufferSize =0;
                                                        
-    if( (pImage->mSurfaceFlags & EA::Raster::kFlagIgnoreCompressYCOCGDXT5) != 0 )  
+    if( (pImage->GetSurfaceFlags() & EA::Raster::kFlagIgnoreCompressYCOCGDXT5) != 0 )  
             return false;
 
 #if EAWEBKIT_USE_YCOCGDXT5_COMPRESSION
 
+    // We don't support alpha for this type of compression
     if(hasAlpha == true) {
-        pImage->mSurfaceFlags |= EA::Raster::kFlagIgnoreCompressYCOCGDXT5;        
+        pImage->SetSurfaceFlags (pImage->GetSurfaceFlags() | EA::Raster::kFlagIgnoreCompressYCOCGDXT5);        
         return 0;
     }
 
     // Allocate an out buffer. Might be a little bigger than the 4:1 rate if the texture is not 4x aligned
 
     // Find the aligned size on 4 textel boundaries so we can determine exactly the compressed size
-    int widthAlign = (pImage->mWidth + 3) & 0xfffffffc;
-    int heightAlign = (pImage->mHeight + 3) & 0xfffffffc;
+    int widthAlign = (pImage->GetWidth() + 3) & 0xfffffffc;
+    int heightAlign = (pImage->GetHeight() + 3) & 0xfffffffc;
     outBufferSize = heightAlign * widthAlign;   // 4:1  
     byte* pOutBuffer = EAWEBKIT_NEW("YCoC") byte[outBufferSize];//WTF::fastNewArray<byte> (outBufferSize); // *2 should not be needed but because of alignment issues...
 
@@ -1461,16 +1556,21 @@ int PackIntoYCOCGDXT5(EA::Raster::Surface* pImage, bool hasAlpha)
 
     // Compress  
     // At this point, we have everything we need so can use the old ARGB buffer directly and modify it
-    ConvertRGBToCoCg_Y( (byte*) pImage->mpData, (byte*) pImage->mpData, pImage->mWidth, pImage->mHeight );
+    
+    pImage->Lock(); // Note. We might want to allocate a temp memory buffer instead here but this avoids a possibly large allocation...  
+    ConvertRGBToCoCg_Y( (byte*) pImage->GetData(), (byte*) pImage->GetData(), pImage->GetWidth(), pImage->GetHeight(), pImage->GetStride(), pImage->GetStride() );
+    pImage->Unlock();
     int outputSize = 0;
-    outputSize = CompressYCoCgDXT5( (byte*) pImage->mpData, pOutBuffer, pImage->mWidth, pImage->mHeight ); 
+    outputSize = CompressYCoCgDXT5( (byte*) pImage->GetData(), pOutBuffer, pImage->GetWidth(), pImage->GetHeight(), pImage->GetStride() ); 
     if(outputSize <= 0) {
         // Compression failed. This is almost impossible unless the height or width is 0?  
         EAW_ASSERT(0);
         
         // Restore colors just in case...
-        ConvertCoCg_YToRGB( (byte*) pImage->mpData, (byte*) pImage->mpData, pImage->mWidth, pImage->mHeight );
-        pImage->mSurfaceFlags |= EA::Raster::kFlagIgnoreCompressYCOCGDXT5;
+        pImage->Lock();
+        ConvertCoCg_YToRGB( (byte*) pImage->GetData(), (byte*) pImage->GetData(), pImage->GetWidth(), pImage->GetHeight(), pImage->GetStride(), pImage->GetStride() );
+        pImage->Unlock();
+        pImage->SetSurfaceFlags( pImage->GetSurfaceFlags() | EA::Raster::kFlagIgnoreCompressYCOCGDXT5);
 		EAWEBKIT_DELETE[]  pOutBuffer;//WTF::fastDeleteArray<byte> (pOutBuffer);
         outBufferSize =0;    
         return outBufferSize;
@@ -1479,16 +1579,14 @@ int PackIntoYCOCGDXT5(EA::Raster::Surface* pImage, bool hasAlpha)
         EAW_ASSERT(outputSize <= outBufferSize);                        
  
         // Remove the original AGRB buffer since we have a have a compressed version
-        // 7/10/09 CSidhall - Added to protect original owner
-        if( (pImage->mSurfaceFlags&EA::Raster::kFlagOtherOwner) == 0)
-            EAWEBKIT_DELETE[] ((char*)pImage->mpData);//WTF::fastDeleteArray<char> ((char*)pImage->mpData);            
-         pImage->mSurfaceFlags &=~(EA::Raster::kFlagOtherOwner);
+        // We don't want to resize for still want the width and height and format intact
+         pImage->FreeData();
 
         // Replace with the new compressed buffer
-        pImage->mpData = pOutBuffer; 
+        pImage->SetUserData(pOutBuffer); 
        
         // Set to compressed format type 
-        pImage->mSurfaceFlags |= EA::Raster::kFlagCompressedYCOCGDXT5;
+        pImage->SetSurfaceFlags(pImage->GetSurfaceFlags() | EA::Raster::kFlagCompressedYCOCGDXT5);
        }
 #endif // COMPRESSION_TEST   
 
@@ -1499,7 +1597,7 @@ int PackIntoYCOCGDXT5(EA::Raster::Surface* pImage, bool hasAlpha)
 
 /*F*************************************************************************************************/
 /*!
-    \Function      PackAsCompressedImage(EA::Raster::Surface* , bool , bool)    
+    \Function      PackAsCompressedImage(EA::Raster::ISurface* , bool , bool)    
 
     \Description   Attempts to pack an ARGB texture into a compressed format.
                    It will first try to pack as an RLE.   If that fails and there is no alpha, it will
@@ -1508,7 +1606,7 @@ int PackIntoYCOCGDXT5(EA::Raster::Surface* pImage, bool hasAlpha)
                    Compression can be turned on or off with ActivateCompression(bool flag)
 
 
-    \Input          EA::Raster::Surface* pImage   The source ARGB image to compress
+    \Input          EA::Raster::ISurface* pImage   The source ARGB image to compress
     \Input          bool hasAlpha                   
     \Input          bool allDataReceived            
 
@@ -1517,9 +1615,10 @@ int PackIntoYCOCGDXT5(EA::Raster::Surface* pImage, bool hasAlpha)
                         
 
     \Version    1.0        01/12/09 Created
+    \Version    1.1        11/5/10 Adjusted to use the new ISurface
 */
 /*************************************************************************************************F*/
-int PackAsCompressedImage(EA::Raster::Surface* pImage, bool hasAlpha,  bool allDataReceived)
+int PackAsCompressedImage(EA::Raster::ISurface* pImage, bool hasAlpha,  bool allDataReceived)
 {
     const static int MIN_IMAGE_SIZE =16;    // Min size width x height for a texture to be considered for compression
     
@@ -1530,11 +1629,14 @@ int PackAsCompressedImage(EA::Raster::Surface* pImage, bool hasAlpha,  bool allD
                                                         EA::Raster::kFlagCompressedYCOCGDXT5 );
     if( (allDataReceived == false) || 
         (IsCompressionActive() == false) ||
-        ((pImage->mSurfaceFlags & COMPRESSION_SURFACE_FLAG_CHECK) != 0) || 
-        (pImage->mPixelFormat.mPixelFormatType != EA::Raster::kPixelFormatTypeARGB) ) 
-            return 0;
+        ((pImage->GetSurfaceFlags() & COMPRESSION_SURFACE_FLAG_CHECK) != 0) || 
+        (pImage->GetPixelFormat().mPixelFormatType != EA::Raster::kPixelFormatTypeARGB) ||
+        (pImage->GetUserData()) )     // We expect the userData to be free for will use it to store the compressed texture pointer
+    {
+        return false;
+    } 
 
-    int size = pImage->mHeight * pImage->mWidth;
+    int size = pImage->GetHeight() * pImage->GetWidth();
     if(size <= MIN_IMAGE_SIZE) 
         return 0;
 
@@ -1558,29 +1660,35 @@ int PackAsCompressedImage(EA::Raster::Surface* pImage, bool hasAlpha,  bool allD
 
 /*F*************************************************************************************************/
 /*!
-    \Function       UnpackCompressedImage(EA::Raster::Surface* pImage)   
+    \Function       UnpackCompressedImage(EA::Raster::ISurface* pImage)   
 
     \Description    Decompression if pImage was compressed.   
    
                     Note: The caller must delete the returned surface after the draw.                    
                       
-    \Input          EA::Raster::Surface* pImage  Output of decompressed image      
+    \Input          EA::Raster::ISurface* pImage  Output of decompressed image      
   
-    \Output         EA::Raster::Surface* Allocated surface with the decompressed ARGB texture              
+    \Output         EA::Raster::ISurface* Allocated surface with the decompressed ARGB texture              
 
     \Version    1.0        01/12/09 Created
+    \Version    1.1        11/5/10 Adjusted to use the new ISurface. Also the packed buffer is now
+                           stored in mpUserData instead of the mpData of the surface to make it clear
+                           that it should not be in vmem and possible ownership issues.
+
 */
 /*************************************************************************************************F*/
-EA::Raster::Surface* UnpackCompressedImage(EA::Raster::Surface* pImage)
+EA::Raster::ISurface* UnpackCompressedImage(EA::Raster::ISurface* pImage)
 {
-    EA::Raster::Surface* pARGBImage = NULL;
+    EA::Raster::ISurface* pARGBImage = NULL;
 
-    if( (pImage->mSurfaceFlags & (EA::Raster::kFlagCompressedRLE | EA::Raster::kFlagCompressedYCOCGDXT5 )) == 0 ) {
+    if( ((pImage->GetSurfaceFlags() & (EA::Raster::kFlagCompressedRLE | EA::Raster::kFlagCompressedYCOCGDXT5 )) == 0 ) ||
+        !pImage->GetUserData() )   
+    {
         return NULL;
     }
 
     // Allocate a buffer for the decompressed ARGB
-    pARGBImage =  CreateSurface(pImage->mWidth, pImage->mHeight, pImage->mPixelFormat.mPixelFormatType);        
+    pARGBImage =    EA::WebKit::GetEARasterInstance()->CreateSurface(pImage->GetWidth(), pImage->GetHeight(), pImage->GetPixelFormat().mPixelFormatType, EA::Raster::kSurfaceCategoryImageCompression);        
     if(pARGBImage == NULL) {
         // Not enough mem to decompress the image    
         EAW_ASSERT(0);
@@ -1590,18 +1698,24 @@ EA::Raster::Surface* UnpackCompressedImage(EA::Raster::Surface* pImage)
     // 11/09/09 CSidhall Added notify start of process to user
 	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeImageCompressionUnPack, EA::WebKit::kVProcessStatusStarted);
 	    
-    int bufferSize = (pImage->mWidth * pImage->mHeight * pImage->mPixelFormat.mBytesPerPixel);
+    int bufferSize = (pImage->GetWidth() * pImage->GetHeight() * pImage->GetPixelFormat().mBytesPerPixel);
     int outSize=0; 
 
 #if EAWEBKIT_USE_RLE_COMPRESSION
-    if( (pImage->mSurfaceFlags & EA::Raster::kFlagCompressedRLE) != 0 )
-        outSize = DecompressFromRLE( pImage->mpData, pARGBImage->mpData, bufferSize);
+    if( (pImage->GetSurfaceFlags() & EA::Raster::kFlagCompressedRLE) != 0 )
+    {
+        pARGBImage->Lock();     
+        outSize = DecompressFromRLE( pImage->GetUserData(), pARGBImage->GetData(), pARGBImage->GetWidth(), pARGBImage->GetHeight(),pARGBImage->GetStride(), bufferSize);
+        pARGBImage->Unlock();     
+    }
 #endif
 
 #if EAWEBKIT_USE_YCOCGDXT5_COMPRESSION
-    if( ( (pImage->mSurfaceFlags & EA::Raster::kFlagCompressedYCOCGDXT5) != 0 ) && (outSize == 0) ) {   
-        outSize = DeCompressYCoCgDXT5( ( byte*) pImage->mpData, (byte* )pARGBImage->mpData, pImage->mWidth, pImage->mHeight ); 
-        ConvertCoCg_YToRGB( (byte*) pARGBImage->mpData, (byte*) pARGBImage->mpData, pImage->mWidth, pImage->mHeight );
+    if( ( (pImage->GetSurfaceFlags() & EA::Raster::kFlagCompressedYCOCGDXT5) != 0 ) && (outSize == 0) ) {   
+        pARGBImage->Lock();     
+        outSize = DeCompressYCoCgDXT5( ( byte*) pImage->GetUserData(), (byte* )pARGBImage->GetData(), pARGBImage->GetWidth(), pARGBImage->GetHeight(), pARGBImage->GetStride() ); 
+        ConvertCoCg_YToRGB( (byte*) pARGBImage->GetData(), (byte*) pARGBImage->GetData(), pARGBImage->GetWidth(), pARGBImage->GetHeight(), pARGBImage->GetStride(), pARGBImage->GetStride() );
+        pARGBImage->Unlock();    
     }
 #endif
     
@@ -1612,7 +1726,7 @@ EA::Raster::Surface* UnpackCompressedImage(EA::Raster::Surface* pImage)
         EAW_ASSERT(0);
         
         // Remove the surface!
-        EA::Raster::DestroySurface(pARGBImage);
+          EA::WebKit::GetEARasterInstance()->DestroySurface(pARGBImage);
         return NULL;
     }
     return pARGBImage;

@@ -50,6 +50,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CString.h"
 #include "FileIO.h"
 #include <EAWebKit/EAWebKitInput.h>
+#include <EAWebKit/EAWebKit.h>
 #include "BAL/Includes/FakedDeepsee.h"
 
 
@@ -76,7 +77,35 @@ void WebViewPrivate::onExpose(BalEventExpose eventExpose)
     if (frame->contentRenderer() && frame->view() && !m_webView->dirtyRegion().isEmpty()) {
         frame->view()->layoutIfNeededRecursive();
         IntRect dirty = m_webView->dirtyRegion();
+        
+        // Notify the user of the draw start event.
+        EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
+
+        EA::WebKit::View* pView = EA::WebKit::GetView(m_webView);
+        
+        // Clip to the main view surface and not just the dirty rect for notification.    
+        int w=0;
+        int h=0;
+        if(pView)
+            pView->GetSize(w,h);
+        IntRect rect(0,0,w,h);
+        rect.intersect(dirty);
+
+        EA::WebKit::ViewUpdateInfo vui = { pView, rect.x(), rect.y(), rect.width(), rect.height(), EA::WebKit::ViewUpdateInfo::kViewDrawStart};
+        if(pVN)
+            pVN->DrawEvent(vui);
+
         frame->view()->paint(&ctx, dirty);
+
+       // Notify the user of end draw event     
+        if(pVN) {
+            vui.mDrawEvent = EA::WebKit::ViewUpdateInfo::kViewDrawEnd;
+            pVN->DrawEvent(vui);
+            
+           // TODO: Deprecate this view update 
+          pVN->ViewUpdate(vui);
+        }
+
         m_webView->clearDirtyRegion();
     }
 }
@@ -177,16 +206,18 @@ void WebViewPrivate::onMouseButtonDown(BalEventButton eventButton)
 
 void WebViewPrivate::onMouseButtonUp(BalEventButton eventButton)
 {
-    Frame* focusedFrame = m_webView->page()->focusController()->focusedFrame();
-    if (!focusedFrame)
-        return;
+    // 12/3/10 CSidhall - Have the release event use the same frame as the press event so the scroll can be notified.
 
-    // if (focusedFrame && focusedFrame->editor()->canEdit()) {
-    // }
+    using namespace EA::WebKit;
+    
+    Frame* frame = core(m_webView->mainFrame());
+     if (!frame)
+        return; 
+    
+    if (eventButton.mId == kMouseMiddle)
+        return; 
 
-    PlatformMouseEvent mouseEvent(&eventButton);
-
-    focusedFrame->eventHandler()->handleMouseReleaseEvent(mouseEvent);
+    frame->eventHandler()->handleMouseReleaseEvent(PlatformMouseEvent(&eventButton));
 }
 
 void WebViewPrivate::onScroll(BalEventScroll eventScroll)

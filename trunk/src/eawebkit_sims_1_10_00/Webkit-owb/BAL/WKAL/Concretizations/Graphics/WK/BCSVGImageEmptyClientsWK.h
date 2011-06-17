@@ -118,7 +118,7 @@ public:
 
     virtual void mouseDidMoveOverElement(const HitTestResult&, unsigned modifierFlags) { }
     
-    virtual void setToolTip(const String&) { }
+    virtual void setToolTip(const String&, IntPoint, int ) { }
 
     virtual void print(Frame*) { }
 

@@ -44,8 +44,8 @@
 #include "ImageData.h"
 #include "NotImplemented.h"
 
-#include "EARaster.h"
-
+#include <EARaster/EARaster.h>
+#include <EAWebKit/EAWebKit.h>
 
 #define WIDTH_MAX  8192
 #define HEIGHT_MAX 8192
@@ -70,7 +70,7 @@ auto_ptr<ImageBuffer> ImageBuffer::create(const IntSize& size, bool)
     else
         height = size.height();
 
-    EA::Raster::Surface* pSurface = EA::Raster::CreateSurface(width, height, EA::Raster::kPixelFormatTypeARGB);
+    EA::Raster::ISurface* pSurface =   EA::WebKit::GetEARasterInstance()->CreateSurface(width, height, EA::Raster::kPixelFormatTypeARGB, EA::Raster::kSurfaceCategoryImage);
 
     return auto_ptr<ImageBuffer>(new ImageBuffer(pSurface));
 }
@@ -87,7 +87,7 @@ ImageBuffer::~ImageBuffer()
 {
     if (!m_image.get()) 
     {
-        EA::Raster::DestroySurface(m_surface);
+          EA::WebKit::GetEARasterInstance()->DestroySurface(m_surface);
     }
 }
 

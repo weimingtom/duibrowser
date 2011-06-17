@@ -35,14 +35,14 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ImageCompression_h
 
 #include "BALBase.h"
-#include "EARaster.h"
+#include <EARaster/EARaster.h>
 
 
 namespace WKAL {
     namespace BCImageCompressionEA {
 
-    int PackAsCompressedImage(EA::Raster::Surface* pImage, bool hasAlpha,  bool allDataReceived);
-    EA::Raster::Surface* UnpackCompressedImage(EA::Raster::Surface* pImage);
+    int PackAsCompressedImage(EA::Raster::ISurface* pImage, bool hasAlpha,  bool allDataReceived);
+    EA::Raster::ISurface* UnpackCompressedImage(EA::Raster::ISurface* pImage);
 
     // Status of Compression
     bool IsCompressionActive(void);

@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+* This file was modified by Electronic Arts Inc Copyright © 2010
+*/
+
 #include <ChromeClient.h>
 #include <FocusDirection.h>
 #include <wtf/Forward.h>
@@ -93,7 +97,7 @@ public:
 
     virtual void mouseDidMoveOverElement(const WebCore::HitTestResult&, unsigned modifierFlags);
 
-    virtual void setToolTip(const WebCore::String&);
+    virtual void setToolTip(const WebCore::String&, WebCore::IntPoint, const int handleID);
 
     virtual void print(WebCore::Frame*);
 

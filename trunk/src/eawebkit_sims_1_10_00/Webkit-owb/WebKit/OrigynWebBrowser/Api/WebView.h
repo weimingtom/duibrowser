@@ -37,15 +37,14 @@
 
 #include "BALBase.h"
 #include "WebFrame.h"
-#include "WebFrame.h"
 #include "WebPreferences.h"
-
 #include <IntRect.h>
 #include <Timer.h>
 #include <ObserverData.h>
 #include <wtf/OwnPtr.h>
 #include "GraphicsContext.h"
 #include "BALBase.h"
+#include "BAL/WKAL/Concretizations/Widgets/EA/BCTextPopupEA.h"
 
 class WebFrame;
 class WebBackForwardList;
@@ -310,7 +309,8 @@ public:
 
     bool isPainting() const { return m_paintCount > 0; }
 
-    void setToolTip(const WebCore::String&);
+    void setToolTip(const WebCore::String, WebCore::IntPoint, const int handleID);    // 6/10/10 Chris Sidhall - Added tooltip location for client callback.
+    void ResetToolTip();
 
 #if ENABLE(ICON_DATABASE)
     void registerForIconNotification(bool listen);
@@ -424,6 +424,8 @@ protected:
 
     BalWidget* m_topLevelParent;
     WebViewPrivate *d;
+
+    WKAL::TextPopup m_toolTipPopup;
 
     // 4/9/09 CSidhall - Added for leak fix
     static HashMap<int, const char*>* s_keyDownCommandsMap;

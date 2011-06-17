@@ -39,6 +39,76 @@
 
 using namespace WebCore;
 
+static WebErrorInfo gErrorInfo[] = 
+{
+	{0, L"Unknown Webkit Error"},
+	{WebKitErrorCannotShowMIMEType, L"Cannot show MIME type"},
+	{WebKitErrorCannotShowURL, L"Cannot show URL"},
+	{WebKitErrorFrameLoadInterruptedByPolicyChange, L"Frame load interrupted due to policy change"},
+	{WebKitErrorCannotUseRestrictedPort, L"Port is restricted"},
+
+	{WebKitErrorCannotFindPlugIn, L"Cannot find Plugin"},
+	{WebKitErrorCannotLoadPlugIn, L"Cannot load plugin"},
+	{WebKitErrorJavaUnavailable, L"Java runtime is not installed on this machine"},
+	{WebURLErrorUnknown, L"URL Error"},
+	{WebURLErrorCancelled, L"URL error cancelled"},
+	{WebURLErrorBadURL, L"Invalid URL"},
+	{WebURLErrorTimedOut, L"Website timed out"},
+	{WebURLErrorUnsupportedURL, L"URL is unsupported"},
+	{WebURLErrorCannotFindHost, L"Cannot find host"},
+	{WebURLErrorCannotConnectToHost, L"Cannot connect to host"},
+	{WebURLErrorNetworkConnectionLost, L"Network connection was lost"},
+	{WebURLErrorDNSLookupFailed, L"DNS lookup failed"},
+	{WebURLErrorHTTPTooManyRedirects, L"Too many redirects"},
+	{WebURLErrorResourceUnavailable, L"Resource is unavailable"},
+	{WebURLErrorNotConnectedToInternet, L"No connection to internet"},
+	{WebURLErrorRedirectToNonExistentLocation, L"Redirection to non existing location"},
+	{WebURLErrorBadServerResponse, L"Bad server response"},
+	{WebURLErrorUserCancelledAuthentication, L"User cancelled authentication"},
+	{WebURLErrorUserAuthenticationRequired, L"User authentication requried"},
+	{WebURLErrorUserAuthenticationUnsupported, L"User authentication no supported"},    // The requested authorization type (e.g. Basic, Digest, NTLM) is not currently supported.
+	{WebURLErrorZeroByteResource, L"Zero byte resource"},
+	{WebURLErrorFileDoesNotExist, L"File does not exist"},
+	{WebURLErrorFileIsDirectory, L"File is a directory"},
+	{WebURLErrorNoPermissionsToReadFile, L"No permissions to read file"},
+	{WebURLErrorSecureConnectionFailed, L"Secure connection failed"},
+	{WebURLErrorServerCertificateHasBadDate, L"Server certificate has bad date"},
+	{WebURLErrorServerCertificateUntrusted, L"Server certificate is untrusted"},
+	{WebURLErrorServerCertificateHasUnknownRoot, L"Server certificate has unknown root"},
+	{WebURLErrorServerCertificateNotYetValid, L"Invalid certificate"},
+	{WebURLErrorClientCertificateRejected, L"Client certificate rejected"},
+	{WebURLErrorClientCertificateRequired, L"Client certificate required"},
+	{WebURLErrorCannotLoadFromNetwork, L"Cannot load from network"},
+	{WebURLErrorCannotCreateFile, L"Cannot create file"},
+	{WebURLErrorCannotOpenFile, L"Cannot open file"},
+	{WebURLErrorCannotCloseFile, L"Cannot close file"},
+	{WebURLErrorCannotWriteToFile, L"Cannot write to file"},
+	{WebURLErrorCannotRemoveFile, L"Cannot remove file"},
+	{WebURLErrorCannotMoveFile, L"Cannot move file"},
+	{WebURLErrorDownloadDecodingFailedMidStream, L"Download decoding failed mid stream"},
+	{WebURLErrorDownloadDecodingFailedToComplete, L"Download decoding failed to complete"}
+};
+
+
+const char16_t *GetWebkitErrorString(int webkitErrorCode)
+{
+	// by default we keep the first error string if no string is found.
+	char16_t *errorString = gErrorInfo[0].mErrorString;
+
+	int size = sizeof(gErrorInfo)/ sizeof(WebErrorInfo);
+
+	for(int i = 0; i < size; ++i)
+	{
+		if(gErrorInfo[i].mWebkitErrorCode == webkitErrorCode)
+		{
+			errorString = gErrorInfo[i].mErrorString;
+			break;
+		}
+	}
+
+	return errorString;
+}
+
 WebError::WebError(const ResourceError& error, HTTPHeaderPropertyBag* userInfo)
     : m_userInfo(userInfo)
     , m_error(error)

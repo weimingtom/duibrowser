@@ -77,6 +77,7 @@ void Cursor::Set() const
     if(pVN)
     {
         EA::WebKit::CursorChangeInfo cci = {EA::WebKit::AutoSetActiveView::GetActiveView(), m_impl }; // m_impl is an int, the cursor id.
+		cci.mpView->GetCursorPosition(cci.mX, cci.mY);
         bHandled = pVN->CursorChanged(cci);
     }
 

@@ -76,11 +76,17 @@ void FileChooser::openFileChooser(Document* document)
         
         EA::WebKit::FileChooserInfo fci; 
         
-        fci.mpView = pView;              // View unknown
+        fci.mpView = pView;             
         fci.mbIsLoad     = true;
         fci.mFilePath[0] = 0;
         fci.mbSuccess    = false;
-        bHandled = pVN->ChooseFile(fci);
+
+		if (pVN->ChooseFile(fci))
+		{
+			bHandled = true;
+			const String resultFilename(fci.mFilePath); 
+			chooseFile(resultFilename);
+		}
     }
 
     if(!bHandled)
@@ -106,8 +112,8 @@ void FileChooser::openFileChooser(Document* document)
 
             if(result)
             {
-                const String result(filebuffer);
-                chooseFile(result); // Call our member chooseFile function.
+                const String resultFilename(filebuffer);
+                chooseFile(resultFilename); // Call our member chooseFile function.
             }
 
         #endif

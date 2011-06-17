@@ -68,7 +68,7 @@ public:
     // OutlineFont. We would need to find a way to transfer the BitmapFont as a single
     // file and unpack it in our createFontCustomPlatformData function. Probably as a
     // .zip file with the .bmpFont and individual .png files.
-    EA::Internal::IFont* m_fontFace;
+    EA::WebKit::IFont* m_fontFace;
     SharedBuffer*   mpFontData;
 };
 

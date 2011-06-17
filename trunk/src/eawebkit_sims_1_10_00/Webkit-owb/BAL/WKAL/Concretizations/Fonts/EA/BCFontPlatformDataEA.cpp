@@ -94,6 +94,14 @@ bool IsTextSmoothingActive(void)
     return smoothFlag;
 } //- CS
 
+//+11/30/10 CSidhall - Added for a more finer control of the smoothing
+float GetTextSmoothingDefaultSize() 
+{
+     const EA::WebKit::Parameters& parameters = EA::WebKit::GetParameters();   
+     const float size = parameters.mSmoothDefaultTextSize;
+     return size;   
+}
+
 FontPlatformData::FontPlatformData(const FontDescription& fontDescription, const AtomicString& /*familyName*/, const UChar* characters, int length)
     : mpFont(NULL)
     , m_isDeletedValue(0)
@@ -111,11 +119,11 @@ FontPlatformData::FontPlatformData(const FontDescription& fontDescription, const
 
 
     // We need to convert FontDescription to EA::Text::TextStyle.
-    EA::Internal::IFontServer* pServer = EA::WebKit::GetFontServer();
+    EA::WebKit::IFontServer* pServer = EA::WebKit::GetFontServer();
     if(!pServer) {
         return;
     }
-    EA::Internal::IFontStyle* pTextStyle = pServer->CreateTextStyle();
+    EA::WebKit::IFontStyle* pTextStyle = pServer->CreateTextStyle();
 
     WebPreferences* pWP = WebPreferences::sharedStandardPreferences();
     WebCore::String sWPFamily;
@@ -234,7 +242,7 @@ FontPlatformData::FontPlatformData(const FontDescription& fontDescription, const
     // Set TextStyle::mStyle
     const bool bItalic = fontDescription.italic();
     if(bItalic)
-        pTextStyle->SetStyle(EA::Internal::kStyleItalic);
+        pTextStyle->SetStyle(EA::WebKit::kStyleItalic);
 
     // Set TextStyle::mfWeight
     COMPILE_ASSERT( WKAL::FontWeight100 == 0, FontWeight);
@@ -245,7 +253,7 @@ FontPlatformData::FontPlatformData(const FontDescription& fontDescription, const
 
     // Set TextStyle::mVariant
     if(fontDescription.smallCaps())
-        pTextStyle->SetVariant(EA::Internal::kVariantSmallCaps);
+        pTextStyle->SetVariant(EA::WebKit::kVariantSmallCaps);
 
     // Set TextStyle::mPitch
     // if()
@@ -254,29 +262,32 @@ FontPlatformData::FontPlatformData(const FontDescription& fontDescription, const
     // Set TextStyle::mSmooth
     // We act like FireFox under Windows does with respect to sizes and weights.
     const bool bBold = (fontWeight == WebCore::FontWeightBold);
+    const float defaultSmoothSize = GetTextSmoothingDefaultSize();
 
-    if(((fFontSize >= 18) && !bItalic && !bBold) || // Normal text
+    if(((fFontSize >= defaultSmoothSize) && !bItalic && !bBold) || // Normal text
        ((fFontSize >= 18) &&  bItalic &&  bBold) || // Bold italic text
        ((fFontSize >= 14) && !bItalic &&  bBold) || // Bold text
        ((fFontSize >= 22) &&  bItalic && !bBold))   // Italic text
     {
-        pTextStyle->SetSmooth(EA::Internal::kSmoothEnabled);
+        pTextStyle->SetSmooth(EA::WebKit::kSmoothEnabled);
     }
     else
     {
         // 8/21/09 CSidhall - Added switch to allow user control (slow when active however)
         if(!IsTextSmoothingActive())     
-            pTextStyle->SetSmooth(EA::Internal::kSmoothNone);
+            pTextStyle->SetSmooth(EA::WebKit::kSmoothNone);
         else    
-            pTextStyle->SetSmooth(EA::Internal::kSmoothEnabled);    
+            pTextStyle->SetSmooth(EA::WebKit::kSmoothEnabled);    
     }
-    // Set TextStyle::mEffect
-    // To consider: Find a means to support EAText effects.
-   
+    
+    // 10/16/10 CSidhall - Set TextStyle::mEffect
+    const EA::WebKit::TextEffectData& effectData = fontDescription.getTextEffectData();
+    
+
     // Get the font from the FontServer.
     // The FontServer supports the concept of multiple returned fonts, one for each family name,
     //
-    mpFont = pServer->GetFont(pTextStyle, NULL, 0, length ? characters[0] : ' ');
+    mpFont = pServer->GetFont(pTextStyle, NULL, 0, &effectData, length ? characters[0] : ' ');
     EAW_ASSERT(mpFont);
 
     pTextStyle->Destroy();
@@ -294,33 +305,37 @@ FontPlatformData::FontPlatformData(const FontDescription& fontDescription, const
 
 }
 
-FontPlatformData::FontPlatformData(float size, bool bold, bool italic, const UChar* characters, int length)
+FontPlatformData::FontPlatformData(float size, bool bold, bool italic, const UChar* characters, int length, const EA::WebKit::TextEffectData* pEffect)
     : mpFont(NULL)
     , m_isDeletedValue(0)
 {
-    EA::Internal::IFontServer* const pFontServer = EA::WebKit::GetFontServer();
+    EA::WebKit::IFontServer* const pFontServer = EA::WebKit::GetFontServer();
     EAW_ASSERT_MSG(pFontServer, "EAText: Need to call EA::Text::SetFontServer.");
     
     // We need to convert FontDescription to EA::Text::TextStyle.
-    EA::Internal::IFontStyle* pTextStyle = pFontServer->CreateTextStyle();
+    EA::WebKit::IFontStyle* pTextStyle = pFontServer->CreateTextStyle();
 
     // Set TextStyle::mFamilyNameArray. 
-    EA::Internal::Strlcpy( pTextStyle->GetFamilyNameArray(0), L"Arial", EA::Internal::kFamilyNameCapacity);
+    EA::Internal::Strlcpy( pTextStyle->GetFamilyNameArray(0), L"Arial", EA::WebKit::kFamilyNameCapacity);
 
     // Set TextStyle::mfSize
     pTextStyle->SetSize(size);
 
     // Set TextStyle::mStyle
     if(italic)
-        pTextStyle->SetStyle(EA::Internal::kStyleItalic);
+        pTextStyle->SetStyle(EA::WebKit::kStyleItalic);
 
     // Set TextStyle::mfWeight
     if(bold)
-        pTextStyle->SetWeight( (float) EA::Internal::kWeightBold);
+        pTextStyle->SetWeight( (float) EA::WebKit::kWeightBold);
     
+    
+
     // Get the font from the FontServer.
-    mpFont = pFontServer->GetFont(pTextStyle, NULL, 0, length ? characters[0] : ' ');
+    mpFont = pFontServer->GetFont(pTextStyle, NULL, 0, pEffect,  length ? characters[0] : ' ');
     EAW_ASSERT(mpFont);
+
+    pTextStyle->Destroy();  // Matching the Create or it will leak.
 }
 
 
@@ -389,9 +404,9 @@ bool FontPlatformData::isFixedPitch()
     // Can mpFont ever be NULL?
     if(mpFont)
     {
-        EA::Internal::FontMetrics fontMetrics;
+        EA::WebKit::FontMetrics fontMetrics;
         mpFont->GetFontMetrics(fontMetrics);
-        return fontMetrics.mPitch == EA::Internal::kPitchFixed;
+        return fontMetrics.mPitch == EA::WebKit::kPitchFixed;
     }
     return false;
 }

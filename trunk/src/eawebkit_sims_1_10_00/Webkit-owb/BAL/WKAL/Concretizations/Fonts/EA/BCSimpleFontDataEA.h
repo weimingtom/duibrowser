@@ -87,7 +87,7 @@ public:
 
     void  determinePitch();
     
-    EA::Internal::Pitch pitch() const { return m_treatAsFixedPitch ? EA::Internal::kPitchFixed :  EA::Internal::kPitchVariable; }
+    EA::WebKit::Pitch pitch() const { return m_treatAsFixedPitch ? EA::WebKit::kPitchFixed :  EA::WebKit::kPitchVariable; }
 
     #if ENABLE(SVG_FONTS)
         SVGFontData* svgFontData() const { return m_svgFontData.get(); }

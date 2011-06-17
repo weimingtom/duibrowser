@@ -132,7 +132,7 @@ namespace WKAL {
         // This is a function which a user may want to override.
         // Returns true if there was any area to update after clipping to the surface.
         // If true then rectResult contains the surface rect that was updated.
-        virtual bool updateView(EA::Raster::Surface* pSurface, const IntRect& rect);
+        virtual bool updateView(EA::Raster::ISurface* pSurface, const IntRect& rect);
 
         virtual IntPoint convertChildToSelf(const Widget*, const IntPoint&) const;
         virtual IntPoint convertSelfToChild(const Widget*, const IntPoint&) const;

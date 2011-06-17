@@ -875,13 +875,11 @@ void TransportHandlerFileCache::InvalidateCachedData(const EA::WebKit::Transport
     //the entity referred to by the Request-URI, or by the Location or 
     //Content-Location headers (if present). These methods are: POST, PUT, DELETE.
 
-    bool invalidate =   EA::Internal::Stricmp("POST",   pTInfo->mMethod ) == 0 || 
-                        EA::Internal::Stricmp("PUT",    pTInfo->mMethod ) == 0 || 
-                        EA::Internal::Stricmp("DELETE", pTInfo->mMethod ) == 0;
-
+	bool invalidate = (	pTInfo->mHttpRequestType == EA::WebKit::kHttpRequestTypePOST ||
+						pTInfo->mHttpRequestType == EA::WebKit::kHttpRequestTypePUT ||
+						pTInfo->mHttpRequestType == EA::WebKit::kHttpRequestTypeDELETE );
     if(invalidate)
     {
-
         EA::WebKit::FixedString8_128 uri8;
 		EA::WebKit::ConvertToString8(*GetFixedString(pTInfo->mURI), uri8);
         DataMap::iterator iter = mDataMap.find( uri8 );

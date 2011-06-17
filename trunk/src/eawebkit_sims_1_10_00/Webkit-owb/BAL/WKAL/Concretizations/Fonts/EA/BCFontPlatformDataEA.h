@@ -50,7 +50,7 @@ public:
     FontPlatformData(WTF::HashTableDeletedValueType);
     FontPlatformData();
     FontPlatformData(const FontDescription&, const AtomicString& family, const UChar* characters, int length);
-    FontPlatformData(float size, bool bold, bool italic, const UChar* characters, int length);
+    FontPlatformData(float size, bool bold, bool italic, const UChar* characters, int length,const EA::WebKit::TextEffectData *pEffect);
     FontPlatformData(BalFontFace* pFontFace, int size, bool bold, bool italic, const UChar* characters, int length);  // BalFontFace == EA::Text::Font
    ~FontPlatformData();
     FontPlatformData(const FontPlatformData& r);    // 7/17/09 CSidhall - Added to control font ref count
@@ -69,7 +69,7 @@ public:
 public:
     // Note by Paul Pedriana:
     // The original WebKit equivalent of this class has this data public. Does it really need to be so?
-     EA::Internal::IFont*   mpFont;
+     EA::WebKit::IFont*   mpFont;
      int                    m_isDeletedValue;
 };
 

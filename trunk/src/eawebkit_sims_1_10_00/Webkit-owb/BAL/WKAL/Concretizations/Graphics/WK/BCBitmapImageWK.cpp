@@ -38,7 +38,7 @@
 #include "Timer.h"
 #include <wtf/Vector.h>
 #include "MIMETypeRegistry.h"
-#include "EARaster.h"
+#include <EARaster/EARaster.h>
 #include <EAWebKit/EAWebKitConfig.h>
 #include "../EA/BCImageCompressionEA.h"
 #include "cache.h"
@@ -93,9 +93,9 @@ void BitmapImage::destroyDecodedData(bool incremental)
 
                 // 1/15/08 CSidhall Note: Added special size adjustment for compressed texture cases
                 // Some animated textures can have frames compressed with different systems and different sizes.
-                EA::Raster::Surface* pImage = frameAtIndex(m_currentFrame);
-                if( (pImage != NULL) && (pImage->mCompressedSize != 0) ) {
-                    sizeChange -= pImage->mCompressedSize;
+                EA::Raster::ISurface* pImage = frameAtIndex(m_currentFrame);
+                if( (pImage != NULL) && (pImage->GetCompressedSize() != 0) ) {
+                    sizeChange -= pImage->GetCompressedSize();
                 }
                 else {
                     // CS- Seems to assume the frame as been fully loaded? Need to verify this is always the case...
@@ -169,15 +169,15 @@ void BitmapImage::cacheFrame(size_t index)
     
     // Only load once the image has fully been decoded or we have problems...
     if( (m_allDataReceived == true) && (m_decodedSize > MIN_DECODED_SIZE_FOR_COMPRESSION) ) {
-        EA::Raster::Surface* pImage = frameAtIndex(index);
+        EA::Raster::ISurface* pImage = frameAtIndex(index);
         
         bool hasAlpha = frameHasAlphaAtIndex(m_currentFrame); 
         int bufferSize = BCImageCompressionEA::PackAsCompressedImage(pImage, hasAlpha, m_allDataReceived);
         if(bufferSize > 0) {
-            pImage->mCompressedSize = bufferSize;   
+            pImage->SetCompressedSize(bufferSize);   
 
             // Adjust the decoded cache size to new value
-            int sourceSize = pImage->mHeight * pImage->mWidth * pImage->mPixelFormat.mBytesPerPixel;
+            int sourceSize = pImage->GetHeight() * pImage->GetWidth() * pImage->GetPixelFormat().mBytesPerPixel;
             int sizeChange = bufferSize -  sourceSize;
             m_decodedSize += sizeChange;
 
