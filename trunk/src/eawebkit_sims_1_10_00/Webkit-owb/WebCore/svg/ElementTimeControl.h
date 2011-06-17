@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ElementTimeControl_h
@@ -37,7 +37,7 @@
 
 namespace WebCore {
 
-    class ElementTimeControl: public WTF::FastAllocBase {
+    class ElementTimeControl/*: public WTF::FastAllocBase*/ {
     public:
         virtual ~ElementTimeControl() {}
         virtual bool beginElement(ExceptionCode&) = 0;

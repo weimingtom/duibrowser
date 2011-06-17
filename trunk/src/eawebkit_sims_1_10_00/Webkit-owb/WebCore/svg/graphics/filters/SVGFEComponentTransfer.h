@@ -20,7 +20,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGFEComponentTransfer_h
@@ -54,7 +54,7 @@ enum SVGComponentTransferType {
     SVG_FECOMPONENTTRANSFER_TYPE_GAMMA    = 5
 };
 
-struct SVGComponentTransferFunction: public WTF::FastAllocBase {
+struct SVGComponentTransferFunction/*: public WTF::FastAllocBase*/ {
     SVGComponentTransferFunction()
         : type(SVG_FECOMPONENTTRANSFER_TYPE_UNKNOWN)
         , slope(0.0f)

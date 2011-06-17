@@ -21,7 +21,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGExternalResourcesRequired_h
@@ -46,7 +46,7 @@ namespace WebCore {
      language definition states that externalResourcesRequired cannot be animated, the animVal will 
      always be the same as the baseVal.
      */
-    class SVGExternalResourcesRequired: public WTF::FastAllocBase {
+    class SVGExternalResourcesRequired/*: public WTF::FastAllocBase*/ {
     public:
         SVGExternalResourcesRequired();
         virtual ~SVGExternalResourcesRequired();

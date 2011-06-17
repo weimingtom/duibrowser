@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef HTMLCollection_h
@@ -104,7 +104,7 @@ public:
     // and doesn't convey the job of this class (caching collection state).
     // Second, since this is a member of HTMLCollection, it doesn't need "collection"
     // in its name.
-    struct CollectionInfo: public WTF::FastAllocBase {
+    struct CollectionInfo/*: public WTF::FastAllocBase*/ {
         CollectionInfo();
         CollectionInfo(const CollectionInfo&);
         CollectionInfo& operator=(const CollectionInfo& other)

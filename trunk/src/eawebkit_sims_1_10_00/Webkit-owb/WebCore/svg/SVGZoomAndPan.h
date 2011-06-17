@@ -21,7 +21,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGZoomAndPan_h
@@ -36,7 +36,7 @@ namespace WebCore {
     class MappedAttribute;
     class QualifiedName;
 
-    class SVGZoomAndPan: public WTF::FastAllocBase {
+    class SVGZoomAndPan/*: public WTF::FastAllocBase*/ {
     public:
         enum SVGZoomAndPanType {
             SVG_ZOOMANDPAN_UNKNOWN = 0,

@@ -19,7 +19,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGGlyphElement_h
@@ -38,7 +38,7 @@ namespace WebCore {
     struct SVGFontData;
 
     // Describe a SVG <glyph> element
-    struct SVGGlyphIdentifier: public WTF::FastAllocBase {
+    struct SVGGlyphIdentifier/*: public WTF::FastAllocBase*/ {
         enum Orientation {
             Vertical,
             Horizontal,

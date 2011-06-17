@@ -20,7 +20,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef PatternAttributes_h
@@ -31,7 +31,7 @@
 
 namespace WebCore
 {
-    struct PatternAttributes: public WTF::FastAllocBase {
+    struct PatternAttributes/*: public WTF::FastAllocBase*/ {
         PatternAttributes()
             : m_x()
             , m_y()

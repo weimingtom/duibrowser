@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGHKernElement_h
@@ -39,7 +39,7 @@ namespace WebCore {
     struct SVGFontData;
 
     // Describe an SVG <hkern> element
-    struct SVGHorizontalKerningPair: public WTF::FastAllocBase {
+    struct SVGHorizontalKerningPair/*: public WTF::FastAllocBase*/ {
         String unicode1;
         String glyphName1;
         String unicode2;

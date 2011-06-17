@@ -21,7 +21,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGList_h
@@ -40,7 +40,7 @@ namespace WebCore {
     class QualifiedName;
 
     template<typename Item>
-    struct SVGListTypeOperations: public WTF::FastAllocBase {
+    struct SVGListTypeOperations/*: public WTF::FastAllocBase*/ {
         static Item nullItem()
         {
             return SVGListTraits<UsesDefaultInitializer<Item>::value, Item>::nullItem();

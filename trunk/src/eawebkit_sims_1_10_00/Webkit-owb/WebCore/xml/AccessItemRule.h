@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef AccessItemRule_h
@@ -39,7 +39,7 @@ namespace WebCore {
     class SecurityOrigin;
     class String;
 
-    class AccessItemRule: public WTF::FastAllocBase {
+    class AccessItemRule/*: public WTF::FastAllocBase*/ {
     public:
         AccessItemRule(const String&);
 

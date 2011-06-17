@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef XPathExpressionNode_h
@@ -45,7 +45,7 @@ namespace WebCore {
 
         class Value;
         
-        struct EvaluationContext: public WTF::FastAllocBase {
+        struct EvaluationContext/*: public WTF::FastAllocBase*/ {
             EvaluationContext() : node(0), size(0), position(0) { }
 
             RefPtr<Node> node;
@@ -55,7 +55,7 @@ namespace WebCore {
 
         };
 
-        class ParseNode: public WTF::FastAllocBase {
+        class ParseNode/*: public WTF::FastAllocBase*/ {
         public:
             virtual ~ParseNode() { }
         };

@@ -21,7 +21,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGLocatable_h
@@ -39,7 +39,7 @@ namespace WebCore {
     class SVGElement;
     class SVGStyledElement;
 
-    class SVGLocatable: public WTF::FastAllocBase {
+    class SVGLocatable/*: public WTF::FastAllocBase*/ {
     public:
         SVGLocatable();
         virtual ~SVGLocatable();

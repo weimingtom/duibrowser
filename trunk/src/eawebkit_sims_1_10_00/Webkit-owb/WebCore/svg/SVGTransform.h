@@ -21,7 +21,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGTransform_h
@@ -38,7 +38,7 @@ namespace WebCore {
     
     class FloatSize;
 
-    class SVGTransform: public WTF::FastAllocBase {
+    class SVGTransform/*: public WTF::FastAllocBase*/ {
     public:
         enum SVGTransformType {
             SVG_TRANSFORM_UNKNOWN           = 0,

@@ -19,7 +19,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGAnimatedTemplate_h
@@ -43,7 +43,7 @@ namespace WebCore {
     class String;
     class QualifiedName;
 
-    struct SVGAnimatedTypeWrapperKey: public WTF::FastAllocBase {
+    struct SVGAnimatedTypeWrapperKey/*: public WTF::FastAllocBase*/ {
         // Empty value
         SVGAnimatedTypeWrapperKey()
             : element(0)
@@ -77,7 +77,7 @@ namespace WebCore {
         AtomicStringImpl* attributeName;
     };
     
-    struct SVGAnimatedTypeWrapperKeyHash: public WTF::FastAllocBase {
+    struct SVGAnimatedTypeWrapperKeyHash/*: public WTF::FastAllocBase*/ {
         static unsigned hash(const SVGAnimatedTypeWrapperKey& key)
         {
             return StringImpl::computeHash(reinterpret_cast<const UChar*>(&key), sizeof(SVGAnimatedTypeWrapperKey) / sizeof(UChar));

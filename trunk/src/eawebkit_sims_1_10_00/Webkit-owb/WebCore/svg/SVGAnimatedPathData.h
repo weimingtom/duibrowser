@@ -21,7 +21,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGAnimatedPathData_h
@@ -34,7 +34,7 @@ namespace WebCore
 {
     class SVGPathSegList;
 
-    class SVGAnimatedPathData: public WTF::FastAllocBase
+    class SVGAnimatedPathData/*: public WTF::FastAllocBase*/
     {
     public:
         SVGAnimatedPathData();

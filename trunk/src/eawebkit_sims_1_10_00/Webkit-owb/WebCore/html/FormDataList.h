@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef FormDataList_h
@@ -39,7 +39,7 @@
 
 namespace WebCore {
 
-struct FormDataListItem: public WTF::FastAllocBase {
+struct FormDataListItem/*: public WTF::FastAllocBase*/ {
     FormDataListItem() { }
     FormDataListItem(const CString& data) : m_data(data) { }
     FormDataListItem(const String& path) : m_path(path) { }
@@ -48,7 +48,7 @@ struct FormDataListItem: public WTF::FastAllocBase {
     CString m_data;
 };
 
-class FormDataList: public WTF::FastAllocBase {
+class FormDataList/*: public WTF::FastAllocBase*/ {
 public:
     FormDataList(const TextEncoding&);
 

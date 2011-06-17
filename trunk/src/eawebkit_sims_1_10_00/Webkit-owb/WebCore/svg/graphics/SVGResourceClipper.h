@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGResourceClipper_h
@@ -38,13 +38,13 @@
 
 namespace WebCore {
 
-    struct ClipData: public WTF::FastAllocBase {
+    struct ClipData/*: public WTF::FastAllocBase*/ {
         Path path;
         WindRule windRule;
         bool bboxUnits : 1;
     };
 
-    class ClipDataList: public WTF::FastAllocBase {
+    class ClipDataList/*: public WTF::FastAllocBase*/ {
     public:
         void addPath(const Path& pathData, WindRule windRule, bool bboxUnits)
         {

@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef XPathNodeSet_h
@@ -42,7 +42,7 @@ namespace WebCore {
 
     namespace XPath {
 
-        class NodeSet: public WTF::FastAllocBase {
+        class NodeSet/*: public WTF::FastAllocBase*/ {
         public:
         
             NodeSet() : m_isSorted(true) {}

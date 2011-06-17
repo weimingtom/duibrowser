@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SMILTime_h
@@ -37,7 +37,7 @@
 
 namespace WebCore {
 
-    class SMILTime: public WTF::FastAllocBase {
+    class SMILTime/*: public WTF::FastAllocBase*/ {
     public:
         SMILTime() : m_time(0) { }
         SMILTime(double time) : m_time(time) { }

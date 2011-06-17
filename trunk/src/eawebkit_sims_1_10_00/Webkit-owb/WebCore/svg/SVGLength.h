@@ -21,7 +21,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGLength_h
@@ -56,7 +56,7 @@ namespace WebCore {
         LengthModeOther
     };
 
-    class SVGLength: public WTF::FastAllocBase {
+    class SVGLength/*: public WTF::FastAllocBase*/ {
     public:
         // Forward declare these enums in the w3c naming scheme, for IDL generation
         enum {

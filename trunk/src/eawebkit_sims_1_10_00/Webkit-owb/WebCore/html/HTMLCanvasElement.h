@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef HTMLCanvasElement_h
@@ -64,7 +64,7 @@ class IntPoint;
 class InttRect;
 class IntSize;
 
-class CanvasObserver: public WTF::FastAllocBase {
+class CanvasObserver/*: public WTF::FastAllocBase*/ {
 public:
     virtual ~CanvasObserver() {};
 

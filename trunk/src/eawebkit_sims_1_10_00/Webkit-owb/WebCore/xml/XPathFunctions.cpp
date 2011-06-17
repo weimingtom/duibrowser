@@ -26,7 +26,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -54,7 +54,7 @@ static inline bool isWhitespace(UChar c)
 #define DEFINE_FUNCTION_CREATOR(Class) static Function* create##Class() { return new Class; }
 #include <wtf/FastAllocBase.h>
 
-class Interval: public WTF::FastAllocBase {
+class Interval/*: public WTF::FastAllocBase*/ {
 public:
     static const int Inf = -1;
 

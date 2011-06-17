@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef HTMLElementFactory_h
@@ -41,7 +41,7 @@ class QualifiedName;
 
 // The idea behind this class is that there will eventually be a mapping from namespace URIs to ElementFactories that can dispense elements.
 // In a compound document world, the generic createElement function (will end up being virtual) will be called.
-class HTMLElementFactory: public WTF::FastAllocBase {
+class HTMLElementFactory/*: public WTF::FastAllocBase*/ {
 public:
     PassRefPtr<Element> createElement(const QualifiedName&, Document*, bool createdByParser = true);
     static PassRefPtr<HTMLElement> createHTMLElement(const AtomicString& tagName, Document*, HTMLFormElement* = 0, bool createdByParser = true);

@@ -54,7 +54,7 @@
 #else
 #include <wtf/FastAllocBase.h>
 // Not inlined for non-GCC compilers
-struct Entity: public WTF::FastAllocBase {
+struct Entity/*: public WTF::FastAllocBase*/ {
     const char* name;
     int code;
 };
