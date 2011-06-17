@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WebURLResponse_H
@@ -53,7 +53,7 @@ namespace WebCore {
 
 class HTTPHeaderPropertyBag;
 
-class WebURLResponse: public WTF::FastAllocBase
+class WebURLResponse/*: public WTF::FastAllocBase*/
 {
 public:
 

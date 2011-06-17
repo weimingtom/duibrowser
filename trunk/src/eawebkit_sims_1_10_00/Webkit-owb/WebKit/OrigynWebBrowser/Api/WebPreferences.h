@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WebPreferences_H
@@ -73,7 +73,7 @@ enum FontSmoothingType
 };
 
 
-class WebPreferences: public WTF::FastAllocBase
+class WebPreferences/*: public WTF::FastAllocBase*/
 {
 public:
     static WebPreferences* createInstance();

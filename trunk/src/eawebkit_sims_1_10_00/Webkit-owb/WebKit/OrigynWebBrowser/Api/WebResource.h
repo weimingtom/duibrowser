@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WebResource_h
@@ -51,7 +51,7 @@
 #include <SharedBuffer.h>
 #include <wtf/PassRefPtr.h>
 
-class WebResource: public WTF::FastAllocBase {
+class WebResource/*: public WTF::FastAllocBase*/ {
 public:
 
     /**

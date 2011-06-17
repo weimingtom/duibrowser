@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 
@@ -339,6 +339,9 @@ public:
     //bool onGetObject(WPARAM, LPARAM, LRESULT&) const;
 
     //static STDMETHODIMP AccessibleObjectFromWindow(HWND, DWORD objectID, REFIID, void** ppObject);
+    
+    virtual bool canGoBack(unsigned count);        // + 4/1/10 CSidhall- Added so can know before even trying.
+    virtual bool canGoForward(unsigned count);     // + 
 
 private:
     void setZoomMultiplier(float multiplier, bool isTextOnly);

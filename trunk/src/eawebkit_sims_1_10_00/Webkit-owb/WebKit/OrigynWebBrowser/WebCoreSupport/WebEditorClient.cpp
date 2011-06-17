@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -53,14 +53,14 @@ using namespace HTMLNames;
 
 #include <wtf/FastAllocBase.h>
 
-class WebUndoCommand: public WTF::FastAllocBase {
+class WebUndoCommand/*: public WTF::FastAllocBase*/ {
 public:
     WebUndoCommand() {DS_CONSTRUCT();}
     virtual ~WebUndoCommand() {DS_DESTRUCT();}
     virtual void execute() = 0;
 };
 
-class WebEditorUndoTarget: public WTF::FastAllocBase
+class WebEditorUndoTarget/*: public WTF::FastAllocBase*/
 {
 public:
     WebEditorUndoTarget();
@@ -711,6 +711,7 @@ void WebEditorClient::setInputMethodState(bool enabled)
     if(pView) {
         // Store the current settings
         EA::WebKit::TextInputStateInfo& textInfo = pView->GetTextInputStateInfo();
+        textInfo.mpView = pView;
         textInfo.mIsActivated =  inputActive;
         textInfo.mIsPasswordField = passwordActive;
         textInfo.mIsSearchField = searchActive;

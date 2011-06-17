@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WebURLCredential_h
@@ -47,7 +47,7 @@ typedef enum {
 } WebURLCredentialPersistence;
 
 
-class WebURLCredential: public WTF::FastAllocBase
+class WebURLCredential/*: public WTF::FastAllocBase*/
 {
 public:
     static WebURLCredential* createInstance();

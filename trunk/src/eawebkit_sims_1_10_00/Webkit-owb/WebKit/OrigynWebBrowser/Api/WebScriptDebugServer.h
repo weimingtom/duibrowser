@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WebScriptDebugServer_H
@@ -58,7 +58,7 @@ class WebDataSource;
 class WebFrame;
 class WebScriptCallFrame;
 
-class WebScriptDebugListener: public WTF::FastAllocBase {
+class WebScriptDebugListener/*: public WTF::FastAllocBase*/ {
 public:
     /**
      * didLoadMainResourceForDataSource description

@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -154,6 +154,7 @@ void WebPreferences::initializeDefaultSettings()
     sprivatePrefs().add(WebKitJavaEnabledPreferenceKey, "0"); //FALSE
     sprivatePrefs().add(WebKitJavaScriptEnabledPreferenceKey, "1"); //TRUE
     sprivatePrefs().add(WebKitJavaScriptCanOpenWindowsAutomaticallyPreferenceKey, "1");//TRUE
+	sprivatePrefs().add(WebKitJavaScriptStackSize, "131072");//128 * 1024 = 128 KB
     sprivatePrefs().add(WebKitPluginsEnabledPreferenceKey, "1");//TRUE
     sprivatePrefs().add(WebKitAllowAnimatedImagesPreferenceKey, "1");//TRUE
     sprivatePrefs().add(WebKitAllowAnimatedImageLoopingPreferenceKey, "1");//TRUE

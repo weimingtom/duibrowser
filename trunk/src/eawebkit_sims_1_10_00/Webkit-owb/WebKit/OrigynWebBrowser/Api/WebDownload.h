@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WebDownload_h
@@ -59,7 +59,7 @@ class WebURLAuthenticationChallenge;
 class WebURLCredential;
 class WebMutableURLRequest;
 
-class WebDownload: public WTF::FastAllocBase
+class WebDownload/*: public WTF::FastAllocBase*/
 {
 public:
 

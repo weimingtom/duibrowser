@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WebURLProtectionSpace_h
@@ -65,7 +65,7 @@ namespace WebCore {
 #define WebURLAuthenticationMethodHTMLForm "WebURLAuthenticationMethodHTMLForm"
 
 
-class WebURLProtectionSpace: public WTF::FastAllocBase
+class WebURLProtectionSpace/*: public WTF::FastAllocBase*/
 {
 public:
 

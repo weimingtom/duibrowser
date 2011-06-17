@@ -167,12 +167,15 @@
 #include "XPathParser.h"   
 #include "JSInspectorCallbackWrapper.h"
 #include "MediaQueryEvaluator.h"
+#include <EAWebKit/internal/EAWebKitViewHelper.h>
 #if PLATFORM(MACPORT)
     #include <sys/types.h>
     #include <sys/sysctl.h>
 #elif PLATFORM(AMIGAOS4)
     #include <proto/exec.h>
     #include <intuition/intuition.h>
+#elif PLATFORM(XBOX) || PLATFORM(PS3) 
+//no includes
 #elif PLATFORM(WINDOWS) || defined(_WIN32)
     #include <windows.h>
 #else // defined(__linux__) || defined(__MACH__) || defined(__unix__) || defined(BSD) || defined(__CYGWIN__)
@@ -1046,6 +1049,12 @@ const String& WebView::userAgentForKURL(const KURL&)
             if (!osVersion.length())
                 osVersion = String::format("Windows %d.%d", versionInfo.dwMajorVersion, versionInfo.dwMinorVersion);
 
+        #elif defined(EA_PLATFORM_XENON)
+            #define kPlatformName "XBox 360"
+            String osVersion(L"XBox 360"); 
+        #elif defined(EA_PLATFORM_PS3)
+            #define kPlatformName "PS3"
+            String osVersion(L"PS3");
         #else
             #define kPlatformName EA_PLATFORM_NAME  // EA_PLATFORM_NAME comes from the EABase package.
         #endif
@@ -1253,7 +1262,6 @@ void WebView::setMaintainsBackForwardList(bool flag)
 {
     m_useBackForwardList = !!flag;
 }
-
 bool WebView::goBack()
 {
     if(m_page->goBack())
@@ -1284,6 +1292,27 @@ bool WebView::goForward()
     else 
         return false;
 }
+
+bool WebView::canGoBack(unsigned count)
+{
+    int distance = -count;
+    Frame* frame = page()->focusController()->getMainFrame();
+    if(!frame) 
+        return false;
+    
+    return frame->loader()->canGoBackOrForward(distance);
+}
+
+bool WebView::canGoForward(unsigned count)
+{
+   int distance = count;
+    Frame* frame = page()->focusController()->getMainFrame();
+    if(!frame)
+        return false;
+   
+    return frame->loader()->canGoBackOrForward(distance);
+}
+
 
 bool WebView::goToBackForwardItem(WebHistoryItem* item)
 {
@@ -1648,7 +1677,11 @@ static String ReadConfigFile(const String& url)
 
     if (url.isEmpty()) {
         // This isn't practical, as the application should always have full control over what gets loaded.
-        #if PLATFORM(WINDOWS)
+        #if PLATFORM(XBOX)
+            path = "EAWebKit.config";
+        #elif PLATFORM(WINDOWS)
+            path = "EAWebKit.config";
+        #elif PLATFORM(PS3)
             path = "EAWebKit.config";
         #else // etc.
             path = "EAWebKit.config";
@@ -2654,7 +2687,8 @@ void WebView::staticFinalizePart2()
     }
     allWebViewsSet().clear();   
     //- CS
-
+    
+    EA::WebKit::ViewArray::staticFinalize();
 
 }
 //-daw ca

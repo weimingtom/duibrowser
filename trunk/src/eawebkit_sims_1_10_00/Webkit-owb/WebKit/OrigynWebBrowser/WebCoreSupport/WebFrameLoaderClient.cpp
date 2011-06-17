@@ -133,12 +133,13 @@ void WebFrameLoaderClient::assignIdentifierToInitialRequest(unsigned long identi
     if(pView)
     {
         EA::WebKit::LoadInfo& loadInfo = pView->GetLoadInfo();
+        loadInfo.mpView = pView;
         loadInfo.mLET   = EA::WebKit::kLETPageRequest;
 
         const WebCore::KURL& kurl = request.mainDocumentURL();
         if(kurl.string().length() != 0)
         {
-            GET_FIXEDSTRING16(loadInfo.mURI)->assign(kurl.string().characters(), kurl.string().length());
+            GetFixedString(loadInfo.mURI)->assign(kurl.string().characters(), kurl.string().length());
 
             EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();
             if(pViewNotification)
@@ -203,12 +204,13 @@ void WebFrameLoaderClient::dispatchWillSendRequest(DocumentLoader* loader, unsig
     if(pView)
     {
         EA::WebKit::LoadInfo& loadInfo = pView->GetLoadInfo();
+        loadInfo.mpView = pView;
         loadInfo.mLET = EA::WebKit::kLETPageRedirect;
 
         const WebCore::KURL& kurl = request.mainDocumentURL();
         if(kurl.string().length() != 0)
         {
-            GET_FIXEDSTRING16(loadInfo.mURI)->assign(kurl.string().characters(), kurl.string().length());
+            GetFixedString(loadInfo.mURI)->assign(kurl.string().characters(), kurl.string().length());
 
             EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();
             if(pViewNotification)
@@ -234,6 +236,7 @@ void WebFrameLoaderClient::dispatchDidReceiveResponse(DocumentLoader* loader, un
     if(pView)
     {
         EA::WebKit::LoadInfo& loadInfo = pView->GetLoadInfo();
+        loadInfo.mpView = pView;
         loadInfo.mLET   = EA::WebKit::kLETResponseReceived;
 
         EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();
@@ -257,6 +260,7 @@ void WebFrameLoaderClient::dispatchDidReceiveContentLength(DocumentLoader* loade
     if(pView)
     {
         EA::WebKit::LoadInfo& loadInfo = pView->GetLoadInfo();
+        loadInfo.mpView = pView;
         loadInfo.mLET   = EA::WebKit::kLETContentLengthReceived;
         loadInfo.mContentLength = length;
 
@@ -280,6 +284,7 @@ void WebFrameLoaderClient::dispatchDidFinishLoading(DocumentLoader* loader, unsi
     if(pView)
     {
         EA::WebKit::LoadInfo& loadInfo = pView->GetLoadInfo();
+        loadInfo.mpView = pView;
         loadInfo.mLET = EA::WebKit::kLETNone;
         loadInfo.mbCompleted = true;
 
@@ -303,6 +308,7 @@ void WebFrameLoaderClient::dispatchDidFailLoading(DocumentLoader* loader, unsign
     if(pView)
     {
         EA::WebKit::LoadInfo& loadInfo = pView->GetLoadInfo();
+        loadInfo.mpView = pView;
         loadInfo.mLET   = EA::WebKit::kLETLoadFailed;
 
         EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();
@@ -362,6 +368,7 @@ void WebFrameLoaderClient::dispatchWillClose()
     if(pView)
     {
         EA::WebKit::LoadInfo& loadInfo = pView->GetLoadInfo();
+        loadInfo.mpView = pView;
         loadInfo.mLET   = EA::WebKit::kLETWillClose;
 
         EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();
@@ -406,6 +413,7 @@ void WebFrameLoaderClient::dispatchDidCommitLoad()
 		pView->RebindJavascript();
 
         EA::WebKit::LoadInfo& loadInfo = pView->GetLoadInfo();
+        loadInfo.mpView = pView;
         loadInfo.mLET   = EA::WebKit::kLETLoadCommitted;
 
         EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();
@@ -471,6 +479,7 @@ void WebFrameLoaderClient::dispatchShow()
     if(pView)
     {
         EA::WebKit::LoadInfo& loadInfo = pView->GetLoadInfo();
+        loadInfo.mpView = pView;
         loadInfo.mLET   = EA::WebKit::kLETWillShow;
 
         EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();
@@ -503,19 +512,20 @@ void WebFrameLoaderClient::postProgressStartedNotification()
 #endif
     OWBAL::BCObserverService::createBCObserverService()->notifyObserver(WebViewProgressStartedNotification, "", m_webFrame->webView());
 
-   // View::GetURI(FixedString16& sURI);
+   // View::GetURI(FixedString16_256& sURI);
 
     EA::WebKit::View* pView = EA::WebKit::GetView(m_webFrame->webView());
     if(pView)
     {
         EA::WebKit::LoadInfo& loadInfo = pView->GetLoadInfo();
         EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();
+        loadInfo.mpView = pView;
         loadInfo.mLET = EA::WebKit::kLETLoadStarted;
         loadInfo.mbStarted = true;
         loadInfo.mProgressEstimation = 0.0;
 
         //+ 8/26/09 CSidhall - Added clearing of title name when loading a new one        
-        GET_FIXEDSTRING16(loadInfo.mPageTitle)->clear();
+        GetFixedString(loadInfo.mPageTitle)->clear();
         //- CS   
 
         if(pViewNotification)
@@ -532,6 +542,7 @@ void WebFrameLoaderClient::postProgressEstimateChangedNotification()
     if(pView)
     {
         EA::WebKit::LoadInfo& loadInfo = pView->GetLoadInfo();
+        loadInfo.mpView = pView;
         loadInfo.mLET   = EA::WebKit::kLETLoadProgressUpdate;
         loadInfo.mProgressEstimation = pView->GetEstimatedProgress();
 
@@ -552,6 +563,7 @@ void WebFrameLoaderClient::postProgressFinishedNotification()
     if(pView)
     {
         EA::WebKit::LoadInfo& loadInfo = pView->GetLoadInfo();
+        loadInfo.mpView = pView;
         loadInfo.mLET   = EA::WebKit::kLETLoadCompleted;
         loadInfo.mProgressEstimation = 1.0;
 

@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WebHistoryItem_H
@@ -54,7 +54,7 @@ namespace WebCore {
     class Image;
 }
 
-class WebHistoryItem: public WTF::FastAllocBase
+class WebHistoryItem/*: public WTF::FastAllocBase*/
 {
 public:
 

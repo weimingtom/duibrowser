@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WebError_h
@@ -118,7 +118,7 @@ enum
 #define WebPOSIXErrorDomain "NSPOSIXErrorDomain"
 
 
-class WebError: public WTF::FastAllocBase {
+class WebError/*: public WTF::FastAllocBase*/ {
 public:
 
     /**

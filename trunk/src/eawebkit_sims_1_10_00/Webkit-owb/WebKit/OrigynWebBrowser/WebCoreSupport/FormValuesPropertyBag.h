@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef FormValuesPropertyBag_h
@@ -38,7 +38,7 @@
 #include <wtf/HashMap.h>
 #include "BAL/Includes/FakedDeepsee.h"
 
-class FormValuesPropertyBag: public WTF::FastAllocBase {
+class FormValuesPropertyBag/*: public WTF::FastAllocBase*/ {
 public:
     FormValuesPropertyBag(HashMap<WebCore::String, WebCore::String>* formValues)
         : m_formValues(formValues)
