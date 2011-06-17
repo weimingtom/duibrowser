@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef KJSCOLLECTOR_H_
@@ -45,7 +45,8 @@ namespace KJS {
 
     struct CollectorHeap {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -74,7 +75,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-        CollectorBlock** blocks;
+#endif //NO_MACRO_NEW
+CollectorBlock** blocks;
         size_t numBlocks;
         size_t usedBlocks;
         size_t firstBlockWithPossibleSpace;
@@ -88,7 +90,8 @@ void operator delete[](void* p)
 
     class Heap : Noncopyable {
 public:
-        // Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
         void* operator new(size_t, void* p) { return p; }
         void* operator new[](size_t, void* p) { return p; }
 
@@ -117,7 +120,8 @@ public:
             fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
             fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
         }
-    public:
+#endif //NO_MACRO_NEW
+	public:
         class Thread;
         enum HeapType { PrimaryHeap, NumberHeap };
 
@@ -216,7 +220,8 @@ public:
   
     struct CollectorBitmap {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -245,7 +250,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-        uint32_t bits[BITMAP_WORDS];
+#endif //NO_MACRO_NEW
+uint32_t bits[BITMAP_WORDS];
         bool get(size_t n) const { return !!(bits[n >> 5] & (1 << (n & 0x1F))); } 
         void set(size_t n) { bits[n >> 5] |= (1 << (n & 0x1F)); } 
         void clear(size_t n) { bits[n >> 5] &= ~(1 << (n & 0x1F)); } 
@@ -274,7 +280,8 @@ void operator delete[](void* p)
 
     class CollectorBlock {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -303,7 +310,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    public:
+#endif //NO_MACRO_NEW
+	public:
         CollectorCell cells[CELLS_PER_BLOCK];
         uint32_t usedCells;
         CollectorCell* freeList;
@@ -313,7 +321,8 @@ void operator delete[](void* p)
 
     class SmallCellCollectorBlock {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -342,7 +351,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    public:
+#endif //NO_MACRO_NEW
+	public:
         SmallCollectorCell cells[SMALL_CELLS_PER_BLOCK];
         uint32_t usedCells;
         SmallCollectorCell* freeList;
@@ -384,8 +394,17 @@ void operator delete[](void* p)
 
     // 9/2/09 CSidhall - Added to get an approximate stack base.  This needs to be called 
     // pretty hight up to work and only works in a single threaded system.
-    void SetCollectorStackBase();   
+    // 2/10/10 - Made into small auto class instead for destructor call on exit
+    class AutoCollectorStackBase
+    {
+    public:
+	    AutoCollectorStackBase();
+	    ~AutoCollectorStackBase();
+    };
 
 } // namespace KJS
+
+// Macro version just to make it more clear and hide the auto class.
+#define SET_AUTO_COLLECTOR_STACK_BASE() KJS::AutoCollectorStackBase autoStackBase 
 
 #endif /* KJSCOLLECTOR_H_ */

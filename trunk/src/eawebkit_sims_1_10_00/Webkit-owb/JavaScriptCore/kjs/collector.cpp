@@ -19,7 +19,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -37,6 +37,7 @@
 #include <wtf/FastMalloc.h>
 #include <wtf/HashCountedSet.h>
 #include <wtf/UnusedParam.h>
+#include <EAWebKit/EAWebKit.h>
 
 #if USE(MULTIPLE_THREADS)
 #include <pthread.h>
@@ -80,6 +81,15 @@
 
 using std::max;
 
+
+namespace EA
+{
+	namespace WebKit
+	{
+		extern EAWebKitStackBaseCallback gStackBaseCallback;;
+	}
+}
+
 namespace KJS {
 
 // tunable parameters
@@ -97,15 +107,33 @@ static void freeHeap(CollectorHeap*);
 //+ 9/2/09 CSidhall - Added approximate stack base to avoid platform headers
 void* gpCollectorStackBase = 0;
 
-void SetCollectorStackBase()
+
+AutoCollectorStackBase::AutoCollectorStackBase()
 {
-    // This grabs the current stack position
+   // This grabs the current stack position
     void* dummy;
-   gpCollectorStackBase = &dummy;    
-}
+   gpCollectorStackBase = &dummy;    	
+};
+
+AutoCollectorStackBase::~AutoCollectorStackBase()
+{
+    // This is mostly for debug so we can track a problem with
+    // a stackBase that was not set.
+    #ifdef _DEBUG    
+    gpCollectorStackBase = 0; 
+    #endif
+};
 
 inline void* GetCollectorStackBase()
 {
+    // 2/15/10 Added so the user can supply a get stack base if desired
+    if(EA::WebKit::gStackBaseCallback)
+        return EA::WebKit::gStackBaseCallback();
+
+    // Getting this assert would mean that the stack base 
+    // was not set so some JS script is slipping by the AutoCollectorStackBase calls. 
+    ASSERT(gpCollectorStackBase); 
+    
     return gpCollectorStackBase;
 }
 //- CS
@@ -142,7 +170,7 @@ static NEVER_INLINE CollectorBlock* allocateBlock()
     // #elif PLATFORM(WIN_OS)
     //      // windows virtual address granularity is naturally 64k
     //     LPVOID address = VirtualAlloc(NULL, BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-    #elif PLATFORM(WIN_OS) 
+    #elif PLATFORM(WIN_OS) || PLATFORM(XBOX) || PLATFORM(PS3) 
         void* address = WTF::fastMallocAligned(BLOCK_SIZE, BLOCK_SIZE);
         memset(address, 0, BLOCK_SIZE);
 
@@ -190,7 +218,7 @@ static void freeBlock(CollectorBlock* block)
     // #elif PLATFORM(WIN_OS)
     //     VirtualFree(block, BLOCK_SIZE, MEM_RELEASE);
 
-    #elif PLATFORM(WIN_OS) 
+    #elif PLATFORM(WIN_OS) || PLATFORM(XBOX) || PLATFORM(PS3) 
         WTF::fastFree(block);
 
     #elif HAVE(POSIX_MEMALIGN)
@@ -371,69 +399,6 @@ void* Heap::allocateNumber(size_t s)
 static inline void* currentThreadStackBase()
 {
     return GetCollectorStackBase();
-
-//+ 9/2/09 CSidhall - Disabled so we don't include platform headers    
-/*
-    #if PLATFORM(DARWIN)
-        pthread_t thread = pthread_self();
-        return pthread_get_stackaddr_np(thread);
-
-    #elif PLATFORM(WIN_OS) && PLATFORM(X86) && COMPILER(MSVC)
-        // offset 0x18 from the FS segment register gives a pointer to
-        // the thread information block for the current thread
-        NT_TIB* pTib;
-        __asm {
-            MOV EAX, FS:[18h]
-            MOV pTib, EAX
-        }
-        return (void*)pTib->StackBase;
-
-    #elif PLATFORM(WIN_OS) && PLATFORM(X86_64) && COMPILER(MSVC)
-        PNT_TIB64 pTib = reinterpret_cast<PNT_TIB64>(NtCurrentTeb());
-        return (void*)pTib->StackBase;
-
-    #elif PLATFORM(WIN_OS) && PLATFORM(X86) && COMPILER(GCC)
-        // offset 0x18 from the FS segment register gives a pointer to
-        // the thread information block for the current thread
-        NT_TIB* pTib;
-        asm ( "movl %%fs:0x18, %0\n"
-              : "=r" (pTib)
-            );
-        return (void*)pTib->StackBase;
-
-    #elif PLATFORM(SOLARIS)
-        stack_t s;
-        thr_stksegment(&s);
-        return s.ss_sp;
-
-    #elif PLATFORM(UNIX)
-        static void* stackBase = 0;
-        static size_t stackSize = 0;
-        static pthread_t stackThread;
-        pthread_t thread = pthread_self();
-        if (stackBase == 0 || thread != stackThread) {
-            pthread_attr_t sattr;
-            pthread_attr_init(&sattr);
-            #if HAVE(PTHREAD_NP_H)
-                // e.g. on FreeBSD 5.4, neundorf@kde.org
-                pthread_attr_get_np(thread, &sattr);
-            #else
-                // FIXME: this function is non-portable; other POSIX systems may have different np alternatives
-                pthread_getattr_np(thread, &sattr);
-            #endif
-            int rc = pthread_attr_getstack(&sattr, &stackBase, &stackSize);
-            (void)rc; // FIXME: Deal with error code somehow? Seems fatal.
-            ASSERT(stackBase);
-            pthread_attr_destroy(&sattr);
-            stackThread = thread;
-        }
-        return static_cast<char*>(stackBase) + stackSize;
-
-    #else
-        #error Need a way to get the stack base on this platform
-    #endif
-*/ 
-//- CS
 }
 
 #if USE(MULTIPLE_THREADS)
@@ -444,7 +409,8 @@ typedef mach_port_t PlatformThread;
 #include <wtf/FastAllocBase.h>
 struct PlatformThread {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -473,7 +439,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    PlatformThread(DWORD _id, HANDLE _handle) : id(_id), handle(_handle) {}
+#endif //NO_MACRO_NEW
+PlatformThread(DWORD _id, HANDLE _handle) : id(_id), handle(_handle) {}
     DWORD id;
     HANDLE handle;
 };

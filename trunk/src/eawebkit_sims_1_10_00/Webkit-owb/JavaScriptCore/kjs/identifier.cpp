@@ -19,7 +19,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -41,7 +41,8 @@ typedef HashMap<const char*, RefPtr<UString::Rep>, PtrHash<const char*> > Litera
 
 class IdentifierTable {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -70,6 +71,7 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
+#endif //NO_MACRO_NEW
 public:
     ~IdentifierTable()
     {
@@ -229,7 +231,8 @@ struct UCharBuffer {
 struct UCharBufferTranslator
 {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -258,7 +261,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    static unsigned hash(const UCharBuffer& buf)
+#endif //NO_MACRO_NEW
+static unsigned hash(const UCharBuffer& buf)
     {
         return UString::Rep::computeHash(buf.s, buf.length);
     }

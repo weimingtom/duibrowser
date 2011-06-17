@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef JSVariableObject_h
@@ -67,7 +67,8 @@ namespace KJS {
         // size of a JSCell).
         struct JSVariableObjectData {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -96,7 +97,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-            JSVariableObjectData(SymbolTable* symbolTable_, Register** registerBase_, int registerOffset_)
+#endif //NO_MACRO_NEW
+JSVariableObjectData(SymbolTable* symbolTable_, Register** registerBase_, int registerOffset_)
                 : symbolTable(symbolTable_)
                 , registerBase(registerBase_)
                 , registerOffset(registerOffset_)

@@ -49,7 +49,7 @@
 #include <wtf/HashTraits.h>
 #include <wtf/FastAllocBase.h>
 
-#if !PLATFORM(WIN_OS) 
+#if !PLATFORM(WIN_OS) && !PLATFORM(XBOX) && !PLATFORM(PS3) 
 #include <unistd.h>
 #endif
 
@@ -70,7 +70,14 @@
     #include <crtdbg.h>
     #if PLATFORM(WIN_OS)
         #include <windows.h>
-     #endif
+    #elif PLATFORM(XBOX)
+        #include <comdecl.h>
+    #endif
+#endif
+
+#if PLATFORM(PS3)
+    #include <sys/sys_time.h>
+    #include <sys/time_util.h>
 #endif
 
 #if PLATFORM(QT)
@@ -178,9 +185,12 @@ private:
 #if PLATFORM(QT)
     uint m_startTime;
     uint m_stopTime;
-#elif PLATFORM(WIN_OS) 
+#elif PLATFORM(WIN_OS) || PLATFORM(XBOX)
     DWORD m_startTime;
     DWORD m_stopTime;
+#elif PLATFORM(PS3) 
+    unsigned m_startTime;
+    unsigned m_stopTime;
 #else
     // Windows does not have timeval, disabling this class for now (bug 7399)
     timeval m_startTime;
@@ -195,6 +205,12 @@ void StopWatch::start()
         m_startTime = t.toTime_t() * 1000 + t.time().msec();
     #elif PLATFORM(WIN_OS)
         m_startTime = timeGetTime();
+    #elif PLATFORM(XBOX)
+        m_startTime = GetTickCount();
+    #elif PLATFORM(PS3)
+        uint64_t nTimeBase;
+        SYS_TIMEBASE_GET(nTimeBase);
+        m_startTime = (unsigned)(nTimeBase / (1000 * sys_time_get_timebase_frequency()));
     #else
         gettimeofday(&m_startTime, 0);
     #endif
@@ -207,6 +223,12 @@ void StopWatch::stop()
         m_stopTime = t.toTime_t() * 1000 + t.time().msec();
     #elif PLATFORM(WIN_OS)
         m_stopTime = timeGetTime();
+    #elif PLATFORM(XBOX)
+        m_stopTime = GetTickCount();
+    #elif PLATFORM(PS3)
+        uint64_t nTimeBase;
+        SYS_TIMEBASE_GET(nTimeBase);
+        m_stopTime = (unsigned)(nTimeBase / (1000 * sys_time_get_timebase_frequency()));
     #else
         gettimeofday(&m_stopTime, 0);
     #endif
@@ -214,7 +236,7 @@ void StopWatch::stop()
 
 long StopWatch::getElapsedMS()
 {
-#if PLATFORM(WIN_OS) || PLATFORM(QT) 
+#if PLATFORM(WIN_OS) || PLATFORM(QT) || PLATFORM(XBOX) || PLATFORM(PS3) 
     return m_stopTime - m_startTime;
 #else
     timeval elapsedTime;

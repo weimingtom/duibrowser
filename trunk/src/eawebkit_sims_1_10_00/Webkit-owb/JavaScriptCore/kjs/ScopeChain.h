@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ScopeChain_h
@@ -37,7 +37,8 @@ namespace KJS {
     
     class ScopeChainNode {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -66,7 +67,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    public:
+#endif //NO_MACRO_NEW
+	public:
         ScopeChainNode(ScopeChainNode* n, JSObject* o, JSObject* gt)
             : next(n)
             , object(o)
@@ -153,7 +155,8 @@ void operator delete[](void* p)
 
     class ScopeChainIterator {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -182,7 +185,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    public:
+#endif //NO_MACRO_NEW
+	public:
         ScopeChainIterator(const ScopeChainNode* node)
             : m_node(node)
         {
@@ -214,7 +218,8 @@ void operator delete[](void* p)
 
     class ScopeChain {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -243,7 +248,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    public:
+#endif //NO_MACRO_NEW
+	public:
     ScopeChain(JSObject* o, JSObject* globalThis)
             : _node(new ScopeChainNode(0, o, globalThis))
         {

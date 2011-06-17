@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 namespace WTF {
@@ -31,7 +31,7 @@ namespace WTF {
     // FIXME: Find a better way that doesn't require an entire copy of the HashMap template.
     
     template<typename RawKeyType, typename ValueType, typename ValueTraits, typename HashFunctions>
-    struct RefPtrHashMapRawKeyTranslator: public WTF::FastAllocBase {
+    struct RefPtrHashMapRawKeyTranslator/*: public WTF::FastAllocBase*/ {
         typedef typename ValueType::first_type KeyType;
         typedef typename ValueType::second_type MappedType;
         typedef typename ValueTraits::FirstTraits KeyTraits;
@@ -48,7 +48,7 @@ namespace WTF {
 
 #include <wtf/FastAllocBase.h>
     template<typename T, typename MappedArg, typename HashArg, typename KeyTraitsArg, typename MappedTraitsArg>
-    class HashMap<RefPtr<T>, MappedArg, HashArg, KeyTraitsArg, MappedTraitsArg>: public WTF::FastAllocBase {
+    class HashMap<RefPtr<T>, MappedArg, HashArg, KeyTraitsArg, MappedTraitsArg>/*: public WTF::FastAllocBase*/ {
     private:
         typedef KeyTraitsArg KeyTraits;
         typedef MappedTraitsArg MappedTraits;

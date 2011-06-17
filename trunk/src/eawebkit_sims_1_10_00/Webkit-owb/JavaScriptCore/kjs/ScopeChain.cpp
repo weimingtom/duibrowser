@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef NDEBUG  // 5/18/09 CSidhall - Moved from inside the KJS namespace to exclude the full file to remove for linker empty file warning 

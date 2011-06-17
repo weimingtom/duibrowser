@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WTF_HashSet_h
@@ -38,7 +38,7 @@ namespace WTF {
     template<typename T> struct IdentityExtractor;
 
     template<typename ValueArg, typename HashArg = typename DefaultHash<ValueArg>::Hash,
-        typename TraitsArg = HashTraits<ValueArg> > class HashSet : public WTF::FastAllocBase {
+        typename TraitsArg = HashTraits<ValueArg> > class HashSet /*: public WTF::FastAllocBase*/ {
     private:
         typedef HashArg HashFunctions;
         typedef TraitsArg ValueTraits;
@@ -100,12 +100,12 @@ namespace WTF {
         HashTableType m_impl;
     };
 
-    template<typename T> struct IdentityExtractor: public WTF::FastAllocBase {
+    template<typename T> struct IdentityExtractor/*: public WTF::FastAllocBase*/ {
         static const T& extract(const T& t) { return t; }
     };
 
     template<typename ValueType, typename ValueTraits, typename T, typename Translator>
-    struct HashSetTranslatorAdapter: public WTF::FastAllocBase {
+    struct HashSetTranslatorAdapter/*: public WTF::FastAllocBase*/ {
         static unsigned hash(const T& key) { return Translator::hash(key); }
         static bool equal(const ValueType& a, const T& b) { return Translator::equal(a, b); }
         static void translate(ValueType& location, const T& key, const T&, unsigned hashCode)

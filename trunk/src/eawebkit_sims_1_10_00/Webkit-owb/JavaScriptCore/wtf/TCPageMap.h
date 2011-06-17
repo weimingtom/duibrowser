@@ -43,7 +43,7 @@
 // page offset fits in lower 12 bits), BITS == 20.
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef TCMALLOC_PAGEMAP_H__
@@ -64,7 +64,7 @@
 
 // Single-level array
 template <int BITS>
-class TCMalloc_PageMap1: public WTF::FastAllocBase {
+class TCMalloc_PageMap1/*: public WTF::FastAllocBase*/ {
  private:
   void** array_;
 
@@ -105,7 +105,7 @@ class TCMalloc_PageMap1: public WTF::FastAllocBase {
 
 // Two-level radix tree
 template <int BITS>
-class TCMalloc_PageMap2: public WTF::FastAllocBase {
+class TCMalloc_PageMap2/*: public WTF::FastAllocBase*/ {
  private:
   // Put 32 entries in the root and (2^BITS)/32 entries in each leaf.
   static const int ROOT_BITS = 5;
@@ -115,7 +115,7 @@ class TCMalloc_PageMap2: public WTF::FastAllocBase {
   static const int LEAF_LENGTH = 1 << LEAF_BITS;
 
   // Leaf node
-  struct Leaf: public WTF::FastAllocBase {
+  struct Leaf/*: public WTF::FastAllocBase*/ {
     void* values[LEAF_LENGTH];
   };
 
@@ -185,7 +185,7 @@ class TCMalloc_PageMap2: public WTF::FastAllocBase {
 
 // Three-level radix tree
 template <int BITS>
-class TCMalloc_PageMap3: public WTF::FastAllocBase {
+class TCMalloc_PageMap3/*: public WTF::FastAllocBase*/ {
  private:
   // How many bits should we consume at each interior level
   static const int INTERIOR_BITS = (BITS + 2) / 3; // Round-up
@@ -196,12 +196,12 @@ class TCMalloc_PageMap3: public WTF::FastAllocBase {
   static const int LEAF_LENGTH = 1 << LEAF_BITS;
 
   // Interior node
-  struct Node: public WTF::FastAllocBase {
+  struct Node/*: public WTF::FastAllocBase*/ {
     Node* ptrs[INTERIOR_LENGTH];
   };
 
   // Leaf node
-  struct Leaf: public WTF::FastAllocBase {
+  struct Leaf/*: public WTF::FastAllocBase*/ {
     void* values[LEAF_LENGTH];
   };
 

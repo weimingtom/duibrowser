@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef JSClassRef_h
@@ -38,7 +38,7 @@
 #include <wtf/HashMap.h>
 #include <wtf/RefCounted.h>
 
-struct StaticValueEntry: public WTF::FastAllocBase {
+struct StaticValueEntry/*: public WTF::FastAllocBase*/ {
     StaticValueEntry(JSObjectGetPropertyCallback _getProperty, JSObjectSetPropertyCallback _setProperty, JSPropertyAttributes _attributes)
         : getProperty(_getProperty), setProperty(_setProperty), attributes(_attributes)
     {
@@ -49,7 +49,7 @@ struct StaticValueEntry: public WTF::FastAllocBase {
     JSPropertyAttributes attributes;
 };
 
-struct StaticFunctionEntry: public WTF::FastAllocBase {
+struct StaticFunctionEntry/*: public WTF::FastAllocBase*/ {
     StaticFunctionEntry(JSObjectCallAsFunctionCallback _callAsFunction, JSPropertyAttributes _attributes)
         : callAsFunction(_callAsFunction), attributes(_attributes)
     {

@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 /* This module contains the external function jsRegExpExecute(), along with
@@ -138,7 +138,7 @@ static const char* errorText(ErrorCode code)
 /* Structure for passing "static" information around between the functions
 doing the compiling. */
 
-struct CompileData: public WTF::FastAllocBase {
+struct CompileData/*: public WTF::FastAllocBase*/ {
     CompileData() {
         topBackref = 0;
         backrefMap = 0;
@@ -2573,7 +2573,7 @@ JSRegExp* jsRegExpCompile(const UChar* pattern, int patternLength,
     size_t stringOffset = (size + sizeof(UChar) - 1) / sizeof(UChar) * sizeof(UChar);
     size = stringOffset + patternLength * sizeof(UChar);
 #endif
-    JSRegExp* re = reinterpret_cast<JSRegExp*>(WTF::fastNewArray<char>(size));
+	JSRegExp* re = reinterpret_cast<JSRegExp*>(EAWEBKIT_NEW("JSRegExp") char[size]);//;WTF::fastNewArray<char>(size));
     
     if (!re)
         return returnError(ERR13, errorPtr);
@@ -2626,7 +2626,7 @@ JSRegExp* jsRegExpCompile(const UChar* pattern, int patternLength,
     /* Failed to compile, or error while post-processing */
     
     if (errorcode != ERR0) {
-        WTF::fastDeleteArray<char> (reinterpret_cast<char*>(re));
+        EAWEBKIT_DELETE[] (reinterpret_cast<char*>(re));//WTF::fastDeleteArray<char> (reinterpret_cast<char*>(re));
         return returnError(errorcode, errorPtr);
     }
     
@@ -2686,5 +2686,5 @@ JSRegExp* jsRegExpCompile(const UChar* pattern, int patternLength,
 
 void jsRegExpFree(JSRegExp* re)
 {
-    WTF::fastDeleteArray<char> (reinterpret_cast<char*>(re));
+	EAWEBKIT_DELETE[] (reinterpret_cast<char*>(re));//WTF::fastDeleteArray<char> (reinterpret_cast<char*>(re));
 }

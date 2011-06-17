@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef KJS_UNICODE_QT4_H
@@ -38,7 +38,7 @@
 #if QT_VERSION >= 0x040300
 QT_BEGIN_NAMESPACE
 namespace QUnicodeTables {
-    struct Properties: public WTF::FastAllocBase {
+    struct Properties/*: public WTF::FastAllocBase*/ {
         ushort category : 8;
         ushort line_break_class : 8;
         ushort direction : 8;

@@ -109,7 +109,7 @@
 // Alternatives to this scheme will be added as needed.
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "../../../BAL/OWBAL/Concretizations/Types/WK/BCTCPackedCacheWK.h"

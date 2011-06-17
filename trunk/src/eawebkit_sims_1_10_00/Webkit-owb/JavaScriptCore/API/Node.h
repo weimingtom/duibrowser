@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Node_h
@@ -35,12 +35,12 @@
 typedef struct __Node Node;
 typedef struct __NodeLink NodeLink;
 
-struct __NodeLink: public WTF::FastAllocBase {
+struct __NodeLink/*: public WTF::FastAllocBase*/ {
     Node* node;
     NodeLink* prev;
 };
 
-struct __Node: public WTF::FastAllocBase {
+struct __Node/*: public WTF::FastAllocBase*/ {
     unsigned refCount;
     const char* nodeType;
     NodeLink* childNodesTail;

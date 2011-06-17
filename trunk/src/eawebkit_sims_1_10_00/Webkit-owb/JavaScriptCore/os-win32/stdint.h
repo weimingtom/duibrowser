@@ -19,7 +19,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef STDINT_WIN32_H
@@ -29,7 +29,7 @@
 
 /* This file emulates enough of stdint.h on Windows to make JavaScriptCore and WebCore compile. */
 
-#if PLATFORM(WIN_OS) 
+#if PLATFORM(WIN_OS) || PLATFORM(XBOX)
 
     #include <limits.h>
 

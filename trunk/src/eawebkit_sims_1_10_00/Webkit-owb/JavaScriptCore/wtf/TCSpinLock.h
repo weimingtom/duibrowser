@@ -31,7 +31,7 @@
 // Author: Sanjay Ghemawat <opensource@google.com>
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef TCMALLOC_INTERNAL_SPINLOCK_H__
@@ -63,7 +63,7 @@
 static void TCMalloc_SlowLock(volatile unsigned int* lockword);
 
 // The following is a struct so that it can be initialized at compile time
-struct TCMalloc_SpinLock: public WTF::FastAllocBase {
+struct TCMalloc_SpinLock/*: public WTF::FastAllocBase*/ {
 
   inline void Lock() {
     int r;
@@ -200,7 +200,7 @@ static void TCMalloc_SlowLock(volatile unsigned int* lockword) {
 #include <pthread.h>
 
 // Portable version
-struct TCMalloc_SpinLock: public WTF::FastAllocBase {
+struct TCMalloc_SpinLock/*: public WTF::FastAllocBase*/ {
   pthread_mutex_t private_lock_;
 
   inline void Init() {
@@ -223,7 +223,7 @@ struct TCMalloc_SpinLock: public WTF::FastAllocBase {
 
 // Corresponding locker object that arranges to acquire a spinlock for
 // the duration of a C++ scope.
-class TCMalloc_SpinLockHolder: public WTF::FastAllocBase {
+class TCMalloc_SpinLockHolder/*: public WTF::FastAllocBase*/ {
  private:
   TCMalloc_SpinLock* lock_;
  public:

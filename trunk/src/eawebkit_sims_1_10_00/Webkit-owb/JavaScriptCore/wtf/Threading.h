@@ -57,7 +57,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Threading_h
@@ -124,11 +124,11 @@ typedef GCond* PlatformCondition;
 typedef QMutex* PlatformMutex;
 typedef QWaitCondition* PlatformCondition;
 #elif PLATFORM(WIN_OS)
-struct PlatformMutex: public WTF::FastAllocBase {
+struct PlatformMutex/*: public WTF::FastAllocBase*/ {
     CRITICAL_SECTION m_internalMutex;
     size_t m_recursionCount;
 };
-struct PlatformCondition: public WTF::FastAllocBase {
+struct PlatformCondition/*: public WTF::FastAllocBase*/ {
     size_t m_timedOut;
     size_t m_blocked;
     size_t m_waitingForRemoval;
@@ -143,7 +143,8 @@ typedef void* PlatformCondition;
     
 class Mutex : Noncopyable {
 public:
-        // Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
         void* operator new(size_t, void* p) { return p; }
         void* operator new[](size_t, void* p) { return p; }
 
@@ -172,6 +173,7 @@ public:
             fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
             fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
         }
+		#endif //NO_MACRO_NEW
 public:
     Mutex();
     ~Mutex();
@@ -190,7 +192,8 @@ typedef Locker<Mutex> MutexLocker;
 
 class ThreadCondition : Noncopyable {
 public:
-        // Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
         void* operator new(size_t, void* p) { return p; }
         void* operator new[](size_t, void* p) { return p; }
 
@@ -219,6 +222,7 @@ public:
             fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
             fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
         }
+		#endif //NO_MACRO_NEW
 public:
     ThreadCondition();
     ~ThreadCondition();
@@ -260,7 +264,8 @@ inline int atomicDecrement(int volatile* addend) { return __gnu_cxx::__exchange_
 
 template<class T> class ThreadSafeShared : Noncopyable {
 public:
-        // Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
         void* operator new(size_t, void* p) { return p; }
         void* operator new[](size_t, void* p) { return p; }
 
@@ -289,6 +294,7 @@ public:
             fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
             fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
         }
+		#endif //NO_MACRO_NEW
 public:
     ThreadSafeShared(int initialRefCount = 1)
         : m_refCount(initialRefCount)

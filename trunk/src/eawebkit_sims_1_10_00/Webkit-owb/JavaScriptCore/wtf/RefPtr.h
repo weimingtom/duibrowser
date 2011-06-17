@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WTF_RefPtr_h
@@ -38,7 +38,7 @@ namespace WTF {
 
     enum HashTableDeletedValueType { HashTableDeletedValue };
 
-    template <typename T> class RefPtr: public WTF::FastAllocBase {
+    template <typename T> class RefPtr/*: public WTF::FastAllocBase*/ {
     public:
         RefPtr() : m_ptr(0) { }
         RefPtr(T* ptr) : m_ptr(ptr) { if (ptr) ptr->ref(); }

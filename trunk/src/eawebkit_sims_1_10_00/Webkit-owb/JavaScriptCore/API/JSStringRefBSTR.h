@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef JSStringRefBSTR_h
@@ -35,7 +35,7 @@
 
 #include "JSBase.h"
 
-#if defined(_WIN32) 
+#if defined(_WIN32) && !defined(_XBOX)
     #include <windows.h>
 
     #ifdef __cplusplus

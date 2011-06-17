@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -336,7 +336,7 @@ JSObjectRef JSObjectCallAsConstructor(JSContextRef ctx, JSObjectRef object, size
 }
 #include <wtf/FastAllocBase.h>
 
-struct OpaqueJSPropertyNameArray: public WTF::FastAllocBase
+struct OpaqueJSPropertyNameArray/*: public WTF::FastAllocBase*/
 {
     OpaqueJSPropertyNameArray(JSGlobalData* globalData) : refCount(0), array(globalData)
     {

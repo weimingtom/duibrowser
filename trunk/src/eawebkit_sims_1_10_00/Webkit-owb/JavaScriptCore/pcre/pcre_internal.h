@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 /* This header contains definitions that are shared between the different
@@ -325,7 +325,7 @@ are in conflict! */
 
 /* The code vector runs on as long as necessary after the end. */
 
-struct JSRegExp: public WTF::FastAllocBase {
+struct JSRegExp/*: public WTF::FastAllocBase*/ {
     unsigned options;
 
     unsigned short topBracket;

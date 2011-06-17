@@ -28,7 +28,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 /* On a machine with IEEE extended-precision registers, it is
@@ -278,7 +278,8 @@ typedef union { double d; uint32_t L[2]; } U;
 
 struct Bigint {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -307,7 +308,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    struct Bigint* next;
+#endif //NO_MACRO_NEW
+struct Bigint* next;
     int k, maxwds, sign, wds;
     uint32_t x[1];
 };

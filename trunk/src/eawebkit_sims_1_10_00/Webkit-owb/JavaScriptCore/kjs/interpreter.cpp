@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -37,7 +37,7 @@
 #include <stdio.h>
 #include <EAWebKit/EAWebKitView.h>
 
-#if !PLATFORM(WIN_OS) 
+#if !PLATFORM(WIN_OS) && !PLATFORM(XBOX) && !PLATFORM(PS3) 
 #include <unistd.h>
 #endif
 

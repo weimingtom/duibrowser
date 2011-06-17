@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef JSRetainPtr_h
@@ -42,7 +42,7 @@ inline void JSRelease(JSStringRef string) { JSStringRelease(string); }
 
 enum AdoptTag { Adopt };
 
-template <typename T> class JSRetainPtr: public WTF::FastAllocBase {
+template <typename T> class JSRetainPtr/*: public WTF::FastAllocBase*/ {
 public:
     JSRetainPtr() : m_ptr(0) {}
     JSRetainPtr(T ptr) : m_ptr(ptr) { if (ptr) JSRetain(ptr); }

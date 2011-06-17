@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Instruction_h
@@ -38,7 +38,7 @@
 
 namespace KJS {
 
-    struct Instruction: public WTF::FastAllocBase {
+    struct Instruction/*: public WTF::FastAllocBase*/ {
         Instruction(Opcode opcode) { u.opcode = opcode; }
         Instruction(int operand) { u.operand = operand; }
 

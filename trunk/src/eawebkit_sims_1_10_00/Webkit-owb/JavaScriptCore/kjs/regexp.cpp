@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -113,7 +113,7 @@ int RegExp::match(const UString& s, int i, OwnArrayPtr<int>* ovector)
     offsetVector = fixedSizeOffsetVector;
   } else {
     offsetVectorSize = (m_numSubpatterns + 1) * 3;
-	offsetVector = WTF::fastNewArray<int> (offsetVectorSize);
+	offsetVector = EAWEBKIT_NEW("RegEx Match") int[offsetVectorSize];//WTF::fastNewArray<int> (offsetVectorSize);
     ovector->set(offsetVector);
   }
 

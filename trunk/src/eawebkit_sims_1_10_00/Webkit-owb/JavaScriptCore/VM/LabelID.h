@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef LabelID_h
@@ -42,7 +42,7 @@
 
 namespace KJS {
 
-    class LabelID: public WTF::FastAllocBase {
+    class LabelID/*: public WTF::FastAllocBase*/ {
     public:
         explicit LabelID(CodeBlock* codeBlock)
             : m_refCount(0)
