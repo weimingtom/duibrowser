@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -376,7 +376,7 @@ int CompressToRLE(const void* pSource, void* pOut, const int sourceSize, const i
                             0 if fail (wrong format for example)                
 
     \Version    1.0        01/12/09 Created
-    \Version    1.1        06/29/09 Added support for consoles
+    \Version    1.1        06/29/09 Added support for PS3 and 360
 */
 /*************************************************************************************************F*/
 int DecompressFromRLE(const void* pIn, void* pOut, const int dstSize)
@@ -852,7 +852,7 @@ void SelectYCoCgDiagonal( const byte *colorBlock, byte *minColor, byte *maxColor
     byte c0 = minColor[1];
     byte c1 = maxColor[1];
     
-    // compiler warning fix:    
+    // PS3 compiler warning fix:    
     // c0 ^= c1 ^= mask &= c0 ^= c1;    // Orignial code
     byte c2 = c0 ^ c1;
     c0 = c2;
@@ -1120,10 +1120,18 @@ static void RestoreChromaBlock( const void * pSource, byte *colorBlock)
     
     Convert565ToColor( rawColor , &color[1][0] ); 
 
+    // EA/Alex Mole: mixing float & int operations is horrifyingly slow on X360 & PS3, so we do it different!
+#if PLATFORM(PS3) || PLATFORM(XBOX)
+    color[2][0] = (byte) ( ( ((int)color[0][0] * 3) + ((int)color[1][0]    ) ) >> 2 );
+    color[2][1] = (byte) ( ( ((int)color[0][1] * 3) + ((int)color[1][1]    ) ) >> 2 );
+    color[3][0] = (byte) ( ( ((int)color[0][0]    ) + ((int)color[1][0] * 3) ) >> 2 );
+    color[3][1] = (byte) ( ( ((int)color[0][1]    ) + ((int)color[1][1] * 3) ) >> 2 );
+#else
     color[2][0] = (byte) ( (color[0][0] * 0.75f) + (color[1][0] * 0.25f) );
     color[2][1] = (byte) ( (color[0][1] * 0.75f) + (color[1][1] * 0.25f) );
     color[3][0] = (byte) ( (color[0][0] * 0.25f) + (color[1][0] * 0.75f) );
     color[3][1] = (byte) ( (color[0][1] * 0.25f) + (color[1][1] * 0.75f) );
+#endif
     
     byte scale = ((color[0][2] >> 3) + 1) >> 1; // Adjust for shifts instead of divide
 
@@ -1316,7 +1324,7 @@ int DeCompressYCoCgDXT5( const byte *inBuf, byte *outBuf, const int width, const
     \Output                      
 
     \Version    1.0        01/12/09 Created
-    \Version    1.1        06/29/09 Added support for consoles
+    \Version    1.1        06/29/09 Added support for PS3 and 360
 */
 /*************************************************************************************************F*/
 int PackIntoRLE(EA::Raster::Surface* pImage, bool hasAlpha)
@@ -1331,12 +1339,12 @@ int PackIntoRLE(EA::Raster::Surface* pImage, bool hasAlpha)
     // Allocate an out buffer (but will end up keeping it if it matches the compressed size).
     int sourceSize = pImage->mWidth * pImage->mHeight * pImage->mPixelFormat.mBytesPerPixel;
     outBufferSize = sourceSize >> 1;  // 50% compression rate expected
-    char* pOutBuffer = WTF::fastNewArray<char>(outBufferSize);
+    char* pOutBuffer = EAWEBKIT_NEW("RLE") char[outBufferSize]; //WTF::fastNewArray<char>(outBufferSize);
     EAW_ASSERT(pOutBuffer);
     if(pOutBuffer == NULL) {
         // Try an even smaller buffer if fail?
         outBufferSize >>= 1;   // 25%
-        pOutBuffer = WTF::fastNewArray<char>(outBufferSize);
+		pOutBuffer = EAWEBKIT_NEW("RLE") char[outBufferSize];//WTF::fastNewArray<char>(outBufferSize);
         if(pOutBuffer == NULL) {
             // Just not enough memory    
             return false;
@@ -1353,7 +1361,7 @@ int PackIntoRLE(EA::Raster::Surface* pImage, bool hasAlpha)
         // Compression failed to fit in the output buffer or was too small to compress
         // Signal not to evaluate for compression again since we failed getting a good rate with this image                     
         pImage->mSurfaceFlags |= EA::Raster::kFlagIgnoreCompressRLE;
-        WTF::fastDeleteArray<char> (pOutBuffer);
+        EAWEBKIT_DELETE[] pOutBuffer;//WTF::fastDeleteArray<char> (pOutBuffer);
         return false;
     }
     else {
@@ -1362,7 +1370,7 @@ int PackIntoRLE(EA::Raster::Surface* pImage, bool hasAlpha)
         // Remove the original AGRB buffer since we have a good compressed version
         // 7/10/09 CSidhall - Added to protect original owner
         if((pImage->mSurfaceFlags&EA::Raster::kFlagOtherOwner) == 0)
-            WTF::fastDeleteArray<char> ((char*)pImage->mpData);            
+            EAWEBKIT_DELETE[] ((char*)pImage->mpData);//WTF::fastDeleteArray<char> ((char*)pImage->mpData);            
         pImage->mSurfaceFlags &=~(EA::Raster::kFlagOtherOwner);
         pImage->mpData = NULL;
 
@@ -1375,13 +1383,13 @@ int PackIntoRLE(EA::Raster::Surface* pImage, bool hasAlpha)
         }
         else {
             // Allocate a small buffer instead of using the default one as we might save some more mem
-            char* pCompactBuffer = WTF::fastNewArray<char> (outputSize);
+            char* pCompactBuffer = EAWEBKIT_NEW("RLE") char[outputSize];//WTF::fastNewArray<char> (outputSize);
             if(pCompactBuffer != NULL) {
                 memcpy(pCompactBuffer, pOutBuffer, outputSize);
 
                 // Replace with the new compressed buffer
                 pImage->mpData = pCompactBuffer;                                    
-                WTF::fastDeleteArray<char> (pOutBuffer);    // Remove the bigger buffer 
+				EAWEBKIT_DELETE[] pOutBuffer;//WTF::fastDeleteArray<char> (pOutBuffer);    // Remove the bigger buffer 
                 outBufferSize = outputSize;
             }
             else {
@@ -1420,7 +1428,7 @@ int PackIntoRLE(EA::Raster::Surface* pImage, bool hasAlpha)
                    0 if fail (will always fail if hasAlpha = true)    
 
     \Version    1.0        01/12/09 Created
-    \Version    1.1        06/29/09 Added support for consoles
+    \Version    1.1        06/29/09 Added support for PS3 and 360
 */
 /*************************************************************************************************F*/
 int PackIntoYCOCGDXT5(EA::Raster::Surface* pImage, bool hasAlpha)
@@ -1443,7 +1451,7 @@ int PackIntoYCOCGDXT5(EA::Raster::Surface* pImage, bool hasAlpha)
     int widthAlign = (pImage->mWidth + 3) & 0xfffffffc;
     int heightAlign = (pImage->mHeight + 3) & 0xfffffffc;
     outBufferSize = heightAlign * widthAlign;   // 4:1  
-    byte* pOutBuffer = WTF::fastNewArray<byte> (outBufferSize); // *2 should not be needed but because of alignment issues...
+    byte* pOutBuffer = EAWEBKIT_NEW("YCoC") byte[outBufferSize];//WTF::fastNewArray<byte> (outBufferSize); // *2 should not be needed but because of alignment issues...
 
     EAW_ASSERT(pOutBuffer);
     if(pOutBuffer == NULL) {
@@ -1463,7 +1471,7 @@ int PackIntoYCOCGDXT5(EA::Raster::Surface* pImage, bool hasAlpha)
         // Restore colors just in case...
         ConvertCoCg_YToRGB( (byte*) pImage->mpData, (byte*) pImage->mpData, pImage->mWidth, pImage->mHeight );
         pImage->mSurfaceFlags |= EA::Raster::kFlagIgnoreCompressYCOCGDXT5;
-        WTF::fastDeleteArray<byte> (pOutBuffer);
+		EAWEBKIT_DELETE[]  pOutBuffer;//WTF::fastDeleteArray<byte> (pOutBuffer);
         outBufferSize =0;    
         return outBufferSize;
     }
@@ -1473,7 +1481,7 @@ int PackIntoYCOCGDXT5(EA::Raster::Surface* pImage, bool hasAlpha)
         // Remove the original AGRB buffer since we have a have a compressed version
         // 7/10/09 CSidhall - Added to protect original owner
         if( (pImage->mSurfaceFlags&EA::Raster::kFlagOtherOwner) == 0)
-            WTF::fastDeleteArray<char> ((char*)pImage->mpData);            
+            EAWEBKIT_DELETE[] ((char*)pImage->mpData);//WTF::fastDeleteArray<char> ((char*)pImage->mpData);            
          pImage->mSurfaceFlags &=~(EA::Raster::kFlagOtherOwner);
 
         // Replace with the new compressed buffer

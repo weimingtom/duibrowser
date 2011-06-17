@@ -31,7 +31,7 @@
 // Author: Sanjay Ghemawat <opensource@google.com>
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef TCMALLOC_INTERNAL_SPINLOCK_H__
@@ -259,7 +259,7 @@ static void TCMalloc_SlowLock(volatile unsigned int* lockword)
 
 // Corresponding locker object that arranges to acquire a spinlock for
 // the duration of a C++ scope.
-class TCMalloc_SpinLockHolder: public WTF::FastAllocBase
+class TCMalloc_SpinLockHolder/*: public WTF::FastAllocBase*/
 {
 private:
     TCMalloc_SpinLock* lock_;

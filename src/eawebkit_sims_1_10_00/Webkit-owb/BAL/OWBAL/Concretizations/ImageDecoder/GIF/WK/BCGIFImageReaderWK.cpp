@@ -73,7 +73,7 @@ mailing address.
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -242,7 +242,7 @@ int GIFImageReader::do_lzw(const unsigned char *q)
   int datum     = gs->datum;
 
   if (!gs->prefix) {
-	  gs->prefix = WTF::fastNewArray<unsigned short> (MAX_BITS);
+	  gs->prefix = EAWEBKIT_NEW("do_lzw") unsigned short[MAX_BITS];//WTF::fastNewArray<unsigned short> (MAX_BITS);
     memset(gs->prefix, 0, MAX_BITS * sizeof(short));
   }
 
@@ -473,12 +473,12 @@ bool GIFImageReader::read(const unsigned char *buf, unsigned len,
 
         /* init the tables */
         if (!frame_reader->suffix)
-			frame_reader->suffix = WTF::fastNewArray<unsigned char> (MAX_BITS);
+			frame_reader->suffix = EAWEBKIT_NEW("gif read") unsigned char[MAX_BITS];//WTF::fastNewArray<unsigned char> (MAX_BITS);
         for (int i = 0; i < frame_reader->clear_code; i++)
           frame_reader->suffix[i] = i;
 
         if (!frame_reader->stack)
-          frame_reader->stack = WTF::fastNewArray<unsigned char> (MAX_BITS);
+			frame_reader->stack = EAWEBKIT_NEW("gif read 2") unsigned char[MAX_BITS];//WTF::fastNewArray<unsigned char> (MAX_BITS);
         frame_reader->stackp = frame_reader->stack;
       }
 
@@ -526,7 +526,7 @@ bool GIFImageReader::read(const unsigned char *buf, unsigned len,
         
         // Malloc the color map, but only if we're not just counting frames.
         if (query != GIFImageDecoder::GIFFrameCountQuery)
-          global_colormap = WTF::fastNewArray<unsigned char>(size);
+			global_colormap = EAWEBKIT_NEW("color map") unsigned char[size];//WTF::fastNewArray<unsigned char>(size);
 
         if (len < size) {
           // Use 'hold' pattern to get the global colormap
@@ -781,11 +781,11 @@ bool GIFImageReader::read(const unsigned char *buf, unsigned len,
         if (screen_width < width) {
           /* XXX Deviant! */
 
-          WTF::fastDeleteArray<unsigned char> (frame_reader->rowbuf);
+          EAWEBKIT_DELETE[] frame_reader->rowbuf;//WTF::fastDeleteArray<unsigned char> (frame_reader->rowbuf);
           screen_width = width;
-          frame_reader->rowbuf = WTF::fastNewArray<unsigned char> (screen_width);
+		  frame_reader->rowbuf = EAWEBKIT_NEW("rwo buf") unsigned char[screen_width];//WTF::fastNewArray<unsigned char> (screen_width);
         } else if (!frame_reader->rowbuf) {
-          frame_reader->rowbuf = WTF::fastNewArray<unsigned char> (screen_width);
+			frame_reader->rowbuf = EAWEBKIT_NEW("row buf") unsigned char[screen_width];//WTF::fastNewArray<unsigned char> (screen_width);
         }
 
         if (!frame_reader->rowbuf) {
@@ -830,8 +830,8 @@ bool GIFImageReader::read(const unsigned char *buf, unsigned len,
         const unsigned size = 3*num_colors;
         unsigned char *map = frame_reader ? frame_reader->local_colormap : 0;
         if (frame_reader && (!map || (num_colors > frame_reader->local_colormap_size))) {
-          WTF::fastDeleteArray<unsigned char> (map);
-          map = WTF::fastNewArray<unsigned char> (size);
+          EAWEBKIT_DELETE[] map;//WTF::fastDeleteArray<unsigned char> (map);
+		  map = EAWEBKIT_NEW("map") unsigned char[size];//WTF::fastNewArray<unsigned char> (size);
           if (!map) {
             state = gif_oom;
             break;

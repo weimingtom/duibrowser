@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BALBase.h"
 #include <EABase/eabase.h>
 #include <EAWebKit/EAWebKit.h>
+#include <EAWebKit/internal/EAWebKitViewHelper.h> // For multiview support
 
 #if EAWEBKIT_DEFAULT_CURSOR_HANDLING_ENABLED && defined(EA_PLATFORM_WINDOWS)
     #include <windows.h>
@@ -75,7 +76,7 @@ void Cursor::Set() const
 
     if(pVN)
     {
-        EA::WebKit::CursorChangeInfo cci = { m_impl }; // m_impl is an int, the cursor id.
+        EA::WebKit::CursorChangeInfo cci = {EA::WebKit::AutoSetActiveView::GetActiveView(), m_impl }; // m_impl is an int, the cursor id.
         bHandled = pVN->CursorChanged(cci);
     }
 

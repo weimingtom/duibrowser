@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef DeprecatedPtrListImpl_h
@@ -36,7 +36,7 @@ namespace OWBAL {
 class DeprecatedListNode;
 class DeprecatedPtrListImplIterator;
 
-class DeprecatedPtrListImpl: public WTF::FastAllocBase
+class DeprecatedPtrListImpl/*: public WTF::FastAllocBase*/
 {
 public:
     
@@ -96,7 +96,7 @@ public:
 };
 
 
-class DeprecatedPtrListImplIterator: public WTF::FastAllocBase {
+class DeprecatedPtrListImplIterator/*: public WTF::FastAllocBase*/ {
 public:
     DeprecatedPtrListImplIterator();
     DeprecatedPtrListImplIterator(const DeprecatedPtrListImpl &impl);

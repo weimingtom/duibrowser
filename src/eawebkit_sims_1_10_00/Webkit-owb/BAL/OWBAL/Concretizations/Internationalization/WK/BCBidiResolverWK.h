@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef BidiResolver_h
@@ -35,7 +35,7 @@ namespace OWBAL {
 
 // The BidiStatus at a given position (typically the end of a line) can
 // be cached and then used to restart bidi resolution at that position.
-struct BidiStatus: public WTF::FastAllocBase {
+struct BidiStatus/*: public WTF::FastAllocBase*/ {
     BidiStatus()
         : eor(WTF::Unicode::OtherNeutral)
         , lastStrong(WTF::Unicode::OtherNeutral)
@@ -67,7 +67,7 @@ inline bool operator!=(const BidiStatus& status1, const BidiStatus& status2)
     return !(status1 == status2);
 }
 
-struct BidiCharacterRun: public WTF::FastAllocBase {
+struct BidiCharacterRun/*: public WTF::FastAllocBase*/ {
     BidiCharacterRun(int start, int stop, BidiContext* context, WTF::Unicode::Direction dir)
         : m_start(start)
         , m_stop(stop)
@@ -110,7 +110,8 @@ struct BidiCharacterRun: public WTF::FastAllocBase {
 
 template <class Iterator, class Run> class BidiResolver : public Noncopyable {
 public:
-        // Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
         void* operator new(size_t, void* p) { return p; }
         void* operator new[](size_t, void* p) { return p; }
 
@@ -139,6 +140,7 @@ public:
             fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
             fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
         }
+#endif //NO_MACRO_NEW
 public :
     BidiResolver()
         : m_direction(WTF::Unicode::OtherNeutral)

@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef DragData_h
@@ -74,7 +74,7 @@ namespace WKAL {
 #endif
 
     
-    class DragData: public WTF::FastAllocBase {
+    class DragData/*: public WTF::FastAllocBase*/ {
     public:
 #if PLATFORM(MAC)
         //FIXME: In the future the WebKit functions provided by the helper class should be moved into WebCore, 

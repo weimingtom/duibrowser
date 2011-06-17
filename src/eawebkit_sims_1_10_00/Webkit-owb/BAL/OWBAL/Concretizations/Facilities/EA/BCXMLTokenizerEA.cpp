@@ -369,7 +369,7 @@ void XMLTokenizer::resumeParsing()
 #include <wtf/FastAllocBase.h>
 
 // Used by parseAttributes below.
-struct AttributeParseState: public WTF::FastAllocBase {
+struct AttributeParseState/*: public WTF::FastAllocBase*/ {
     HashMap<String, String> attributes;
     bool gotAttributes;
 };
@@ -892,14 +892,14 @@ void XMLTokenizer::parseDtd()
     const char* publicId = mpXmlReader->GetPublicId();
     const char* systemId = mpXmlReader->GetSystemId();
 
-    if(strstr(publicId, "DTD XHTML")) // e.g. "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    if(publicId && strstr(publicId, "DTD XHTML")) // e.g. "-//W3C//DTD XHTML 1.0 Transitional//EN"
         setIsXHTMLDocument(true); // controls if we replace entities or not.
 
     if (!m_parsingFragment)
     {
-        WebCore::String sName     = UTF8Encoding().decode(name,     strlen(name));
-        WebCore::String sPublicId = UTF8Encoding().decode(publicId, strlen(publicId));
-        WebCore::String sSystemId = UTF8Encoding().decode(systemId, strlen(systemId));
+		WebCore::String sName     = (name ? UTF8Encoding().decode(name,     strlen(name)) : WebCore::String(""));
+		WebCore::String sPublicId = (publicId ? UTF8Encoding().decode(publicId, strlen(publicId)) : WebCore::String(""));
+		WebCore::String sSystemId = (systemId ? UTF8Encoding().decode(systemId, strlen(systemId)) : WebCore::String(""));
 
         m_doc->addChild(DocumentType::create(m_doc, sName, sPublicId, sSystemId));
     }

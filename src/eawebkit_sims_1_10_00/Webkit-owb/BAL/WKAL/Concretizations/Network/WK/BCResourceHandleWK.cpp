@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -141,7 +141,7 @@ static bool portAllowed(const ResourceRequest& request)
         77,   // priv-rjs
         79,   // finger
         87,   // ttylink
-        95,   // supdup
+        //95,   // supdup - Workaround for port 95 being used on tos page
         101,  // hostriame
         102,  // iso-tsap
         103,  // gppitnp

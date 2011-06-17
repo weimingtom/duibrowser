@@ -23,6 +23,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
+/*
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
+*/
+
 #include "config.h"
 #include "SharedBuffer.h"
 
@@ -32,14 +36,16 @@ SharedBuffer::SharedBuffer()
 {
 }
 
-SharedBuffer::SharedBuffer(const char* data, int size)
+SharedBuffer::SharedBuffer(const char* data, int size, int expectedLength)
 {
-    m_buffer.append(data, size);
+    m_buffer.reserveCapacity(expectedLength);
+	m_buffer.append(data, size);
 }
 
-SharedBuffer::SharedBuffer(const unsigned char* data, int size)
+SharedBuffer::SharedBuffer(const unsigned char* data, int size, int expectedLength)
 {
-    m_buffer.append(data, size);
+	m_buffer.reserveCapacity(expectedLength);
+	m_buffer.append(data, size);
 }
 
 PassRefPtr<SharedBuffer> SharedBuffer::adoptVector(Vector<char>& vector)

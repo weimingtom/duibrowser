@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WTF_HashCountedSet_h
@@ -35,7 +35,7 @@
 namespace WTF {
 
     template<typename Value, typename HashFunctions = typename DefaultHash<Value>::Hash,
-        typename Traits = HashTraits<Value> > class HashCountedSet: public WTF::FastAllocBase {
+        typename Traits = HashTraits<Value> > class HashCountedSet/*: public WTF::FastAllocBase*/ {
     private:
         typedef HashMap<Value, unsigned, HashFunctions, Traits> ImplType;
     public:

@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -37,7 +37,7 @@
 
 namespace OWBAL {
 
-class DeprecatedListNode: public WTF::FastAllocBase
+class DeprecatedListNode/*: public WTF::FastAllocBase*/
 {
 public:
     DeprecatedListNode(void *d) : data(d), next(0), prev(0) { }

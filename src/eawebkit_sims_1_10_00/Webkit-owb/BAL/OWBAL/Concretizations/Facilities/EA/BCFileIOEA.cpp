@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -100,7 +100,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
             if(pFS)
             {
-                char* const pData = WTF::fastNewArray<char>(size + 1);
+				char* const pData = EAWEBKIT_NEW("fileread") char[size + 1]; //WTF::fastNewArray<char>(size + 1);
 
                 // We have a problem here: what if the user passes in a huge size but 
                 // the file is small. That would seem to waste a lot of space.
@@ -112,7 +112,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     return pData;
                 }
 
-                WTF::fastDeleteArray<char> (pData);
+                EAWEBKIT_DELETE[] pData;//WTF::fastDeleteArray<char> (pData);
             }
 
             return NULL;
@@ -192,7 +192,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
         char* OwbFile::read(size_t size)
         {
-            char* const readData = WTF::fastNewArray<char>(size + 1);
+            char* const readData = EAWEBKIT_NEW("fileread") char[size + 1];//WTF::fastNewArray<char>(size + 1);
 
             Read(readData, (EA::IO::size_type)size);
             readData[size] = '\0';

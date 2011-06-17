@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -73,11 +73,11 @@ namespace EA
         protected:
             struct SavedCredentials
             {
-                FixedString32_16 mServer;       // e.g. www.bozo.com
-                FixedString16    mPath;         // e.g. /abc/def/ghi.html
-                FixedString32_16 mRealm;        // e.g. WallyWorld
-                FixedString32_16 mName;
-                FixedString32_16 mPassword;
+                FixedString16_32 mServer;       // e.g. www.bozo.com
+                FixedString16_256    mPath;         // e.g. /abc/def/ghi.html
+                FixedString16_32 mRealm;        // e.g. WallyWorld
+                FixedString16_32 mName;
+                FixedString16_32 mPassword;
             };
 
             typedef eastl::list<SavedCredentials, EASTLAllocator> SavedCredentialsList;
@@ -87,7 +87,7 @@ namespace EA
             void Proceed(EA::WebKit::TransportInfo& ti, const EA::WebKit::AuthenticationInfo& ai);
             void Cancel(EA::WebKit::TransportInfo& ti);
             void AddSavedCredentials(const char16_t* pURI, const char16_t* pRealm, const char16_t* pName, const char16_t* pPassword);
-            void MungeString(FixedString32_16& s, bool bMunge);
+            void MungeString(FixedString16_32& s, bool bMunge);
 
         protected:
             WebCore::ResourceHandleManager* mpResourceHandleManager;

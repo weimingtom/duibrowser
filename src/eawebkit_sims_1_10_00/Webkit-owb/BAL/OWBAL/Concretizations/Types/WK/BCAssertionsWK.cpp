@@ -37,12 +37,15 @@
 #include <Logging.h>
 #include <EAWebKit/EAWebKit.h>
 #include <wtf/FastAllocBase.h>
+#include <EAWebKit/internal/EAWebKitViewHelper.h> // For multiview support
 
 #if COMPILER(MSVC)
     #include <crtdbg.h>
 
     #if PLATFORM(WIN_OS)
         #include <windows.h>
+    #elif PLATFORM(XBOX)
+        #include <comdecl.h>
     #endif
 
 #endif
@@ -58,31 +61,42 @@ static void printf_user_common_str(bool bAssert, const char* pOutput)
     {
         if(bAssert)
         {
-            EA::WebKit::AssertionFailureInfo afi = { pOutput };
+            EA::WebKit::AssertionFailureInfo afi = { EA::WebKit::AutoSetActiveView::GetActiveView(), pOutput };
             bHandled = pVN->AssertionFailure(afi);
         }
         else
         {
-            EA::WebKit::DebugLogInfo dli = { pOutput };
+            EA::WebKit::DebugLogInfo dli = { EA::WebKit::AutoSetActiveView::GetActiveView(), pOutput, EA::WebKit::kDebugLogAssertion };
             bHandled = pVN->DebugLog(dli);
         }
     }
-
-    if(!bHandled)
-    {
-        #if EAWEBKIT_DEFAULT_LOG_HANDLING_ENABLED  // This defaults to false in release builds.
-               OWB_PRINTF_FORMATTED("%s", pOutput);
-        #endif
-    }
+	if(!bHandled)
+	{
+		//Note by Arpit Baldeva: Use the platform calls and not the EAWebKit output macro here. The EAWebKit output macro is implemented in terms of 
+		//this function call itself. Calling it from here would cause a cyclic loop and causes EAWebKit to crash on the shutdown.
+		//This happens, for example, if you shutdown EAWebKit and some things keep trying to access functionality from the library.
+		//2nd part of this would be to fix such cases.
+		//Since the log function is wrapped behind the logging preprocessor, it would be compiled out in the release build.
+#if EAWEBKIT_DEFAULT_LOG_HANDLING_ENABLED  // This defaults to false in release builds.
+	#if defined(_MSC_VER)
+		OutputDebugStringA(pOutput);
+		OutputDebugStringA("\n");
+	#else
+		printf("%s", pOutput);
+		printf("\n");
+	#endif
+#endif
+	}
 }
 
 
 static void vprintf_user_common(bool bAssert, const char* format, va_list args)
 {
     char*  pBufferAllocated = NULL;
-    char   pBufferLocal[512];
+	const unsigned int initial_size = 512;
+	size_t size = initial_size;
+	char   pBufferLocal[initial_size];
     char*  pBufferUsed = pBufferLocal;
-    size_t size = 512;
 
     do {
         #if defined(_MSC_VER)
@@ -91,20 +105,20 @@ static void vprintf_user_common(bool bAssert, const char* format, va_list args)
             int result = vsnprintf(pBufferUsed, size, format, args);
         #endif
 
-        if ((result != -1) || (result < (int)size))
+        if ((result != -1))
         {
             printf_user_common_str(bAssert, pBufferUsed);
             break;
         }
 
-        WTF::fastDeleteArray<char>(pBufferAllocated);
+        EAWEBKIT_DELETE[] pBufferAllocated;//WTF::fastDeleteArray<char>(pBufferAllocated);
         pBufferAllocated = NULL;
 
         size *= 2;
-        pBufferAllocated = pBufferUsed = WTF::fastNewArray<char>(size);    // To do: Convert this usage of new to our custom allocator.
+		pBufferAllocated = pBufferUsed = EAWEBKIT_NEW("debug printf") char[size];//WTF::fastNewArray<char>(size);    // To do: Convert this usage of new to our custom allocator.
     } while ((size < 8192) && pBufferUsed);
 
-    WTF::fastDeleteArray<char>(pBufferAllocated);
+    EAWEBKIT_DELETE[] pBufferAllocated;//WTF::fastDeleteArray<char>(pBufferAllocated);
 }
 
 

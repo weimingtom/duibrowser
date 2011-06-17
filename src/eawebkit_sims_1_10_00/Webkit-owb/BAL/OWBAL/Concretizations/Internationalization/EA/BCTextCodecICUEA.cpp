@@ -38,6 +38,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CharacterNames.h"
 #include "CString.h"
 #include "PlatformString.h"
+#include "StringBuffer.h"
 #include <wtf/Assertions.h>
 
 #if (defined(__GNUC__) && (__GNUC__ >= 3)) || defined(__MWERKS__) || defined(__xlC__)
@@ -53,126 +54,9 @@ using std::auto_ptr;
 using std::min;
 
 #include <EAIO/FnEncode.h>
-#if defined(_WIN32)
-#include <Windows.h>
-#endif
 
 namespace OWBAL {
 
-#if defined(_WIN32)
-void UTF_8ToUnicode(wchar_t* pOut,char *pText)
-{
-	char* uchar = (char *)pOut;
-
-	uchar[1] = ((pText[0] & 0x0F) << 4) + ((pText[1] >> 2) & 0x0F);
-
-	uchar[0] = ((pText[1] & 0x03) << 6) + (pText[2] & 0x3F);
-	return;
-}
-
-void UnicodeToUTF_8(char* pOut,wchar_t* pText)
-{
-	// 注意 WCHAR高低字的顺序,低字节在前，高字节在后
-	char* pchar = (char *)pText;
-	
-	pOut[0] = (0xE0 | ((pchar[1] & 0xF0) >> 4));
-	pOut[1] = (0x80 | ((pchar[1] & 0x0F) << 2)) + ((pchar[0] & 0xC0) >> 6);
-	pOut[2] = (0x80 | (pchar[0] & 0x3F));
-
-	return;
-}
-
-void UnicodeToGB2312(char* pOut,wchar_t uData)
-{
-	WideCharToMultiByte(CP_ACP,NULL,&uData,1,pOut,sizeof(wchar_t),NULL,NULL);
-	return;
-}
-
-void Gb2312ToUnicode(wchar_t* pOut,char *gbBuffer)
-{
-	::MultiByteToWideChar(CP_ACP,MB_PRECOMPOSED,gbBuffer,2,pOut,1);
-	return;
-}
-
-void GB2312ToUTF_8(CString& pOut,char *pText, int pLen)
-{
-	char buf[4];
-	int nLength = pLen* 3;
-	char* rst = new char[nLength];
-	
-	memset(buf,0,4);
-	memset(rst,0,nLength);
-	
-	int i = 0;
-	int j = 0;
-	while(i < pLen)
-	{
-		//如果是英文直接复制就可以
-		if( *(pText + i) >= 0)
-		{
-			rst[j++] = pText[i++];
-		}  
-		else
-		{
-			wchar_t pbuffer;
-			Gb2312ToUnicode(&pbuffer,pText+i);
-			UnicodeToUTF_8(buf,&pbuffer);
-			
-			unsigned short int tmp = 0;
-			tmp = rst[j] = buf[0];
-			tmp = rst[j+1] = buf[1];
-			tmp = rst[j+2] = buf[2];
-			
-			j += 3;
-			i += 2;
-		}
-	}
-	
-	rst[j] = '\0';
-
-	//返回结果
-	pOut = rst;
-	delete []rst;
-	return;
-}
-
-void UTF_8ToGB2312(CString &pOut, char *pText, int pLen)
-{
-	char * newBuf = new char[pLen];
-	char Ctemp[4];
-	
-	memset(Ctemp,0,4);
-	
-	int i =0;
-	int j = 0;
-	
-	while(i < pLen)
-	{
-		if(pText[i] > 0)
-		{
-			newBuf[j++] = pText[i++];
-		}
-		else
-		{
-			WCHAR Wtemp;
-			UTF_8ToUnicode(&Wtemp,pText + i);
-			UnicodeToGB2312(Ctemp,Wtemp);
-			
-			newBuf[j] = Ctemp[0];
-			newBuf[j + 1] = Ctemp[1];
-			
-			i += 3;
-			j += 2;
-		}
-	}
-	
-	newBuf[j] = '\0';
-	
-	pOut = newBuf;
-	delete []newBuf;
-	return;
-}
-#endif
 
 static auto_ptr<TextCodec> newTextCodecICU(const TextEncoding& encoding, const void*)
 {
@@ -484,10 +368,10 @@ void TextCodecICU::registerExtendedEncodingNames(EncodingNameRegistrar registrar
         // registrar("CP936", "GBK");
         // registrar("MS936", "GBK");
         // registrar("windows-936", "GBK");
-         registrar("GBK", "GBK");
+        // registrar("GBK", "GBK");
         // registrar("ibm-1383_P110-1999", "GBK");
         // registrar("ibm-1383", "GBK");
-         registrar("GB2312", "GBK");
+        // registrar("GB2312", "GBK");
         // registrar("csGB2312", "GBK");
         // registrar("cp1383", "GBK");
         // registrar("1383", "GBK");
@@ -1033,7 +917,7 @@ void TextCodecICU::registerExtendedCodecs(TextCodecRegistrar registrar)
         // registrar("Extended_UNIX_Code_Packed_Format_for_Japanese", newTextCodecICU, 0);
         // registrar("Big5", newTextCodecICU, 0);
         // registrar("Big5-HKSCS", newTextCodecICU, 0);
-         registrar("GBK", newTextCodecICU, 0);
+        // registrar("GBK", newTextCodecICU, 0);
         // registrar("GB2312", newTextCodecICU, 0);
         // registrar("GB_2312-80", newTextCodecICU, 0);
         // registrar("EUC-KR", newTextCodecICU, 0);
@@ -1116,7 +1000,9 @@ TextCodecICU::TextCodecICU(const TextEncoding& encoding)
     #if _DEBUG
         memset(m_bufferedBytes, 0, sizeof(m_bufferedBytes));
     #endif
-}
+}
+
+
 // This function can be called multiple times successively, with flush being false for
 // each time but the last. It's possible that the data may be such that a multibyte
 // character straddles the division between two blocks given in successive calls.
@@ -1124,6 +1010,13 @@ TextCodecICU::TextCodecICU(const TextEncoding& encoding)
 // In our implementation here, we efficiently solve UTF-8 decoding without allocating
 // memory in most cases, including the case whereby we recieve incomplete multi-byte
 // sequences.
+
+//Note by Arpit Baldeva: Use the string buffer for decoding instead of the conditional stack based. This is simply because it did not save us any allocation.
+//After decoding, we end up appending to a String which does the allocation we avoided. Worst case, we could be decoding a 90K js/css in 1 shot(with the
+//cached script/css mechanism) and end up allocating 180K (90K * sizeof(UChar))buffer twice. This is because we free the decode buffer "after" appending the data
+//to the string we return. So our peak memory usage would be doubled.
+//Coincidentally, after doing this change, I realized that UTF16 text codec also uses a StringBuffer.
+#define USE_STRING_BUFFER_FOR_DECODING 1
 
 String TextCodecICU::decode(const char* bytes, size_t length, bool flush, bool /*stopOnError*/, bool& sawError)
 {
@@ -1134,7 +1027,7 @@ String TextCodecICU::decode(const char* bytes, size_t length, bool flush, bool /
 
     // ASSERT(m_encoding == "UTF-8");
 
-    if (length)
+    if(length)
     {
         if(m_numBufferedBytes) // If we have any leftover bytes from the last call...
         {
@@ -1163,32 +1056,34 @@ String TextCodecICU::decode(const char* bytes, size_t length, bool flush, bool /
                 // within the specifications of this decode API.
                 memcpy(m_bufferedBytes + m_numBufferedBytes, bytes, length);
                 m_numBufferedBytes += length;
+				length = 0;//+ Note by Arpit Baldeva - We have buffered everything.
             }
             else // Else our buffer was not large enough to hold the multi-byte sequence. Currently this should not be possible based on our logic below.
             {
                 m_numBufferedBytes = 0; // We panic and boot the buffer.
             }
         }
-
+#if USE_STRING_BUFFER_FOR_DECODING
+		//This is possible due to recursive nature of this function. Fortunately, we would only see 1 level of recursion.
+		int existingLength = resultString.length();
+		StringBuffer resultBuffer(length+existingLength);
+		if(existingLength)
+		{
+			memcpy(resultBuffer.characters(),resultString.characters(),resultString.length()*sizeof(UChar));//copy the decoded string
+		}
+		UChar* pUsedBuffer = resultBuffer.characters() + existingLength; //offset the buffer
+#else
         // We use stack space for the encoding where possible.
         #if defined(_WIN32) || defined(EA_PLATFORM_UNIX)
-            const size_t kMaxStackSize = 4096;
+             const size_t kMaxStackSize = 4096;
         #else
-            const size_t kMaxStackSize = 1024;
+             const size_t kMaxStackSize = 1024;
         #endif
         UChar*       pMallocBuffer = NULL;
         UChar*       pUsedBuffer   = ((length * sizeof(UChar)) < kMaxStackSize) ? (UChar*)alloca(length * sizeof(UChar)) : (pMallocBuffer = (UChar*)fastMalloc(length * sizeof(UChar)));
-        size_t       j = 0;
+#endif 
+		size_t       j = 0;
 
-#if defined(_WIN32)
-		if (strcmp(m_encoding.name(), "GBK") == 0 || stricmp(m_encoding.name(), "gb18030") == 0)
-		{
-			j = ::MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, bytes, length, pUsedBuffer, 0);
-			::MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, bytes, length, pUsedBuffer, length);
-		}
-		else
-#endif
-		{
         for(size_t i = 0; i<length; ++i, ++j)
         {
             if (((unsigned char)bytes[i] & 240) == 240)  // If we appear to have a 4-byte UTF8 sequence...
@@ -1260,12 +1155,19 @@ String TextCodecICU::decode(const char* bytes, size_t length, bool flush, bool /
             else
                 pUsedBuffer[j] = (unsigned char)bytes[i];
         }
-		}
+#if USE_STRING_BUFFER_FOR_DECODING
+		if(flush) // If flush is true, then this is the last call, so we unilaterally clear our buffer.
+			m_numBufferedBytes = 0;
 
-        resultString.append(pUsedBuffer, j);
-
-        if(pMallocBuffer)
+		resultBuffer.resize(j+existingLength);//Make sure we don't overwrite the leftover. Resize is pretty efficient as it simply adjusts length when going down in size as is the case here.
+		return String::adopt(resultBuffer);
+#else		
+		resultString.append(pUsedBuffer, j);
+		if(pMallocBuffer)
             fastFree(pMallocBuffer);
+#endif	
+		
+       
     }
 
     if(flush) // If flush is true, then this is the last call, so we unilaterally clear our buffer.

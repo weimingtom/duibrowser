@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef BINDINGS_BALVALUEPRIVATE_H_
@@ -43,7 +43,7 @@
 #include "bal_instance.h"
 
 using namespace KJS;
-class BalValuePrivate: public WTF::FastAllocBase {
+class BalValuePrivate/*: public WTF::FastAllocBase*/ {
     public:
         BalValuePrivate()
         {
@@ -81,6 +81,9 @@ class BalValuePrivate: public WTF::FastAllocBase {
         JSValue *balObject(BalObject *obj, ExecState *exec);
 
         JSValue *getValue() { return m_val; }
+
+        // CSidhall 3/25/10 - Added for binding to be able to set the exec so that a js string can allocate.
+        void setExec(ExecState *exec) { m_exec = exec; }
 
     private:
         JSValue *m_val;

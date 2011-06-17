@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef FontCache_h
@@ -53,7 +53,7 @@ class FontDescription;
 class FontSelector;
 class SimpleFontData;
 
-class FontCache: public WTF::FastAllocBase {
+class FontCache/*: public WTF::FastAllocBase*/ {
 public:
 //+daw ca 24/07 static and glbal management
 	void static staticFinalize();

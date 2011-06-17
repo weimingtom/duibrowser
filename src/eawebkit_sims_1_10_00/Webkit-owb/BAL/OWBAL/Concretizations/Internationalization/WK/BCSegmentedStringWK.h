@@ -18,7 +18,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SegmentedString_h
@@ -32,7 +32,7 @@ namespace OWBAL {
 
 class SegmentedString;
 
-class SegmentedSubstring: public WTF::FastAllocBase {
+class SegmentedSubstring/*: public WTF::FastAllocBase*/ {
 public:
     SegmentedSubstring() : m_length(0), m_current(0), m_doNotExcludeLineNumbers(true) {}
     SegmentedSubstring(const String& str)
@@ -73,7 +73,7 @@ private:
     bool m_doNotExcludeLineNumbers;
 };
 
-class SegmentedString: public WTF::FastAllocBase {
+class SegmentedString/*: public WTF::FastAllocBase*/ {
 public:
     SegmentedString()
         : m_pushedChar1(0), m_pushedChar2(0), m_currentChar(0), m_composite(false) {}

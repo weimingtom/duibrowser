@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef GlyphWidthMap_h
@@ -46,7 +46,8 @@ const float cGlyphWidthUnknown = -1;
 
 class GlyphWidthMap : Noncopyable {
 public:
-        // Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
         void* operator new(size_t, void* p) { return p; }
         void* operator new[](size_t, void* p) { return p; }
 
@@ -75,6 +76,7 @@ public:
             fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
             fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
         }
+#endif //NO_MACRO_NEW
 public:
     GlyphWidthMap() : m_filledPrimaryPage(false), m_pages(0) {}
     ~GlyphWidthMap() { if (m_pages) { deleteAllValues(*m_pages); delete m_pages; } }
@@ -83,7 +85,7 @@ public:
     void setWidthForGlyph(Glyph, float);
 
 private:
-    struct GlyphWidthPage: public WTF::FastAllocBase {
+    struct GlyphWidthPage/*: public WTF::FastAllocBase*/ {
         static const size_t size = 256; // Usually covers Latin-1 in a single page.
         float m_widths[size];
 

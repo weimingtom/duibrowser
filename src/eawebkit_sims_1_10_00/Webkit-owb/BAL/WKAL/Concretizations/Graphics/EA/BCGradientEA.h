@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -59,7 +59,7 @@ namespace WKAL {
 
         PlatformGradient platformGradient();
 
-        struct ColorStop: public WTF::FastAllocBase {
+        struct ColorStop/*: public WTF::FastAllocBase*/ {
             float stop;
             float red;
             float green;

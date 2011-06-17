@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef DeprecatedPtrQueue_h
@@ -35,7 +35,7 @@
 
 namespace OWBAL {
 
-template<class T> class DeprecatedPtrQueue: public WTF::FastAllocBase
+template<class T> class DeprecatedPtrQueue/*: public WTF::FastAllocBase*/
 {
 public:
     bool isEmpty() const { return list.isEmpty(); }

@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef BCOBSERVERDATA_H
@@ -45,7 +45,7 @@ namespace OWBAL {
     /**
      * @brief the BIObserver
      *
-     * The observer base class: public WTF::FastAllocBase
+     * The observer base class
      *
      */
     class BCObserverData : public BCObserver {

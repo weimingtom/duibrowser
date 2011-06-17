@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef RegularExpression_h
@@ -37,7 +37,7 @@ namespace OWBAL {
 
 class String;
 
-class RegularExpression: public WTF::FastAllocBase {
+class RegularExpression/*: public WTF::FastAllocBase*/ {
 public:
     RegularExpression();
     RegularExpression(const String&, bool caseSensitive = false);

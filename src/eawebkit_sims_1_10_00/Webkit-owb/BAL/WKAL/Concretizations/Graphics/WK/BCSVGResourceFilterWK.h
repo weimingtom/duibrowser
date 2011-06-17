@@ -20,7 +20,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGResourceFilter_h
@@ -40,7 +40,7 @@ namespace WKAL {
 class GraphicsContext;
 class SVGFilterEffect;
     
-class SVGResourceFilterPlatformData: public WTF::FastAllocBase {
+class SVGResourceFilterPlatformData/*: public WTF::FastAllocBase*/ {
 public:
     virtual ~SVGResourceFilterPlatformData() {}
 };

@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 
@@ -58,7 +58,7 @@ namespace WTF {
     template<typename ValueArg> struct ListHashSetNodeAllocator;
     template<typename ValueArg, typename HashArg> struct ListHashSetNodeHashFunctions;
 
-    template<typename ValueArg, typename HashArg = typename DefaultHash<ValueArg>::Hash> class ListHashSet: public WTF::FastAllocBase {
+    template<typename ValueArg, typename HashArg = typename DefaultHash<ValueArg>::Hash> class ListHashSet/*: public WTF::FastAllocBase*/ {
     private:
         typedef ListHashSetNode<ValueArg> Node;
         typedef ListHashSetNodeAllocator<ValueArg> NodeAllocator;
@@ -120,7 +120,7 @@ namespace WTF {
         OwnPtr<NodeAllocator> m_allocator;
     };
 
-    template<typename ValueArg> struct ListHashSetNodeAllocator: public WTF::FastAllocBase {
+    template<typename ValueArg> struct ListHashSetNodeAllocator/*: public WTF::FastAllocBase*/ {
         typedef ListHashSetNode<ValueArg> Node;
         typedef ListHashSetNodeAllocator<ValueArg> NodeAllocator;
 
@@ -189,7 +189,7 @@ namespace WTF {
         } m_pool;
     };
 
-    template<typename ValueArg> struct ListHashSetNode: public WTF::FastAllocBase {
+    template<typename ValueArg> struct ListHashSetNode/*: public WTF::FastAllocBase*/ {
         typedef ListHashSetNodeAllocator<ValueArg> NodeAllocator;
 
         ListHashSetNode(ValueArg value)
@@ -221,7 +221,7 @@ namespace WTF {
 #endif
     };
 
-    template<typename ValueArg, typename HashArg> struct ListHashSetNodeHashFunctions: public WTF::FastAllocBase {
+    template<typename ValueArg, typename HashArg> struct ListHashSetNodeHashFunctions/*: public WTF::FastAllocBase*/ {
         typedef ListHashSetNode<ValueArg> Node;
         
         static unsigned hash(Node* const& key) { return HashArg::hash(key->m_value); }
@@ -229,7 +229,7 @@ namespace WTF {
         static const bool safeToCompareToEmptyOrDeleted = false;
     };
 
-    template<typename ValueArg, typename HashArg> class ListHashSetIterator: public WTF::FastAllocBase {
+    template<typename ValueArg, typename HashArg> class ListHashSetIterator/*: public WTF::FastAllocBase*/ {
     private:
         typedef ListHashSet<ValueArg, HashArg> ListHashSetType;
         typedef ListHashSetIterator<ValueArg, HashArg> iterator;
@@ -272,7 +272,7 @@ namespace WTF {
         const_iterator m_iterator;
     };
 
-    template<typename ValueArg, typename HashArg> class ListHashSetConstIterator: public WTF::FastAllocBase {
+    template<typename ValueArg, typename HashArg> class ListHashSetConstIterator/*: public WTF::FastAllocBase*/ {
     private:
         typedef ListHashSet<ValueArg, HashArg> ListHashSetType;
         typedef ListHashSetIterator<ValueArg, HashArg> iterator;
@@ -340,7 +340,7 @@ namespace WTF {
 
 
     template<typename ValueType, typename HashFunctions>
-    struct ListHashSetTranslator: public WTF::FastAllocBase {
+    struct ListHashSetTranslator/*: public WTF::FastAllocBase*/ {
     private:
         typedef ListHashSetNode<ValueType> Node;
         typedef ListHashSetNodeAllocator<ValueType> NodeAllocator;

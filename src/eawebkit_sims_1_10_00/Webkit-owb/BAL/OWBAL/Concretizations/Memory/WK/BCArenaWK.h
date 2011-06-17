@@ -38,7 +38,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Arena_h
@@ -51,14 +51,14 @@ namespace OWBAL {
 
 typedef unsigned long uword;
 
-struct Arena: public WTF::FastAllocBase {
+struct Arena/*: public WTF::FastAllocBase*/ {
     Arena* next;        // next arena
     uword base;         // aligned base address
     uword limit;        // end of arena (1+last byte)
     uword avail;        // points to next available byte in arena
 };
 
-struct ArenaPool: public WTF::FastAllocBase {
+struct ArenaPool/*: public WTF::FastAllocBase*/ {
     Arena first;        // first arena in pool list.
     Arena* current;     // current arena.
     unsigned int arenasize;

@@ -58,7 +58,7 @@ namespace OWBAL {
     typedef void* PlatformModule;
     #define       invalidPlatformFileHandle ((PlatformFileHandle)NULL)
 
-    struct PlatformModuleVersion: public WTF::FastAllocBase {
+    struct PlatformModuleVersion/*: public WTF::FastAllocBase*/ {
         unsigned leastSig, mostSig;
 
         PlatformModuleVersion(unsigned): leastSig(0) , mostSig(0) { }

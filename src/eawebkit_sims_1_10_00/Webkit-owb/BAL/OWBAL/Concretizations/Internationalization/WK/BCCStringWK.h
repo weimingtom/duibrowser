@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef CString_h
@@ -40,7 +40,7 @@ namespace OWBAL {
 
     class CStringBuffer : public RefCounted<CStringBuffer> {
     public:
-        static PassRefPtr<CStringBuffer> create(unsigned length) { return adoptRef(new CStringBuffer(length)); }
+        static PassRefPtr<CStringBuffer> create(unsigned length) { return adoptRef(EAWEBKIT_NEW("CStringBuffer") CStringBuffer(length)); }
 
         char* data() { return m_vector.data(); }
         size_t length() const { return m_vector.size(); }
@@ -55,7 +55,7 @@ namespace OWBAL {
 
     // A container for a null-terminated char array supporting copy-on-write
     // assignment.  The contained char array may be null.
-    class CString: public WTF::FastAllocBase {
+    class CString/*: public WTF::FastAllocBase*/ {
     public:
         CString() { }
         CString(const char*);

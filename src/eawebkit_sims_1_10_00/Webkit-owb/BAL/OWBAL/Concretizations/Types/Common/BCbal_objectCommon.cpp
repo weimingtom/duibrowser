@@ -168,7 +168,7 @@ bool BalObject::hasMethod(const char *name)
     return false;
 }
 
-BalValue *BalObject::invoke(const char *name, Vector<BalValue *> args)
+BalValue *BalObject::invoke(const char *name, Vector<BalValue *> args, KJS::ExecState* exec)     // 3/25/10 CSidhall - Added exec param for string alloc. 
 {
     return NULL;
 }
@@ -186,7 +186,7 @@ bool BalObject::hasProperty( const char *name)
     return false;
 }
 
-BalValue *BalObject::getProperty(const char *name)
+BalValue *BalObject::getProperty(const char *name, KJS::ExecState* exec)    // 3/25/10 CSidhall - Added exec param for string alloc.
 {
     return NULL;
 }

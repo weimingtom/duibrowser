@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef GlyphBuffer_h
@@ -63,7 +63,7 @@ typedef unsigned short GlyphBufferGlyph;
 typedef FloatSize GlyphBufferAdvance;
 #endif
 
-class GlyphBuffer: public WTF::FastAllocBase {
+class GlyphBuffer/*: public WTF::FastAllocBase*/ {
 public:
     bool isEmpty() const { return m_fontData.isEmpty(); }
     int size() const { return m_fontData.size(); }

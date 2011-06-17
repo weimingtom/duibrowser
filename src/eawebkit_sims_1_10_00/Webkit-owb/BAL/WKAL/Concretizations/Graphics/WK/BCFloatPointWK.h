@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef FloatPoint_h
@@ -63,7 +63,7 @@ namespace WKAL {
 class AffineTransform;
 class IntPoint;
 
-class FloatPoint: public WTF::FastAllocBase {
+class FloatPoint/*: public WTF::FastAllocBase*/ {
 public:
     FloatPoint() : m_x(0), m_y(0) { }
     FloatPoint(float x, float y) : m_x(x), m_y(y) { }

@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -66,7 +66,7 @@ const uint8_t Font::gRoundingHackCharacterTable[256] = {
 Font::CodePath Font::codePath = Auto;
 #include <wtf/FastAllocBase.h>
 
-struct WidthIterator: public WTF::FastAllocBase {
+struct WidthIterator/*: public WTF::FastAllocBase*/ {
     WidthIterator(const Font* font, const TextRun& run);
 
     void advance(int to, GlyphBuffer* glyphBuffer = 0);

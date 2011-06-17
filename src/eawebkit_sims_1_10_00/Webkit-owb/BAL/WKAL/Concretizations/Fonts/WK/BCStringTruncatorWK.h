@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef StringTruncator_h
@@ -39,7 +39,7 @@ namespace WKAL {
     class Font;
     class String;
     
-    class StringTruncator: public WTF::FastAllocBase {
+    class StringTruncator/*: public WTF::FastAllocBase*/ {
     public:
         static String centerTruncate(const String&, float maxWidth, const Font&, bool disableRoundingHacks = true);
         static String rightTruncate(const String&, float maxWidth, const Font&, bool disableRoundingHacks = true);

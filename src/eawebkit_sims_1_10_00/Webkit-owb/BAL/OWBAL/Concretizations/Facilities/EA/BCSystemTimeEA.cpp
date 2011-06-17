@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -72,7 +72,20 @@ namespace OWBAL {
     #endif
 
 
-     #if defined(EA_PLATFORM_UNIX)
+    #if defined(EA_PLATFORM_XENON) || defined(EA_PLATFORM_PS3)
+        // Return the current system time in seconds, using the classic POSIX epoch of January 1, 1970.
+        double currentTime()
+        {
+			//If the application has installed a timer, use it. Otherwise, use the standard C time function.
+			if(EA::WebKit::gTimerCallback)
+				return EA::WebKit::gTimerCallback();
+
+			EAW_ASSERT_MSG(false, "The current time resolution is in seconds. This means that some JavaScript that may require better resolution (like for animation effects) would not work correctly. An application may provide a higher resolution timer using the EAWebKit API.");
+
+			return time(0);
+        }
+
+    #elif defined(EA_PLATFORM_UNIX)
 
         // Return the current system time in seconds, using the classic POSIX epoch of January 1, 1970.
         // Like time(0) from <time.h>, except with a wider range of values and higher precision.

@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef FloatSize_h
@@ -50,7 +50,7 @@ namespace WKAL {
 
 class IntSize;
 
-class FloatSize: public WTF::FastAllocBase {
+class FloatSize/*: public WTF::FastAllocBase*/ {
 public:
     FloatSize() : m_width(0), m_height(0) { }
     FloatSize(float width, float height) : m_width(width), m_height(height) { }

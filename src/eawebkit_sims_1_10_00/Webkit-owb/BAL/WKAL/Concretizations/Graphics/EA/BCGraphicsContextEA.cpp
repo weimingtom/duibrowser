@@ -63,6 +63,14 @@
     #define M_PI 3.14159265359
 #endif
 
+#if (defined(__GNUC__) && (__GNUC__ >= 3)) || defined(__MWERKS__) || defined(__xlC__)
+#include <alloca.h>
+#elif defined(_MSC_VER)
+#include <malloc.h>
+#elif (defined(__GNUC__) && (__GNUC__ < 3)) && !defined(alloca)
+#define alloca __builtin_alloca
+#endif
+
 
 using std::min;
 using std::max;
@@ -543,19 +551,24 @@ void GraphicsContext::drawConvexPolygon(size_t npoints, const FloatPoint* points
     if (npoints <= 1)
         return;
 
-    // To do: Make this use local memory for the common cases. Use our own allocator otherwise.
-    int* vx = WTF::fastNewArray<int> (npoints);
-    int* vy = WTF::fastNewArray<int> (npoints);
-    int  x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+	// We use stack space if possible.
+	const size_t kMaxStackSize = 32;//Total 64 for 2 of the following
+	int*       pMallocVX = NULL;
+	int*       pUsedVX   = ((npoints * sizeof(int)) < kMaxStackSize) ? (int*)alloca(npoints * sizeof(int)) : (pMallocVX = (int*)fastMalloc(npoints * sizeof(int)));
+	int*       pMallocVY = NULL;
+	int*       pUsedVY   = ((npoints * sizeof(int)) < kMaxStackSize) ? (int*)alloca(npoints * sizeof(int)) : (pMallocVY = (int*)fastMalloc(npoints * sizeof(int)));
+
+	
+	int  x1 = 0, x2 = 0, y1 = 0, y2 = 0;
 
     for(size_t i=0; i < npoints; i++)
     {
-        vx[i] = static_cast<int16_t>(points[i].x() + origin().width());
-        vy[i] = static_cast<int16_t>(points[i].y() + origin().height());
-        x1 = min(x1, vx[i]);
-        y1 = min(y1, vy[i]);
-        x2 = max(x2, vx[i]);
-        y2 = max(y2, vy[i]);
+        pUsedVX[i] = static_cast<int16_t>(points[i].x() + origin().width());
+        pUsedVY[i] = static_cast<int16_t>(points[i].y() + origin().height());
+        x1 = min(x1, pUsedVX[i]);
+        y1 = min(y1, pUsedVY[i]);
+        x2 = max(x2, pUsedVX[i]);
+        y2 = max(y2, pUsedVY[i]);
     }
 
     int alpha;
@@ -567,13 +580,16 @@ void GraphicsContext::drawConvexPolygon(size_t npoints, const FloatPoint* points
 
     Color color = fillColor();
 
-    EA::Raster::FilledPolygonRGBA(m_data->surface, vx, vy, npoints,
+    EA::Raster::FilledPolygonRGBA(m_data->surface, pUsedVX, pUsedVY, npoints,
                                    color.red(),
                                    color.green(),
                                    color.blue(),
                                    alpha);
-    WTF::fastDeleteArray<int> (vx);
-    WTF::fastDeleteArray<int> (vy);
+    if(pMallocVX) 
+		fastFree(pMallocVX);
+	
+	if(pMallocVY)
+		fastFree(pMallocVY);
 
 }
 
@@ -676,6 +692,13 @@ void GraphicsContext::drawFocusRing(const Color& color)
     EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
 
     EA::WebKit::FocusRingDrawInfo focusInfo;
+    
+    EA::Raster::Surface* pSurface = m_data->surface; 
+    EA::WebKit::View* pView = NULL;
+    if(pSurface)
+        pView = static_cast<EA::WebKit::View*> (pSurface->mpUserData);  // Need to verify that this cast is always safe...
+    
+    focusInfo.mpView = pView;
     EA::Raster::IntRectToEARect(finalFocusRect, focusInfo.mFocusRect);
     focusInfo.mFocusRect.h -= 1;
     focusInfo.mFocusRect.w -= 1;

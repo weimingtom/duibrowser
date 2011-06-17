@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef BALBase_h
@@ -57,7 +57,7 @@
 #include "PlatformCustomInclude.h"
 #endif
 
-class BALBase: public WTF::FastAllocBase {
+class BALBase/*: public WTF::FastAllocBase*/ {
 };
 
 class WKALBase : public BALBase {

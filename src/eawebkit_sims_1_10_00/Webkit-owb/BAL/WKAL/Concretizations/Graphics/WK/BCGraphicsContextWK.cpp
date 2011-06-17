@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -41,7 +41,7 @@ using namespace std;
 namespace WKAL {
 #include <wtf/FastAllocBase.h>
 
-class TextRunIterator: public WTF::FastAllocBase {
+class TextRunIterator/*: public WTF::FastAllocBase*/ {
 public:
     TextRunIterator()
         : m_textRun(0)

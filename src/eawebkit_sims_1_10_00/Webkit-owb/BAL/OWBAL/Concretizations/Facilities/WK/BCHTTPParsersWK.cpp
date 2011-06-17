@@ -27,6 +27,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
+*/
+
 #include "config.h"
 #include "HTTPParsers.h"
 
@@ -131,7 +135,16 @@ String filenameFromHTTPContentDisposition(const String& value)
 
 String extractMIMETypeFromMediaType(const String& mediaType)
 {
-    String mimeType;
+    int endPos = mediaType.find(';');
+	if(endPos != -1)
+		return mediaType.substring(0,(unsigned)endPos);
+	else
+		return mediaType;
+	
+	//Note by Arpit Baldeva: Commented out following implementation which simply does not make any sense. Thats like at least 8-10 extra allocations per
+	//resource.
+	/*
+	String mimeType;
     unsigned length = mediaType.length();
     for (unsigned offset = 0; offset < length; offset++) {
         UChar c = mediaType[offset];
@@ -143,6 +156,7 @@ String extractMIMETypeFromMediaType(const String& mediaType)
         mimeType += String(&c, 1);
     }
     return mimeType;
+	*/
 }
 
 String extractCharsetFromMediaType(const String& mediaType)

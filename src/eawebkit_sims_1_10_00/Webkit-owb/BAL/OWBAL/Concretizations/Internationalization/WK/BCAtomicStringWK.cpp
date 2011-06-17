@@ -19,7 +19,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -43,7 +43,7 @@ namespace OWBAL {
 static HashSet<StringImpl*>* stringTable;
 #include <wtf/FastAllocBase.h>
 
-struct CStringTranslator: public WTF::FastAllocBase {
+struct CStringTranslator/*: public WTF::FastAllocBase*/ {
     static unsigned hash(const char* c)
     {
         return StringImpl::computeHash(c);
@@ -63,7 +63,7 @@ struct CStringTranslator: public WTF::FastAllocBase {
 
     static void translate(StringImpl*& location, const char* const& c, unsigned hash)
     {
-        location = new StringImpl(c, strlen(c), hash); 
+		location = EAWEBKIT_NEW("translate:StringImpl")StringImpl(c, strlen(c), hash); 
     }
 };
 
@@ -125,7 +125,7 @@ static inline bool equal(StringImpl* string, const UChar* characters, unsigned l
 #endif
 }
 
-struct UCharBufferTranslator: public WTF::FastAllocBase {
+struct UCharBufferTranslator/*: public WTF::FastAllocBase*/ {
     static unsigned hash(const UCharBuffer& buf)
     {
         return StringImpl::computeHash(buf.s, buf.length);
@@ -148,7 +148,7 @@ struct HashAndCharacters {
     unsigned length;
 };
 
-struct HashAndCharactersTranslator: public WTF::FastAllocBase {
+struct HashAndCharactersTranslator/*: public WTF::FastAllocBase*/ {
     static unsigned hash(const HashAndCharacters& buffer)
     {
         ASSERT(buffer.hash == StringImpl::computeHash(buffer.characters, buffer.length));

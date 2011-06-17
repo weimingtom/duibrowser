@@ -109,7 +109,7 @@
 // Alternatives to this scheme will be added as needed.
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef TCMALLOC_PACKED_CACHE_INL_H__
@@ -137,7 +137,7 @@
 // the table is controlled by kHashbits, and the type of each entry in
 // the cache is T.  See also the big comment at the top of the file.
 template <int kKeybits, typename T>
-class PackedCache: public WTF::FastAllocBase {
+class PackedCache/*: public WTF::FastAllocBase*/ {
  public:
   typedef uintptr_t K;
   typedef size_t V;

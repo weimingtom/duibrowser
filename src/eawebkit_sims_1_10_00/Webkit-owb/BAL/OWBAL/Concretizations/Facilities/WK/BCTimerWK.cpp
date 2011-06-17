@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -60,7 +60,7 @@ static HashSet<const TimerBase*>* timersReadyToFire;
 // Maintains the m_heapIndex value in the timers themselves, which allows us to do efficient
 #include <wtf/FastAllocBase.h>
 // modification of the heap.
-class TimerHeapElement: public WTF::FastAllocBase {
+class TimerHeapElement/*: public WTF::FastAllocBase*/ {
 public:
     explicit TimerHeapElement(int i) : m_index(i), m_timer((*timerHeap)[m_index]) { checkConsistency(); }
 
@@ -370,7 +370,10 @@ void TimerBase::sharedTimerFired()
 
     double fireTime = currentTime();
     Vector<TimerBase*> firingTimers;
+	firingTimers.reserveCapacity(8);
+
     HashSet<const TimerBase*> firingTimersSet;
+	firingTimers.reserveCapacity(8);
 
     timersReadyToFire = &firingTimersSet;
 

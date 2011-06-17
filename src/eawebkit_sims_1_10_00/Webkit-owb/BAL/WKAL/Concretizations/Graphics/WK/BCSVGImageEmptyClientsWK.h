@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGImageEmptyClients_h
@@ -46,12 +46,12 @@
 /*
  This file holds empty Client stubs for use by SVGImage.
  SVGImage needs to create a dummy Page->Frame->FrameView tree for use in parsing an SVGDocument.
- This tree depends heavily on Clients (usually provided by WebKit classes).: public WTF::FastAllocBase
+ This tree depends heavily on Clients (usually provided by WebKit classes)./*: public WTF::FastAllocBase*/
  
  SVGImage has no way to access the current Page (nor should it, since Images are not tied to a page).
  See http://bugs.webkit.org/show_bug.cgi?id=5971 for more discussion on this issue.
  
- Ideally, whenever you change a Client class, you should add a stub here.: public WTF::FastAllocBase
+ Ideally, whenever you change a Client class, you should add a stub here./*: public WTF::FastAllocBase*/
  Brittle, yes.  Unfortunate, yes.  Hopefully temporary.
 */
 

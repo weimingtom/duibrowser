@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef RetainPtr_h
@@ -37,11 +37,11 @@
 
 namespace WTF {
 
-    template <typename T> struct RemovePointer: public WTF::FastAllocBase {
+    template <typename T> struct RemovePointer/*: public WTF::FastAllocBase*/ {
         typedef T type;
     };
 
-    template <typename T> struct RemovePointer<T*>: public WTF::FastAllocBase {
+    template <typename T> struct RemovePointer<T*>/*: public WTF::FastAllocBase*/ {
         typedef T type;
     };
 
@@ -61,7 +61,7 @@ namespace WTF {
     }
 #endif
 
-    template <typename T> class RetainPtr: public WTF::FastAllocBase {
+    template <typename T> class RetainPtr/*: public WTF::FastAllocBase*/ {
     public:
         typedef typename RemovePointer<T>::type ValueType;
         typedef ValueType* PtrType;

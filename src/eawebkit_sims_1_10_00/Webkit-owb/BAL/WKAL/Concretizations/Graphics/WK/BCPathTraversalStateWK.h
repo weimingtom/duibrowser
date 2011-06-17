@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef PathTraversalState_h
@@ -38,7 +38,7 @@ namespace WKAL {
     
     class Path;
     
-    class PathTraversalState: public WTF::FastAllocBase {
+    class PathTraversalState/*: public WTF::FastAllocBase*/ {
     public:
         enum PathTraversalAction {
             TraversalTotalLength,

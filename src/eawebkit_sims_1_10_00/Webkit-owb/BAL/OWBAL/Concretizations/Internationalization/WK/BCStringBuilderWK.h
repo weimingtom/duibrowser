@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef StringBuilder_h
@@ -38,7 +38,7 @@
 
 namespace OWBAL {
 
-    class StringBuilder: public WTF::FastAllocBase {
+    class StringBuilder/*: public WTF::FastAllocBase*/ {
     public:
         StringBuilder() : m_totalLength(UINT_MAX) {}
 

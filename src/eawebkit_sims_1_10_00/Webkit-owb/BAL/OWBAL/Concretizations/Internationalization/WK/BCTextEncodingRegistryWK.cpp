@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright ?2009
+* This file was modified by Electronic Arts Inc Copyright ?2009-2010
 */
 
 #include "config.h"
@@ -67,7 +67,7 @@ const size_t maxEncodingNameLength = 63;
 // the behavior of isalnum -- if that returns false as it does on OS X, then
 #include <wtf/FastAllocBase.h>
 // it will properly skip those characters too.
-struct TextEncodingNameHash: public WTF::FastAllocBase {
+struct TextEncodingNameHash/*: public WTF::FastAllocBase*/ {
 
     // Golden ratio - arbitrary start value to avoid mapping all 0's to all 0's
     // or anything like that.
@@ -116,7 +116,7 @@ struct TextEncodingNameHash: public WTF::FastAllocBase {
     static const bool safeToCompareToEmptyOrDeleted = false;
 };
 
-struct TextCodecFactory: public WTF::FastAllocBase {
+struct TextCodecFactory/*: public WTF::FastAllocBase*/ {
     NewTextCodecFunction function;
     const void* additionalData;
     TextCodecFactory(NewTextCodecFunction f = 0, const void* d = 0) : function(f), additionalData(d) { }

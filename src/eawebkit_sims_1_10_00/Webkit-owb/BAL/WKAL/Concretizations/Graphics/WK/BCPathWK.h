@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Path_h
@@ -73,14 +73,14 @@ namespace WKAL {
         PathElementCloseSubpath
     };
 
-    struct PathElement: public WTF::FastAllocBase {
+    struct PathElement/*: public WTF::FastAllocBase*/ {
         PathElementType type;
         FloatPoint* points;
     };
 
     typedef void (*PathApplierFunction) (void* info, const PathElement*);
 
-    class Path: public WTF::FastAllocBase {
+    class Path/*: public WTF::FastAllocBase*/ {
     public:
         Path();
         ~Path();

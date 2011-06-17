@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ImageObserver_h
@@ -37,7 +37,7 @@ class Image;
 
 // Interface for notification about changes to an image, including decoding,
 // drawing, and animating.
-class ImageObserver: public WTF::FastAllocBase {
+class ImageObserver/*: public WTF::FastAllocBase*/ {
 protected:
     virtual ~ImageObserver() {}
 public:

@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SecurityOriginHash_h
@@ -40,7 +40,7 @@
 
 namespace OWBAL {
 
-struct SecurityOriginHash: public WTF::FastAllocBase {
+struct SecurityOriginHash/*: public WTF::FastAllocBase*/ {
     static unsigned hash(SecurityOrigin* origin)
     {
         unsigned hashCodes[3] = {

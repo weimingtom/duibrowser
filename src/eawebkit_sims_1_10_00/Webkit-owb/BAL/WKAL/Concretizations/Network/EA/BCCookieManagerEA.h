@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -65,7 +65,7 @@ namespace EA
         class TransportInfo;
         
 
-        struct CookieManagerParameters: public WTF::FastAllocBase
+        struct CookieManagerParameters/*: public WTF::FastAllocBase*/
         {
             static const uint32_t kMaxIndividualCookieSizeDefault =  4096;  // RFC 2109 specifies that it be at least this.
             static const uint32_t kMaxCookieFileSizeDefault       = 32768;  // This is arbitrary.
@@ -90,31 +90,31 @@ namespace EA
             {
             }
             
-            FixedString8 mCookieFilePath;           // File path for persistent cookies. The meaning of the path is user-defined. It's not limited to a system disk file path.
+            FixedString8_128 mCookieFilePath;           // File path for persistent cookies. The meaning of the path is user-defined. It's not limited to a system disk file path.
             uint32_t     mMaxIndividualCookieSize;  // The maximum size of an individual cookie.
             uint32_t     mMaxCookieFileSize;        // Max size of persistent cookie file.
             uint16_t     mMaxCookieCount;           // Max number of concurrent cookies.
         };
 
-        typedef FixedString8 CookieFullTextFixedString8;
+        typedef FixedString8_256 CookieFullTextFixedString8;
 
 
         /// Cookie
         ///
         /// class for holding cookie data stored by CookieManager
         ///
-        class Cookie : public WTF::FastAllocBase
+        class Cookie /*: public WTF::FastAllocBase*/
         {
         public:
             static const uint16_t MAX_NUM_PORTS = 16;
             
-            // To consider: These FixedString8 objects use a lot of memory, and most of the time it isn't needed. Consider making a leaner version.
-            FixedString8  mName;
-            FixedString8  mValue;
-            FixedString8  mDomain;
-            FixedString8  mPath;
-            FixedString8  mComment;
-            FixedString8  mCommentURL;
+            
+            FixedString8_128  mName;
+            FixedString8_128  mValue;
+            FixedString8_128  mDomain;
+            FixedString8_128  mPath;
+            FixedString8_32  mComment;
+            FixedString8_32  mCommentURL;
 
             uint32_t      mPorts[MAX_NUM_PORTS];
             time_t	      mExpirationTime;
@@ -153,7 +153,9 @@ namespace EA
                 return false;
             }
 
-            // Cookie buffer is by default 512 bytes. FixedString8 is 256. We can tackle this later if it becomes a problem.
+            // Cookie buffer is by default 512 bytes. FixedString8_256 is 256. We can tackle this later if it becomes a problem.
+			// Note that we are never in danger of truncated cookies because overflow is enabled for all our fixed strings. I am thinking of memory allocation
+			// as a potential issue. 
             // It would just involve changing CookieFulltextFixedString8 typedef.
             // As such, I don't see teams using even 256 bytes for a cookie.
             // Following may be different from what you received from server (in case path/domain were defaulted)
@@ -174,7 +176,7 @@ namespace EA
         };
         
 
-        class CookieManager : public WTF::FastAllocBase
+        class CookieManager /*: public WTF::FastAllocBase*/
         {
         public:
             ///Constructor, Destructor
@@ -192,7 +194,7 @@ namespace EA
             // The expected pHeaderValue is the cookie header value and doesn't including the leading "Set-Cookie: " part.
             void ProcessCookieHeader( const char8_t* pHeaderValue, const char8_t* pURI );
 
-            FixedString8 GetCookieTextForURL(const WKAL::KURL& url, bool nameAndValueOnly = false);
+            FixedString8_256 GetCookieTextForURL(const WKAL::KURL& url, bool nameAndValueOnly = false);
 
             /// Deletes the cookies file as well as any existing session cookies. 
             void RemoveCookies();
@@ -231,7 +233,7 @@ namespace EA
             void ClearCookies();
             Cookie* ParseCookieHeader( const CookieFullTextFixedString8& headerValue, const char8_t* pURI = 0 );
             bool ValidateCookie( Cookie* cookie, const char8_t* pURI );
-            
+			uint32_t GetChecksum(const char* buffer, const int64_t size); 
         protected:
 #ifdef USE_EATHREAD_LIBRARY
             EA::Thread::Futex       mFutex;             // Thread safety.

@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -43,9 +43,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <eastl/fixed_string.h>
 #include <eastl/fixed_map.h>
 
-#define USE_HTTPMANAGER (1)
-#define OLD_HEADERPARSE_CODE (0)
-
 namespace EA
 {
 	namespace EAWEBKIT_PACKAGE_NAMESPACE
@@ -58,8 +55,8 @@ namespace EA
 	namespace TransportHelper
 	{
 #ifdef BUILDING_EAWEBKIT_DLL
-		typedef eastl::fixed_string<char16_t, 256, true,EA::WebKit::EASTLAllocator> TransportString16;
-		typedef eastl::fixed_string<char8_t, 256, true,EA::WebKit::EASTLAllocator> TransportString8;
+		typedef eastl::fixed_string<char16_t, 64, true,EA::WebKit::EASTLAllocator> TransportString16;
+		typedef eastl::fixed_string<char8_t, 64, true,EA::WebKit::EASTLAllocator> TransportString8;
 
 		// Used for HTTP header entries.
 		struct fstr_iless : public eastl::binary_function<TransportString16, TransportString16, bool>
@@ -76,8 +73,8 @@ namespace EA
 		typedef eastl::fixed_multimap<TransportString16, TransportString16, 8, true, fstr_iless, EA::WebKit::EASTLAllocator> TransportHeaderMap;
 #else
 		//Note by Arpit Baldeva: An application may want to provide their own allocator to following.
-		typedef eastl::fixed_string<char16_t, 256, true/*,EA::WebKit::EASTLAllocator*/> TransportString16;
-		typedef eastl::fixed_string<char8_t, 256, true/*,EA::WebKit::EASTLAllocator*/> TransportString8;
+		typedef eastl::fixed_string<char16_t, 64, true/*,EA::WebKit::EASTLAllocator*/> TransportString16;
+		typedef eastl::fixed_string<char8_t, 64, true/*,EA::WebKit::EASTLAllocator*/> TransportString8;
 
 		// Used for HTTP header entries.
 		struct fstr_iless : public eastl::binary_function<TransportString16, TransportString16, bool>
@@ -98,11 +95,7 @@ namespace EA
 	}
 }
 
-#if USE_HTTPMANAGER
 #include "protohttpmanager.h"
-#else
-#include "protohttp.h"
-#endif
 #include "dirtyvers.h" // Defines (e.g.) #define DIRTYVERS (0x07000000)
 
 
@@ -110,7 +103,6 @@ namespace EA
 {
 namespace EAWEBKIT_PACKAGE_NAMESPACE
 {
-
 	
 class TransportHandlerDirtySDK : public EA::WebKit::TransportHandler
 {
@@ -128,14 +120,14 @@ public:
     bool CanCacheToDisk ();  
 	bool Tick			();
 
-#if DIRTYVERS > 0x07050300 && USE_HTTPMANAGER
+#if DIRTYVERS > 0x07050300 
 	static int32_t DirtySDKSendHeaderCallbackStatic(ProtoHttpRefT* pState, char* pHeader, uint32_t uHeaderSize, const char* pData, uint32_t uDataLen, void* pUserRef);
 #else
 	static void DirtySDKSendHeaderCallbackStatic(ProtoHttpRefT* pState, char* pHeader, uint32_t uHeaderSize, const char* pData, uint32_t uDataLen, void* pUserRef);
 #endif
 	int32_t        DirtySDKSendHeaderCallback(char* pHeader, uint32_t uHeaderSize, const char* pData, uint32_t uDataLen, EA::WebKit::TransportInfo* pTInfo);
 
-#if DIRTYVERS > 0x07050300 && USE_HTTPMANAGER
+#if DIRTYVERS > 0x07050300
 	static int32_t DirtySDKRecvHeaderCallbackStatic(ProtoHttpRefT* pState, const char* pHeader, uint32_t uHeaderSize, void* pUserRef);
 #else
 	static void DirtySDKRecvHeaderCallbackStatic(ProtoHttpRefT* pState, const char* pHeader, uint32_t uHeaderSize, void* pUserRef);
@@ -144,20 +136,11 @@ public:
 
 protected:
     
-#if OLD_HEADERPARSE_CODE
-	void ProcessReceivedHeaders(EA::WebKit::TransportInfo* pTInfo);
-#endif
-    #if USE_HTTPMANAGER
     HttpManagerRefT*             mpHttpManager;
-    #endif
 
     struct DirtySDKInfo  // Our info for a given job.
     {
-        #if USE_HTTPMANAGER
         int32_t									mHttpHandle;           // Handle for current HTTP transaction
-        #else
-        ProtoHttpRefT*							mpProtoHttp;
-        #endif
 		EA::TransportHelper::TransportString8	mURI;
         bool									mbHeadersReceived;
         int										mSendIndex;            // If we receive 300-family redirects then DirtySDK will resend requests for the new URL. We keep track of this.
@@ -168,12 +151,7 @@ protected:
         int64_t									mPostBufferSize;       // Deprecated unless/until we go back to using chunked data. 
         int64_t									mPostBufferPosition;   // Deprecated unless/until we go back to using chunked data.
 		IStreamDecompressor*					mStreamDecompressor;
-#if USE_HTTPMANAGER
-        DirtySDKInfo() : mHttpHandle(0), mURI(), mbHeadersReceived(false), mSendIndex(0), mPostData(), mbPostActive(false), mPostBufferSize(0), mPostBufferPosition(0), mStreamDecompressor(0) { }
-        #else
-        DirtySDKInfo() : mpProtoHttp(NULL), mURI(), mbHeadersReceived(false), mSendIndex(0), mPostData(), mbPostActive(false), mPostBufferSize(0), mPostBufferPosition(0), mStreamDecompressor(0) { }
-        #endif
-
+        DirtySDKInfo();
 		~DirtySDKInfo();
 		
     };

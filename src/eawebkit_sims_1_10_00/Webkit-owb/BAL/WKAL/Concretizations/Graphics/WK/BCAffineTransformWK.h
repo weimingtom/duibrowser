@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef AffineTransform_h
@@ -49,7 +49,7 @@ class IntRect;
 class FloatPoint;
 class FloatRect;
 
-class AffineTransform: public WTF::FastAllocBase {
+class AffineTransform/*: public WTF::FastAllocBase*/ {
 public:
     AffineTransform();
     AffineTransform(double a, double b, double c, double d, double e, double f);

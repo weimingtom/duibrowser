@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -35,8 +35,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "config.h"
 #include "SharedTimer.h"
 #include "SystemTime.h"
-#include <wtf/Assertions.h>
-#include <assert.h>
+#include <EAWebKit/internal/EAWebKitAssert.h>  
 #include <stdio.h>
 #include <string.h>
 #include "Platform.h"
@@ -56,7 +55,7 @@ double       gFireTimeArray[kFireTimeCapacity];
 double       gLastCheckTime = 0;
 double       gLastFireTime = 0;
 
-static double sFireTimerRate = 0.033;   // 30Hz as default       
+static double sFireTimerRate = 1.0/60.0;   // 60Hz as default       
 
 
 void setSharedTimerFiredFunction(void (*f)()) 
@@ -92,8 +91,8 @@ void setFireTimerRate(EA::WebKit::FireTimerRate rate)
             break;
 
         default:        
-            ASSERT(0);  // Invalid rate
-            adjustedRate = 1.0/30.0;         
+            EAW_ASSERT_MSG(false, "Invalid rate. Using default 60 Hz");  // Invalid rate
+            adjustedRate = 1.0/60.0;         
             break;
     }
 
@@ -142,7 +141,7 @@ void setSharedTimerFireTime(double fireTime)
      }
     //-CS
 
-    ASSERT(gFireTimeCount < kFireTimeCapacity);
+    EAW_ASSERT_MSG(gFireTimeCount < kFireTimeCapacity, "Fire timers exceed the capacity");
     if(gFireTimeCount < kFireTimeCapacity)
     {
         // To consider: Maintain this list in sorted order. We aren't dependent on it being so, but it might allow us to be a little more efficient.

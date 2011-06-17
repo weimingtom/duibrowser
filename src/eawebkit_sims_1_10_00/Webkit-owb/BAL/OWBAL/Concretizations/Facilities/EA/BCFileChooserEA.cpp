@@ -42,6 +42,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <EAWebKit/EAWebKitConfig.h>
 #include <EAWebKit/EAWebKit.h>
+#include <EAWebKit/internal/EAWebKitViewHelper.h> // For multiview support
 
 #if EAWEBKIT_DEFAULT_FILE_CHOOSER_HANDLING_ENABLED && defined(EA_PLATFORM_WINDOWS)
     #include <windows.h>
@@ -71,7 +72,11 @@ void FileChooser::openFileChooser(Document* document)
 
     if(pVN)
     {
+        EA::WebKit::View* pView = EA::WebKit::AutoSetActiveView::GetActiveView();
+        
         EA::WebKit::FileChooserInfo fci; 
+        
+        fci.mpView = pView;              // View unknown
         fci.mbIsLoad     = true;
         fci.mFilePath[0] = 0;
         fci.mbSuccess    = false;

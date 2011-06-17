@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -36,7 +36,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Collator.h"
 #include "Assertions.h"
 
-#if defined(_WIN32) 
+#if defined(_WIN32) && !defined(_XBOX)
     #include <windows.h>
 #endif
 
@@ -56,7 +56,7 @@ Collator::Result Collator::collate(const UChar* lhs, size_t lhsLength, const UCh
 
     int result; // enum Result { Equal = 0, Greater = 1, Less = -1 };
 
-    #if defined(_WIN32) 
+    #if defined(_WIN32) && !defined(_XBOX)
         // Until we completely finish the platform-independent code, we use the Windows CompareString API under Windows.
         // Note that we should ideally be using the locale that we are running in as opposed to the default user locale.
         result = CompareStringW(LOCALE_USER_DEFAULT, 0, lhs, (int)lhsLength, rhs, (int)rhsLength) - 2;

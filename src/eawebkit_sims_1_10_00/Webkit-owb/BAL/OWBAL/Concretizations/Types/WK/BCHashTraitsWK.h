@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WTF_HashTraits_h
@@ -82,13 +82,13 @@ namespace WTF {
 
     template<bool isInteger, typename T> struct GenericHashTraitsBase;
 
-    template<typename T> struct GenericHashTraitsBase<false, T>: public WTF::FastAllocBase {
+    template<typename T> struct GenericHashTraitsBase<false, T>/*: public WTF::FastAllocBase*/ {
         static const bool emptyValueIsZero = false;
         static const bool needsDestruction = true;
     };
 
     // default integer traits disallow both 0 and -1 as keys (max value instead of -1 for unsigned)
-    template<typename T> struct GenericHashTraitsBase<true, T>: public WTF::FastAllocBase {
+    template<typename T> struct GenericHashTraitsBase<true, T>/*: public WTF::FastAllocBase*/ {
         static const bool emptyValueIsZero = true;
         static const bool needsDestruction = false;
         static void constructDeletedValue(T* slot) { *slot = static_cast<T>(-1); }

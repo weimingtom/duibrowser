@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef DeprecatedValueListImpl_h
@@ -37,7 +37,7 @@ namespace OWBAL {
 
 class DeprecatedValueListImplNode;
 
-class DeprecatedValueListImplIterator: public WTF::FastAllocBase
+class DeprecatedValueListImplIterator/*: public WTF::FastAllocBase*/
 {
 public: 
     DeprecatedValueListImplIterator();
@@ -60,7 +60,7 @@ private:
     friend class DeprecatedValueListImpl;
 };
 
-class DeprecatedValueListImpl : public WTF::FastAllocBase
+class DeprecatedValueListImpl /*: public WTF::FastAllocBase*/
 {
 public:
     DeprecatedValueListImpl(void (*deleteFunc)(DeprecatedValueListImplNode *), DeprecatedValueListImplNode *(*copyNode)(DeprecatedValueListImplNode *));
@@ -112,7 +112,7 @@ private:
     friend class DeprecatedValueListImplNode;
 };
 
-class DeprecatedValueListImplNode: public WTF::FastAllocBase
+class DeprecatedValueListImplNode/*: public WTF::FastAllocBase*/
 {
 protected:
     DeprecatedValueListImplNode();

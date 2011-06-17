@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -63,7 +63,7 @@ class SimpleFontData;
 // glyph positions. 
 // This class is somewhat like EAText LineLayout/GlyphLayoutInfo, but with a little less info.
 //
-class GlyphBuffer: public WTF::FastAllocBase
+class GlyphBuffer/*: public WTF::FastAllocBase*/
 {
 public:
     bool isEmpty() const { return m_fontData.isEmpty(); }

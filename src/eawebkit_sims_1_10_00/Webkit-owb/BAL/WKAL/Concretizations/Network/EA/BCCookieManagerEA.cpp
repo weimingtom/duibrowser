@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -61,24 +61,25 @@ namespace EA
 {
     namespace WebKit
     {
-		char8_t* gEAWebKitCookieFormatVersion = "CookieFormat:1.1"; 
+		// Updated the version from 1.1 to 1.2 on adding the checksum to the cookie file.
+		char8_t* gEAWebKitCookieFormatVersion = "CookieFormat:1.2"; 
 
 		char8_t* COOKIE_DELIMITER = "\n";
 		
 		namespace CookieManagerHelp
         {
-            static const char8_t* kSetCookieHdrStr="Set-Cookie";
-            static const char8_t* kSetCookieHdr2Str="Set-Cookie2";
-            static const char8_t* kCookieHdrStr="Cookie";
-            static const char8_t* kDomainStr = "domain";
-            static const char8_t* kMaxAgeStr = "Max-Age";
-            static const char8_t* kExpiresStr = "expires";
-            static const char8_t* kPathStr = "path";
-            static const char8_t* kCommentStr = "comment";
-            static const char8_t* kCommentURLStr = "commenturl";
-            static const char8_t* kVersionStr = "Version";
-            static const char8_t* kSecureStr = "secure";
-            static const char8_t* kPortStr = "port";
+            static const char8_t* kSetCookieHdrStr	="Set-Cookie";
+            static const char8_t* kSetCookieHdr2Str	="Set-Cookie2";
+            static const char8_t* kCookieHdrStr		="Cookie";
+            static const char8_t* kDomainStr		="domain";
+            static const char8_t* kMaxAgeStr		="Max-Age";
+            static const char8_t* kExpiresStr		="expires";
+            static const char8_t* kPathStr			="path";
+            static const char8_t* kCommentStr		="comment";
+            static const char8_t* kCommentURLStr	="commenturl";
+            static const char8_t* kVersionStr		="Version";
+            static const char8_t* kSecureStr		="secure";
+            static const char8_t* kPortStr			="port";
 
             char8_t* Strtok(char8_t* pString, const char8_t* pDelimiters, char8_t** pContext)
             {
@@ -166,7 +167,7 @@ namespace EA
             }
 
             
-            bool EndsWithDomain( const FixedString8& server, const FixedString8& domain )
+            bool EndsWithDomain( const FixedString8_128& server, const FixedString8_128& domain )
             {
                 //The original code from UTFInternet package talked about implying a leading dot to the server name. I dont see it. Currently this code fails if we
                 //type google.com in the browser address and it sends a cookie with domain .google.com. Lets put a leading dot if start is -1
@@ -174,7 +175,7 @@ namespace EA
                 int32_t start  = server.length() - domain.length();
                 if(start >= 0 )
                 {
-                    FixedString8 serversDomain = server.substr(start,eastl::string8::npos);
+                    FixedString8_128 serversDomain = server.substr(start,FixedString8_128::npos);
                     if( serversDomain.comparei(domain) == 0)
                     {
                         if( (start == 0) || (domain[0] == '.') || (server[start-1] == '.'))
@@ -185,7 +186,7 @@ namespace EA
                 }
                 else if (start == -1)
                 {
-                    FixedString8 serverWithDot(FixedString8::CtorSprintf(),".%s",server.c_str());
+                    FixedString8_128 serverWithDot(FixedString8_128::CtorSprintf(),".%s",server.c_str());
                     if( serverWithDot.comparei(domain) == 0)
                         return true;
                 }
@@ -240,13 +241,13 @@ namespace EA
             // e.g. 'a.b' but not '.aa' or '.a.'.  We don't check for '..a' as those
             // host names won't resolve and therefore aren't a liability.
             //
-            static bool ValidateDomain( FixedString8& domain, FixedString8::size_type offset )
+            static bool ValidateDomain( FixedString8_128& domain, FixedString8_128::size_type offset )
             {
-                FixedString8::size_type len = domain.length();
-                if( offset < FixedString8::npos && len > (offset + 1) )
+                FixedString8_128::size_type len = domain.length();
+                if( offset < FixedString8_128::npos && len > (offset + 1) )
                 {
-                    FixedString8::size_type dot = domain.find_first_of( '.', offset + 1 );
-                    if( FixedString8::npos != dot && dot < (len-1) )
+                    FixedString8_128::size_type dot = domain.find_first_of( '.', offset + 1 );
+                    if( FixedString8_128::npos != dot && dot < (len-1) )
                         return true;
                 }
                 return false;
@@ -328,7 +329,7 @@ namespace EA
 				//Make sure that you don't allocate the memory if it is already allocated in the SetParameters(). This may happen if the user calls the SetCookieUsage multiple times.
 				//Failure to put this check can cause a subtle leak if the max user cookie size is not the same as the default one.
 				if(!mCookieParseBuffer)
-					mCookieParseBuffer = WTF::fastNewArray<char8_t>(mParams.mMaxIndividualCookieSize);
+					mCookieParseBuffer = EAWEBKIT_NEW("CookieParseBuffer") char8_t[mParams.mMaxIndividualCookieSize];//WTF::fastNewArray<char8_t>(mParams.mMaxIndividualCookieSize);
                 
 				ReadCookiesFromFile();
             }
@@ -341,7 +342,7 @@ namespace EA
             {
                 mInitialized = false;
 
-                WTF::fastDeleteArray<char8_t> (mCookieParseBuffer);
+				EAWEBKIT_DELETE[] mCookieParseBuffer;//WTF::fastDeleteArray<char8_t> (mCookieParseBuffer);
                 mCookieParseBuffer = 0;
 
                 if(mParams.mMaxCookieCount)
@@ -397,7 +398,7 @@ namespace EA
                     fileSystem->GetFileSize(mParams.mCookieFilePath.c_str(),numBytes);
                     if(numBytes>0) //Have something to read
                     {
-                        char* pCookieFileBuffer = WTF::fastNewArray<char8_t> (numBytes+1);  // +1 so we can put a \0 at the end.
+                        char* pCookieFileBuffer = EAWEBKIT_NEW("CookieFileBuffer") char8_t[numBytes+1];//WTF::fastNewArray<char8_t> (numBytes+1);  // +1 so we can put a \0 at the end.
                         fileSystem->ReadFile(fileObject, pCookieFileBuffer, numBytes);
                         fileSystem->CloseFile(fileObject);
                         pCookieFileBuffer[numBytes] = '\0';
@@ -407,10 +408,16 @@ namespace EA
 						char8_t* cookieHeader = NULL;
                         Cookie* cookie = NULL;
                         //Create Cookies from the cookie file buffer here
-                        //First line is the header line which contains only version info for now.
-						cookieFormatVersion = Strtok( pCookieFileBuffer, COOKIE_DELIMITER, &ctx );
-						//read cookies only if the format matches and the delimiter was found.
-						if(cookieFormatVersion && EA::Internal::Stricmp(cookieFormatVersion, gEAWebKitCookieFormatVersion) == 0)
+                        //First line is the header line which contains checksum for the file and version info for now.
+						char8_t* cookieChecksumFromFile = Strtok(pCookieFileBuffer, COOKIE_DELIMITER, &ctx);
+						uint32_t checksum = GetChecksum(ctx, (numBytes - EA::Internal::Strlen(cookieChecksumFromFile)));
+						char8_t cookieChecksumData[256];
+						sprintf(cookieChecksumData, "%d", checksum);
+
+						cookieFormatVersion = Strtok(NULL, COOKIE_DELIMITER, &ctx );
+						//read cookies only if the format matches and the checksum was found matched.
+						if(cookieFormatVersion && EA::Internal::Stricmp(cookieFormatVersion, gEAWebKitCookieFormatVersion) == 0
+								&& cookieChecksumFromFile && EA::Internal::Stricmp(cookieChecksumFromFile, cookieChecksumData) == 0)
 						{
 							//The file format is really simple. You have 1 cookie per line. The cookies are separated from each other by
 							//a new line character.
@@ -421,10 +428,14 @@ namespace EA
 								if(cookie) //Add an extra check to make sure that the pointer is valid
 									mCookies.push_back(cookie);
 							}
-
+						}
+						else
+						{
+							// If the checksum fails, then delete the invalid cookie file.
+							RemoveCookies();
 						}
 						
-                        WTF::fastDeleteArray<char8_t> (pCookieFileBuffer);
+                        EAWEBKIT_DELETE[] pCookieFileBuffer;//WTF::fastDeleteArray<char8_t> (pCookieFileBuffer);
                         pCookieFileBuffer = NULL;
                     }
                 }
@@ -444,18 +455,18 @@ namespace EA
                 EA::WebKit::FileSystem::FileObject fileObject = fileSystem->CreateFileObject();
                 if(fileSystem->OpenFile(fileObject, mParams.mCookieFilePath.c_str(), FileSystem::kWrite))
                 {
-                    uint32_t fileSizeCurrent = 0;
-					
-					fileSystem->WriteFile(fileObject,gEAWebKitCookieFormatVersion, EA::Internal::Strlen(gEAWebKitCookieFormatVersion));
-					fileSystem->WriteFile(fileObject, COOKIE_DELIMITER, 1);//strlen(COOKIE_DELIMITER) = 1
-					fileSizeCurrent += (EA::Internal::Strlen(gEAWebKitCookieFormatVersion) + 1);////strlen(COOKIE_DELIMITER) = 1
-					
-					time_t timeNow = ::time(NULL);
+					// Create the file buffer initially so as the checksum can be calculated.
+					char* pCookieFileBuffer = EAWEBKIT_NEW("CookieFileBuffer") char8_t[mParams.mMaxCookieFileSize];
+					int64_t numBytes = 0;
 
+					strcpy(pCookieFileBuffer, gEAWebKitCookieFormatVersion);
+					strcat(pCookieFileBuffer, COOKIE_DELIMITER);
+					numBytes += (EA::Internal::Strlen(gEAWebKitCookieFormatVersion) + 1);
+
+					time_t timeNow = ::time(NULL);
                     // To consider: Write the cookies in order from newest to oldest received, so that if 
                     // we have to purge some of them due to lack of space then we lose just the oldest ones.
-
-                    for(CookieList::const_iterator iter = mCookies.begin(); iter != mCookies.end() && (fileSizeCurrent < mParams.mMaxCookieFileSize); ++iter)
+                    for(CookieList::const_iterator iter = mCookies.begin(); iter != mCookies.end() && (numBytes < mParams.mMaxCookieFileSize); ++iter)
                     {
                         const Cookie* cookie = *iter;
                         //Don't write these cookies to the file. Not intended to be saved.
@@ -464,11 +475,26 @@ namespace EA
 
                         CookieFullTextFixedString8 cookieText = cookie->CreateCookieString();
 
-						fileSystem->WriteFile(fileObject,cookieText.c_str(),cookieText.length());
-                        fileSystem->WriteFile(fileObject, COOKIE_DELIMITER, 1);//strlen(COOKIE_DELIMITER) = 1
-                        fileSizeCurrent += (cookieText.length() + 1); ////strlen(COOKIE_DELIMITER) = 1
-                    }
+						strcat(pCookieFileBuffer, cookieText.c_str());
+						strcat(pCookieFileBuffer, COOKIE_DELIMITER);
+						numBytes += (cookieText.length() + 1);
+					}
+
+					// Calculate the checksum for the file buffer.
+					uint32_t cookieChecksum = GetChecksum(pCookieFileBuffer, numBytes);
+					char8_t cookieChecksumData[256];
+
+					sprintf(cookieChecksumData, "%d", cookieChecksum);
+
+					// Write the checksum first and then version and the remaining data in the file.
+					fileSystem->WriteFile(fileObject, cookieChecksumData, EA::Internal::Strlen(cookieChecksumData));
+					fileSystem->WriteFile(fileObject, COOKIE_DELIMITER, 1);//strlen(COOKIE_DELIMITER) = 1
+
+					fileSystem->WriteFile(fileObject, pCookieFileBuffer, numBytes);
                     fileSystem->CloseFile(fileObject);
+
+					EAWEBKIT_DELETE[] pCookieFileBuffer;//WTF::fastDeleteArray<char8_t> (pCookieFileBuffer);
+					pCookieFileBuffer = NULL;
                 }
                 fileSystem->DestroyFileObject(fileObject);
             }
@@ -496,8 +522,9 @@ namespace EA
             if(parameters.mMaxIndividualCookieSize != mParams.mMaxIndividualCookieSize)
             {
                 if(mCookieParseBuffer)
-                    WTF::fastDeleteArray<char8_t>(mCookieParseBuffer);
-                mCookieParseBuffer = WTF::fastNewArray<char8_t>(parameters.mMaxIndividualCookieSize);
+                    EAWEBKIT_DELETE[] mCookieParseBuffer;//WTF::fastDeleteArray<char8_t>(mCookieParseBuffer);
+                
+				mCookieParseBuffer = EAWEBKIT_NEW("CookieParseBuffer") char8_t[parameters.mMaxIndividualCookieSize];//WTF::fastNewArray<char8_t>(parameters.mMaxIndividualCookieSize);
             }
 
             // parameters.mMaxCookieFileSize is only used when we write cookies on shutdown.
@@ -536,11 +563,13 @@ namespace EA
 				SetParametersAndInitialize(params);
 			}
 
-            FixedString8 headerKey, headerValue, uri;
-            EA::WebKit::ConvertToString8(*GET_FIXEDSTRING16(tInfo->mEffectiveURI), uri);    
+			FixedString8_128 uri;
+			FixedString8_64 headerKey, headerValue;
+
+            EA::WebKit::ConvertToString8(*GetFixedString(tInfo->mEffectiveURI), uri);    
             
             //Need to iterate through all the headers....there may be multiple Set-Cookie(2) header lines.
-            for(HeaderMap::const_iterator it= GET_HEADERMAP(tInfo->mHeaderMapIn)->begin();it!= GET_HEADERMAP(tInfo->mHeaderMapIn)->end();++it)
+            for(HeaderMap::const_iterator it= GetHeaderMap(tInfo->mHeaderMapIn)->begin();it!= GetHeaderMap(tInfo->mHeaderMapIn)->end();++it)
             {
                 EA::WebKit::ConvertToString8(it->first, headerKey);
                 
@@ -568,52 +597,63 @@ namespace EA
 				SetParametersAndInitialize(params);
 			}
 
-            FixedString8 url8; 
-            EA::WebKit::ConvertToString8(*GET_FIXEDSTRING16(tInfo->mEffectiveURI),url8);
+            FixedString8_128 url8; 
+            EA::WebKit::ConvertToString8(*GetFixedString(tInfo->mEffectiveURI),url8);
             OWBAL::KURL url(url8.c_str());
 
-            FixedString8 cookieString = GetCookieTextForURL(url);
+			//Following is downright stupid. We should investigate these fixed strings in cookie and their frequent conversions.
+            FixedString8_256 cookieString = GetCookieTextForURL(url);
             
             if(!cookieString.empty())
             {
-                FixedString8 cookieHdr8 = kCookieHdrStr;
-                FixedString16 cookieHdr; 
+                FixedString8_64 cookieHdr8 = kCookieHdrStr;
+				HeaderMap::key_type cookieHdr; 
                 EA::WebKit::ConvertToString16(cookieHdr8,cookieHdr);
             
-                FixedString16 cookieVal; 
-                EA::WebKit::ConvertToString16(cookieString,cookieVal);
+				FixedString8_64 cookieVal8;
+				cookieVal8.assign(cookieString.c_str());
+				HeaderMap::mapped_type cookieVal;
+                EA::WebKit::ConvertToString16(cookieVal8,cookieVal);
 
                 EA::WebKit::HeaderMap::value_type eaValue(cookieHdr, cookieVal);
-                GET_HEADERMAP(tInfo->mHeaderMapOut)->insert(eaValue);
+                GetHeaderMap(tInfo->mHeaderMapOut)->insert(eaValue);
             }    
             return true;
         }
 
-        FixedString8 CookieManager::GetCookieTextForURL(const WKAL::KURL& url, bool nameAndValueOnly)
+        FixedString8_256 CookieManager::GetCookieTextForURL(const WKAL::KURL& url, bool nameAndValueOnly)
         {
             using namespace CookieManagerHelp;
 
 #ifdef USE_EATHREAD_LIBRARY
             EA::Thread::AutoFutex futex( mFutex );
 #endif
-            FixedString8 cookieString;
+            //Some example code for debug break in a particular URL.
+			//#if defined(EA_DEBUG)
+			//if(url.string().find(L"toolbar.build.") != -1)
+			//{
+			//	int debugBreak = 0;
+			//	++debugBreak;
+			//}
+			//#endif
+			FixedString8_256 cookieString;
            
             if(mParams.mMaxCookieCount == 0 || !mInitialized)
                 return cookieString; //Return Early
 
-            FixedString16 hostStr16;
+            FixedString16_128 hostStr16;
             hostStr16.assign(url.host().characters(),url.host().length());
-            FixedString8 host; 
+            FixedString8_128 host; 
             EA::WebKit::ConvertToString8(hostStr16,host);
 
-            FixedString16 pathStr16;
+            FixedString16_128 pathStr16;
             pathStr16.assign(url.path().characters(),url.path().length());
-            FixedString8 path; 
+            FixedString8_128 path; 
             EA::WebKit::ConvertToString8(pathStr16,path);
 
-            FixedString16 schemeStr16;
+            FixedString16_32 schemeStr16;
             schemeStr16.assign(url.protocol().characters(),url.protocol().length());
-            FixedString8 scheme; 
+            FixedString8_32 scheme; 
             EA::WebKit::ConvertToString8(schemeStr16,scheme);
 
             time_t timeNow = ::time(NULL);
@@ -622,8 +662,7 @@ namespace EA
             {
                 int lowestVersion = 1;
 
-                //AJBTODO: 32 is probably a bit high for our case
-                typedef eastl::fixed_vector<const Cookie*, 32, true, EASTLAllocator> LocalMatches;
+                typedef eastl::fixed_vector<const Cookie*, 8, true, EASTLAllocator> LocalMatches;
                 LocalMatches matches;
 
                 for( CookieList::const_iterator it = mCookies.begin(); it != mCookies.end(); ++it )
@@ -811,7 +850,11 @@ namespace EA
                     // enforce the maximum number of cookies
                     //AJBTODO: We can code something like delete least frequently used cookie here rather than the oldest cookie.
                     if( mCookies.size() > mParams.mMaxCookieCount )
-                        mCookies.pop_front();
+					{
+						Cookie* c = mCookies.front();
+						mCookies.pop_front();
+						delete c;
+					}
                 }
                 
             }
@@ -978,9 +1021,9 @@ namespace EA
             OWBAL::KURL url(pURI);
 
             //make sure that domain is valid
-            FixedString16 hostStr16;
+            FixedString16_128 hostStr16;
             hostStr16.assign(url.host().characters(),url.host().length());
-            FixedString8 host; 
+            FixedString8_128 host; 
             EA::WebKit::ConvertToString8(hostStr16, host);
 
             if( cookie->mDomainDefaulted )
@@ -988,9 +1031,9 @@ namespace EA
                 // default domain is full request URI server name
                 cookie->mDomain = host;
                 // if the server has a valid domain suffix, use that instead
-                FixedString8::size_type dot = cookie->mDomain.find( '.' );
+                FixedString8_128::size_type dot = cookie->mDomain.find( '.' );
                 if( ValidateDomain( cookie->mDomain, dot ) )
-                    cookie->mDomain = cookie->mDomain.substr( dot, FixedString8::npos);
+                    cookie->mDomain = cookie->mDomain.substr( dot, FixedString8_128::npos);
             }
             else
             {
@@ -1011,9 +1054,9 @@ namespace EA
 
             //make sure that path is valid
 
-            FixedString16 pathStr16;
+            FixedString16_128 pathStr16;
             pathStr16.assign(url.path().characters(),url.path().length());
-            FixedString8 path; 
+            FixedString8_128 path; 
             EA::WebKit::ConvertToString8(pathStr16,path);
                     
             if( cookie->mPathDefaulted )
@@ -1042,6 +1085,40 @@ namespace EA
 
             return true;
         }
+
+		uint32_t CookieManager::GetChecksum(const char* buffer, int64_t size)
+		{
+			uint32_t sum = 0;
+
+			if(size > 0) //Have something to read
+			{
+				int32_t  index =0;
+
+				// We run a 8 byte loop to limit branching
+				int32_t loops = size >> 3;  
+				while(loops--)
+				{
+					sum +=buffer[index+0];    
+					sum +=buffer[index+1];    
+					sum +=buffer[index+2];    
+					sum +=buffer[index+3];    
+					sum +=buffer[index+4];    
+					sum +=buffer[index+5];    
+					sum +=buffer[index+6];    
+					sum +=buffer[index+7];    
+					index +=8;
+				}
+
+				// Deal with remainder if any in a 1 byte loop
+				int32_t  remain = size & 0x07;         
+				while(remain--)
+				{
+					sum +=buffer[index];    
+					index +=1;
+				}
+			}
+			return sum;
+		}
 
     }
 

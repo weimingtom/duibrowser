@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef PlatformString_h
@@ -52,7 +52,7 @@ class CString;
 class SharedBuffer;
 struct StringHash;
 
-class String: public WTF::FastAllocBase {
+class String/*: public WTF::FastAllocBase*/ {
 public:
 
     inline void externalDeref() 

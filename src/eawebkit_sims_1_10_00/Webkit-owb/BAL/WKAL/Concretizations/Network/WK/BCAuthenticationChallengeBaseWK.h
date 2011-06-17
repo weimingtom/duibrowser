@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef AuthenticationChallengeBase_h
@@ -40,7 +40,7 @@ namespace WKAL {
 
 class AuthenticationChallenge;
 
-class AuthenticationChallengeBase: public WTF::FastAllocBase {
+class AuthenticationChallengeBase/*: public WTF::FastAllocBase*/ {
 public:
     AuthenticationChallengeBase();
     AuthenticationChallengeBase(const ProtectionSpace& protectionSpace, const Credential& proposedCredential, unsigned previousFailureCount, const ResourceResponse& response, const ResourceError& error);

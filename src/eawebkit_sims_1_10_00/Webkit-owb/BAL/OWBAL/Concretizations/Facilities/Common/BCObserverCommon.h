@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef BCOBSERVER_H
@@ -39,10 +39,10 @@ namespace OWBAL {
     /**
      * @brief the BCObserver
      *
-     * The observer base class: public WTF::FastAllocBase
+     * The observer base class
      *
      */
-    class BCObserver: public WTF::FastAllocBase {
+    class BCObserver/*: public WTF::FastAllocBase*/ {
         public:
             /**
             * BCObserverAddons destructor

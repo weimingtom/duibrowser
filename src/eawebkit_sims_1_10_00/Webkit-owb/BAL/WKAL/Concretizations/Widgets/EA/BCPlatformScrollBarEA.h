@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -87,6 +87,8 @@ public:
     IntRect backButtonRect() const;
     ScrollbarPart getHoveredPart() const { return m_hoveredPart; };
 
+    static void updateAutoScrollThumbWithMouseRelease();
+    static void updateAutoScrollThumbWithMouseMove(const EA::WebKit::MouseMoveEvent& mouseMoveEvent);
 
 protected:
     PlatformScrollbar(ScrollbarClient*, ScrollbarOrientation, ScrollbarControlSize);
@@ -119,7 +121,11 @@ private:
     void startTimerIfNeeded(double delay);
     void stopTimerIfNeeded();
     static void balValueChanged(BalAdjustment*, PlatformScrollbar*);
-    
+    void endAutoScrollThumb();
+    void moveAutoScrollThumb(const PlatformMouseEvent& evt);
+    void registerAutoScrollThumb(PlatformScrollbar* pBar);
+    void unregisterAutoScrollThumb(PlatformScrollbar* pBar);
+
     BalAdjustment* m_adjustment;
     ScrollbarPart m_hoveredPart;
     ScrollbarPart m_pressedPart;

@@ -867,7 +867,7 @@ void XMLTokenizer::error(ErrorType type, const char* message, va_list args)
     if (m_parserStopped)
         return;
 
-    #if PLATFORM(WIN_OS) 
+    #if PLATFORM(WIN_OS) || PLATFORM(XBOX) || PLATFORM(PS3) || PLATFORM(WII)
         char m[512];
 
         if(vsnprintf(m, sizeof(m) - 1, message, args) < 0)
@@ -884,7 +884,7 @@ void XMLTokenizer::error(ErrorType type, const char* message, va_list args)
     else
         handleError(type, m, lineNumber(), columnNumber());
 
-    #if PLATFORM(WIN_OS) 
+    #if PLATFORM(WIN_OS) || PLATFORM(XBOX) || PLATFORM(PS3) || PLATFORM(WII)
         // Nothing to do
     #else
         free(m);

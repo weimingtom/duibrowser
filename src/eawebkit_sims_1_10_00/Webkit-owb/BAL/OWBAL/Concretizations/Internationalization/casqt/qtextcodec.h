@@ -10,6 +10,7 @@ typedef const char* Aliase;
 class QTextCodec
 {
 public:
+#if NO_MACRO_NEW
         // Placement operator new.
         void* operator new(size_t, void* p) { return p; }
         void* operator new[](size_t, void* p) { return p; }
@@ -39,7 +40,7 @@ public:
             fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
             fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
         }
-
+#endif //NO_MACRO_NEW
 public:
 
 	void delete_() { delete this; }

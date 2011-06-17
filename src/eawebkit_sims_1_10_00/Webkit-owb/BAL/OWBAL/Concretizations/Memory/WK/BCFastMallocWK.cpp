@@ -75,7 +75,7 @@
 
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -158,9 +158,9 @@ void fastMallocAllow()
 #include <string.h>
 
 namespace WTF {
-void *fastZeroedMalloc(size_t n) 
+void *fastZeroedMalloc(size_t n,int flags, const char* pName) 
 {
-    void *result = fastMalloc(n);
+    void *result = fastMalloc(n,flags,pName);
     if (!result)
         return 0;
     memset(result, 0, n);
@@ -344,7 +344,7 @@ class TCMalloc_PageHeap;
 class TCMalloc_ThreadCache;
 class TCMalloc_Central_FreeListPadded;
 
-class FastMallocZone: public WTF::FastAllocBase {
+class FastMallocZone/*: public WTF::FastAllocBase*/ {
 public:
     static void init();
 
@@ -563,7 +563,7 @@ static size_t class_to_pages[kNumClasses];
 // TransferCache is used to cache transfers of num_objects_to_move[size_class]
 // back and forth between thread caches and the central cache for a given size
 // class.
-struct TCEntry: public WTF::FastAllocBase {
+struct TCEntry/*: public WTF::FastAllocBase*/ {
   void *head;  // Head of chain of objects.
   void *tail;  // Tail of chain of objects.
 };
@@ -826,7 +826,7 @@ static void* MetaDataAlloc(size_t bytes) {
 }
 
 template <class T>
-class PageHeapAllocator: public WTF::FastAllocBase {
+class PageHeapAllocator/*: public WTF::FastAllocBase*/ {
  private:
   // How much to allocate from system at a time
   static const size_t kAllocIncrement = 32 << 10;
@@ -917,7 +917,7 @@ static size_t AllocationSize(size_t bytes) {
 }
 
 // Information kept for a span (a contiguous run of pages).
-struct Span: public WTF::FastAllocBase {
+struct Span/*: public WTF::FastAllocBase*/ {
   PageID        start;          // Starting page number
   Length        length;         // Number of pages in span
   Span*         next;           // Used when in link list
@@ -1035,7 +1035,7 @@ static inline void DLL_Prepend(Span* list, Span* span) {
 // size/depth are made the same size as a pointer so that some generic
 // code below can conveniently cast them back and forth to void*.
 static const int kMaxStackDepth = 31;
-struct StackTrace: public WTF::FastAllocBase {
+struct StackTrace/*: public WTF::FastAllocBase*/ {
   uintptr_t size;          // Size of object
   uintptr_t depth;         // Number of PC values stored in array below
   void*     stack[kMaxStackDepth];
@@ -1052,14 +1052,14 @@ static Span sampled_objects;
 // because sometimes the sizeclass is all the information we need.
 
 // Selector class -- general selector uses 3-level map
-template <int BITS> class MapSelector: public WTF::FastAllocBase {
+template <int BITS> class MapSelector/*: public WTF::FastAllocBase*/ {
  public:
   typedef TCMalloc_PageMap3<BITS-kPageShift> Type;
   typedef PackedCache<BITS, uint64_t> CacheType;
 };
 
 // A two-level map for 32-bit machines
-template <> class MapSelector<32>: public WTF::FastAllocBase {
+template <> class MapSelector<32>/*: public WTF::FastAllocBase*/ {
  public:
   typedef TCMalloc_PageMap2<32-kPageShift> Type;
   typedef PackedCache<32-kPageShift, uint16_t> CacheType;
@@ -1073,7 +1073,7 @@ template <> class MapSelector<32>: public WTF::FastAllocBase {
 // contiguous runs of pages (called a "span").
 // -------------------------------------------------------------------------
 
-class TCMalloc_PageHeap: public WTF::FastAllocBase {
+class TCMalloc_PageHeap/*: public WTF::FastAllocBase*/ {
  public:
   void init();
 
@@ -1153,7 +1153,7 @@ class TCMalloc_PageHeap: public WTF::FastAllocBase {
   // We segregate spans of a given size into two circular linked
   // lists: one for normal spans, and one for spans whose memory
   // has been returned to the system.
-  struct SpanList: public WTF::FastAllocBase {
+  struct SpanList/*: public WTF::FastAllocBase*/ {
     Span        normal;
     Span        returned;
   };
@@ -1665,7 +1665,7 @@ void TCMalloc_PageHeap::ReleaseFreePages() {
 // Free list
 //-------------------------------------------------------------------
 
-class TCMalloc_ThreadCache_FreeList: public WTF::FastAllocBase {
+class TCMalloc_ThreadCache_FreeList/*: public WTF::FastAllocBase*/ {
  private:
   void*    list_;       // Linked list of nodes
   uint16_t length_;     // Current length
@@ -1730,7 +1730,7 @@ class TCMalloc_ThreadCache_FreeList: public WTF::FastAllocBase {
 // Data kept per thread
 //-------------------------------------------------------------------
 
-class TCMalloc_ThreadCache: public WTF::FastAllocBase {
+class TCMalloc_ThreadCache/*: public WTF::FastAllocBase*/ {
  private:
   typedef TCMalloc_ThreadCache_FreeList FreeList;
 #if COMPILER(MSVC)
@@ -1806,7 +1806,7 @@ class TCMalloc_ThreadCache: public WTF::FastAllocBase {
 // Data kept per size-class in central cache
 //-------------------------------------------------------------------
 
-class TCMalloc_Central_FreeList: public WTF::FastAllocBase {
+class TCMalloc_Central_FreeList/*: public WTF::FastAllocBase*/ {
  public:
   void Init(size_t cl);
 
@@ -2102,7 +2102,7 @@ bool TCMalloc_Central_FreeList::MakeCacheSpace() {
 
 
 namespace {
-class LockInverter: public WTF::FastAllocBase {
+class LockInverter/*: public WTF::FastAllocBase*/ {
  private:
   SpinLock *held_, *temp_;
  public:
@@ -2665,7 +2665,7 @@ void TCMalloc_ThreadCache::Print() const {
 }
 
 // Extract interesting stats
-struct TCMallocStats: public WTF::FastAllocBase {
+struct TCMallocStats/*: public WTF::FastAllocBase*/ {
   uint64_t system_bytes;        // Bytes alloced from system
   uint64_t thread_bytes;        // Bytes in thread caches
   uint64_t central_bytes;       // Bytes in central cache
@@ -2923,7 +2923,7 @@ class TCMallocImplementation : public MallocExtension {
 // well for STL).
 //
 // The destructor prints stats when the program exits.
-class TCMallocGuard: public WTF::FastAllocBase {
+class TCMallocGuard/*: public WTF::FastAllocBase*/ {
  public:
 
   TCMallocGuard() {
@@ -3536,7 +3536,7 @@ void *(*__memalign_hook)(size_t, size_t, const void *) = MemalignOverride;
 
 #if defined(WTF_CHANGES) && PLATFORM(DARWIN)
 
-class FreeObjectFinder: public WTF::FastAllocBase {
+class FreeObjectFinder/*: public WTF::FastAllocBase*/ {
     const RemoteMemoryReader& m_reader;
     HashSet<void*> m_freeObjects;
 
@@ -3560,7 +3560,7 @@ public:
     }
 };
 
-class PageMapFreeObjectFinder: public WTF::FastAllocBase {
+class PageMapFreeObjectFinder/*: public WTF::FastAllocBase*/ {
     const RemoteMemoryReader& m_reader;
     FreeObjectFinder& m_freeObjectFinder;
 
@@ -3588,7 +3588,7 @@ public:
     }
 };
 
-class PageMapMemoryUsageRecorder: public WTF::FastAllocBase {
+class PageMapMemoryUsageRecorder/*: public WTF::FastAllocBase*/ {
     task_t m_task;
     void* m_context;
     unsigned m_typeMask;

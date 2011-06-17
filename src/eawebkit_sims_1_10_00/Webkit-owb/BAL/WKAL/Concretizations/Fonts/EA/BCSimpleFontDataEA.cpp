@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -49,33 +49,36 @@ namespace WKAL {
 
 void SimpleFontData::platformInit()
 {
-   EA::Internal::IFont* const pFont = m_font.mpFont;
+    EA::Internal::IFont* const pFont = m_font.mpFont;
     EAW_ASSERT(pFont);
 
-    EA::Internal::FontMetrics fontMetrics;
-    pFont->GetFontMetrics(fontMetrics);
+	if(pFont)
+	{
+		EA::Internal::FontMetrics fontMetrics;
+		pFont->GetFontMetrics(fontMetrics);
 
-    // With this code EAWebKit implements line spacing seemingly just like Safari on Windows:
-    // m_ascent      = (int)(fontMetrics.mfAscent + 0.5f);
-    // m_descent     = (int)(-fontMetrics.mfDescent + 0.5f);    // Apparently WebKit wants descent to be a positive value, which is unconventional.
-    // m_lineSpacing = (int)(fontMetrics.mfLineHeight + 0.5f);
+		// With this code EAWebKit implements line spacing seemingly just like Safari on Windows:
+		// m_ascent      = (int)(fontMetrics.mfAscent + 0.5f);
+		// m_descent     = (int)(-fontMetrics.mfDescent + 0.5f);    // Apparently WebKit wants descent to be a positive value, which is unconventional.
+		// m_lineSpacing = (int)(fontMetrics.mfLineHeight + 0.5f);
 
-    // With this code EAWebKit emulates FireFox line spacing fairly closely: 
-    m_ascent      = (int)(fontMetrics.mfAscent + 1.5f);
-    m_descent     = (int)(-fontMetrics.mfDescent + 1.5f);    // Apparently WebKit wants descent to be a positive value, which is unconventional.
-    m_lineSpacing = (int)(m_ascent + m_descent);
+		// With this code EAWebKit emulates FireFox line spacing fairly closely: 
+		m_ascent      = (int)(fontMetrics.mfAscent + 1.5f);
+		m_descent     = (int)(-fontMetrics.mfDescent + 1.5f);    // Apparently WebKit wants descent to be a positive value, which is unconventional.
+		m_lineSpacing = (int)(m_ascent + m_descent);
 
-    m_lineGap     = m_lineSpacing - m_ascent + m_descent;
-    m_unitsPerEm  = 1000;                           // This is a typical value for a TrueType font, not necessarily the actual value.
-    m_xHeight     = fontMetrics.mfXHeight;
+		m_lineGap     = m_lineSpacing - m_ascent + m_descent;
+		m_unitsPerEm  = 1000;                           // This is a typical value for a TrueType font, not necessarily the actual value.
+		m_xHeight     = fontMetrics.mfXHeight;
 
-    const EA::Internal::Char  cSpace  = ' ';
-    EA::Internal::GlyphId  glyphId = 0;
-    pFont->GetGlyphIds(&cSpace, 1, &glyphId, true);
+		const EA::Internal::Char  cSpace  = ' ';
+		EA::Internal::GlyphId  glyphId = 0;
+		pFont->GetGlyphIds(&cSpace, 1, &glyphId, true);
 
-    EA::Internal::GlyphMetrics glyphMetrics;
-    pFont->GetGlyphMetrics(glyphId, glyphMetrics);
-    m_spaceWidth = glyphMetrics.mfHAdvanceX;
+		EA::Internal::GlyphMetrics glyphMetrics;
+		pFont->GetGlyphMetrics(glyphId, glyphMetrics);
+		m_spaceWidth = glyphMetrics.mfHAdvanceX;
+	}
 }
 
 
@@ -157,7 +160,8 @@ float SimpleFontData::platformWidthForGlyph(Glyph glyphId) const
 
     EA::Internal::GlyphMetrics glyphMetrics;
     glyphMetrics.mfHAdvanceX = m_spaceWidth; // Default value.
-    pFont->GetGlyphMetrics(glyphId, glyphMetrics);
+    if(pFont)
+		pFont->GetGlyphMetrics(glyphId, glyphMetrics);
 
     return glyphMetrics.mfHAdvanceX;
 }
