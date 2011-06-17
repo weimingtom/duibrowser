@@ -83,6 +83,8 @@ public:
     // System fonts.
     virtual void systemFont(int propId, FontDescription&) const;
 
+	bool isDisabled(RenderObject* o);
+
 protected:
     virtual bool paintCheckbox(RenderObject* o, const RenderObject::PaintInfo& i, const IntRect& r);
     virtual void setCheckboxSize(RenderStyle* style) const;

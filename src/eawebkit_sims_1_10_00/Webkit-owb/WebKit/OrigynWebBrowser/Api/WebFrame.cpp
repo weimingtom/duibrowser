@@ -906,42 +906,47 @@ ResourceError WebFrame::cancelledError(const ResourceRequest& request)
 {
     // FIXME: Need ChickenCat to include CFNetwork/CFURLError.h to get these values
     // Alternatively, we could create our own error domain/codes.
-    return ResourceError(String(WebURLErrorDomain), -999, request.url().string(), String());
+    return ResourceError(String(WebURLErrorDomain), WebURLErrorCancelled, request.url().string(), GetWebkitErrorString(WebURLErrorCancelled));	
 }
 
 ResourceError WebFrame::blockedError(const ResourceRequest& request)
 {
     // FIXME: Need to implement the String descriptions for errors in the WebKitErrorDomain and have them localized
-    return ResourceError(String(WebKitErrorDomain), WebKitErrorCannotUseRestrictedPort, request.url().string(), String());
+    return ResourceError(String(WebKitErrorDomain), WebKitErrorCannotUseRestrictedPort, request.url().string(), GetWebkitErrorString(WebKitErrorCannotUseRestrictedPort));	
+	
 }
 
-ResourceError WebFrame::cannotShowURLError(const ResourceRequest&)
+ResourceError WebFrame::cannotShowURLError(const ResourceRequest& request)
 {
-    BalNotImplemented();
-    return ResourceError();
+	// 09/03/10 Gautam Narain : ResourceError was an empty constructor. As we are logging the errors we need to send meaningful errors
+	// for this error
+    //BalNotImplemented();	
+    return ResourceError(String(WebKitErrorDomain), WebKitErrorCannotShowURL, request.url().string(), GetWebkitErrorString(WebKitErrorCannotShowURL));	
 }
 
 ResourceError WebFrame::interruptForPolicyChangeError(const ResourceRequest& request)
 {
     // FIXME: Need to implement the String descriptions for errors in the WebKitErrorDomain and have them localized
-    return ResourceError(String(WebKitErrorDomain), WebKitErrorFrameLoadInterruptedByPolicyChange, request.url().string(), String());
+    return ResourceError(String(WebKitErrorDomain), WebKitErrorFrameLoadInterruptedByPolicyChange, request.url().string(), GetWebkitErrorString(WebKitErrorFrameLoadInterruptedByPolicyChange));		
 }
 
-ResourceError WebFrame::cannotShowMIMETypeError(const ResourceResponse&)
+ResourceError WebFrame::cannotShowMIMETypeError(const ResourceResponse& response)
 {
-    BalNotImplemented();
-    return ResourceError();
+    //BalNotImplemented();
+    //return ResourceError();
+	return ResourceError(String(WebKitErrorDomain), WebKitErrorCannotShowMIMEType, response.url().string(), GetWebkitErrorString(WebKitErrorCannotShowMIMEType));	
 }
 
-ResourceError WebFrame::fileDoesNotExistError(const ResourceResponse&)
+ResourceError WebFrame::fileDoesNotExistError(const ResourceResponse& response)
 {
-    BalNotImplemented();
-    return ResourceError();
+    //BalNotImplemented();
+    //return ResourceError();
+	return ResourceError(String(WebKitErrorDomain), WebURLErrorFileDoesNotExist, response.url().string(), GetWebkitErrorString(WebURLErrorFileDoesNotExist));		
 }
 
 bool WebFrame::shouldFallBack(const ResourceError& error)
 {
-    return error.errorCode() != WebURLErrorCancelled;
+	return (error.errorCode() != WebURLErrorCancelled);	
 }
 
 WebFramePolicyListener* WebFrame::setUpPolicyListener(WebCore::FramePolicyFunction function)

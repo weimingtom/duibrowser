@@ -48,8 +48,10 @@ namespace WKAL {
 
 PlatformWheelEvent::PlatformWheelEvent(BalEventScroll* pEventWheel)
 {
-    m_deltaX         = 0.f; // To consider: Use shift or control key to scroll horizontally as opposed to vertically. However, FireFox on PC uses Control-Wheel to modify page zoom, and does nothing with Shift-Wheel.
-    m_deltaY         = pEventWheel->mLineDelta;
+	// Note by Gautam Narain: On Safari 3.1.2 we see that shift key causes page to scroll left and right. 
+	// So we will follow suit and make it work exactly like Safari 3.1.2 does. 
+	m_deltaX         = pEventWheel->mbShift == true ? pEventWheel->mLineDelta : 0.0f;  
+    m_deltaY         = pEventWheel->mbShift == false ? pEventWheel->mLineDelta : 0.0f; 
     m_shiftKey       = pEventWheel->mbShift;
     m_ctrlKey        = pEventWheel->mbControl;
     m_altKey         = pEventWheel->mbAlt;

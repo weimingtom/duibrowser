@@ -51,7 +51,7 @@ public:
     ~FontFallbackList() { releaseFontData(); }
     void invalidate(PassRefPtr<FontSelector>);
     
-    bool isFixedPitch(const Font* f) const { if (m_pitch == EA::Internal::kPitchVariable) determinePitch(f); return m_pitch == EA::Internal::kPitchFixed; };
+    bool isFixedPitch(const Font* f) const { if (m_pitch == EA::WebKit::kPitchVariable) determinePitch(f); return m_pitch == EA::WebKit::kPitchFixed; };
     void determinePitch(const Font*) const;
 
     bool loadingCustomFonts() const { return m_loadingCustomFonts; }
@@ -71,7 +71,7 @@ private:
 
     mutable Vector<pair<const FontData*, bool>, 1> m_fontList;
     mutable int m_familyIndex;
-    mutable EA::Internal::Pitch m_pitch;
+    mutable EA::WebKit::Pitch m_pitch;
     mutable bool m_loadingCustomFonts;
     RefPtr<FontSelector> m_fontSelector;
 

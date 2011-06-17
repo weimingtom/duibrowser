@@ -140,7 +140,7 @@ void WebFrameLoaderClient::assignIdentifierToInitialRequest(unsigned long identi
         if(kurl.string().length() != 0)
         {
             GetFixedString(loadInfo.mURI)->assign(kurl.string().characters(), kurl.string().length());
-
+			GetFixedString(loadInfo.mResourceURI)->assign(request.url().string().characters(), request.url().string().length());
             EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();
             if(pViewNotification)
                 pViewNotification->LoadUpdate(loadInfo);
@@ -150,8 +150,10 @@ void WebFrameLoaderClient::assignIdentifierToInitialRequest(unsigned long identi
 
 void WebFrameLoaderClient::dispatchDidReceiveAuthenticationChallenge(DocumentLoader* loader, unsigned long identifier, const AuthenticationChallenge& challenge)
 {
-    ASSERT(challenge.sourceHandle());
+    // 10/27/10 - Note by Arpit Baldeva: Commented out this assert as illegitimate. The authentication is handled through the ViewNotification::Authenticate
+	// callback inside the AuthenticationManager system.
 
+	//ASSERT(challenge.sourceHandle());	
     /*WebView* webView = m_webFrame->webView();
     COMPtr<IWebResourceLoadDelegate> resourceLoadDelegate;
     if (SUCCEEDED(webView->resourceLoadDelegate(&resourceLoadDelegate))) {
@@ -205,12 +207,14 @@ void WebFrameLoaderClient::dispatchWillSendRequest(DocumentLoader* loader, unsig
     {
         EA::WebKit::LoadInfo& loadInfo = pView->GetLoadInfo();
         loadInfo.mpView = pView;
-        loadInfo.mLET = EA::WebKit::kLETPageRedirect;
+        //Note by Arpit Baldeva - Not sure if following Redirect event indication is correct
+		loadInfo.mLET = EA::WebKit::kLETPageRedirect;
 
         const WebCore::KURL& kurl = request.mainDocumentURL();
         if(kurl.string().length() != 0)
         {
-            GetFixedString(loadInfo.mURI)->assign(kurl.string().characters(), kurl.string().length());
+			GetFixedString(loadInfo.mURI)->assign(kurl.string().characters(), kurl.string().length());
+			GetFixedString(loadInfo.mResourceURI)->assign(request.url().string().characters(), request.url().string().length());
 
             EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();
             if(pViewNotification)
@@ -238,6 +242,13 @@ void WebFrameLoaderClient::dispatchDidReceiveResponse(DocumentLoader* loader, un
         EA::WebKit::LoadInfo& loadInfo = pView->GetLoadInfo();
         loadInfo.mpView = pView;
         loadInfo.mLET   = EA::WebKit::kLETResponseReceived;
+		loadInfo.mStatusCode = response.httpStatusCode();
+
+		const WebCore::KURL& kurl = response.url();
+		if(kurl.string().length() != 0)
+		{			
+			GetFixedString(loadInfo.mResourceURI)->assign(kurl.string().characters(), kurl.string().length());
+		}
 
         EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();
         if(pViewNotification)
@@ -314,7 +325,22 @@ void WebFrameLoaderClient::dispatchDidFailLoading(DocumentLoader* loader, unsign
         EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();
         if(pViewNotification)
             pViewNotification->LoadUpdate(loadInfo);
-    }
+   
+		// also send an error notification
+		EA::WebKit::ErrorInfo errorInfo;
+		errorInfo.mErrorId = error.errorCode();
+		errorInfo.mpView = pView;
+
+		WebCore::String failingUrl = error.failingURL();
+		errorInfo.mpURI = failingUrl.charactersWithNullTermination();
+
+		WebCore::String localizedDescription = error.localizedDescription();
+		errorInfo.mpContext1 = localizedDescription.charactersWithNullTermination();
+		
+        if(pViewNotification)
+			pViewNotification->WebError(errorInfo);
+	}
+
 }
 
 void WebFrameLoaderClient::dispatchDidHandleOnloadEvents()
@@ -464,7 +490,24 @@ Frame* WebFrameLoaderClient::dispatchCreatePage()
 
     COMPtr<WebFrame> mainFrameImpl(Query, mainFrame);
     return core(mainFrameImpl.get());*/
-    return 0;
+	EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();
+	if(pViewNotification)
+	{
+		EA::WebKit::CreateViewInfo createViewInfo;
+		createViewInfo.mpView = EA::WebKit::GetView(m_webFrame->webView());
+		createViewInfo.mFromJavaScript = false;
+
+		if(pViewNotification->CreateView(createViewInfo))
+		{
+			if(createViewInfo.mpCreatedView)
+			{
+				return createViewInfo.mpCreatedView->GetFrame();
+			}
+		}
+	}
+
+	return 0;
+	
 }
 
 void WebFrameLoaderClient::dispatchShow()
@@ -530,6 +573,14 @@ void WebFrameLoaderClient::postProgressStartedNotification()
 
         if(pViewNotification)
             pViewNotification->LoadUpdate(loadInfo);
+    
+        // 6/20/10 Chris Sidhall - Added mostly for tooltip notification.
+        WebView* pWebView = m_webFrame->webView();
+        if(pWebView)
+        {
+            pWebView->ResetToolTip();
+        }
+    
     }
 }
 

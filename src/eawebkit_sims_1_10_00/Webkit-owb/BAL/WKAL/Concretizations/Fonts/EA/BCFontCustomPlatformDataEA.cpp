@@ -42,7 +42,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace WKAL {
 
-FontCustomPlatformData::FontCustomPlatformData(EA::Internal::IFont* pFontFace, WKAL::SharedBuffer* pFontData)  // BalFontFace == EA::Text::Font
+FontCustomPlatformData::FontCustomPlatformData(EA::WebKit::IFont* pFontFace, WKAL::SharedBuffer* pFontData)  // BalFontFace == EA::Text::Font
   : m_fontFace(pFontFace)
   , mpFontData(pFontData)
 {
@@ -100,11 +100,11 @@ FontCustomPlatformData* createFontCustomPlatformData(SharedBuffer* pFontData)
     EAW_ASSERT(pFontData);
     FontCustomPlatformData* pFontCustomPlatformData = NULL;
 
-    EA::Internal::IFontServer* const pFontServer = EA::WebKit::GetFontServer();
+    EA::WebKit::IFontServer* const pFontServer = EA::WebKit::GetFontServer();
     if(!pFontServer)
         return NULL;
 
-    EA::Internal::IFont* const pOutlineFont = pFontServer->CreateNewFont(EA::Internal::kFontTypeOutline);
+    EA::WebKit::IFont* const pOutlineFont = pFontServer->CreateNewFont(EA::WebKit::kFontTypeOutline);
     if(!pOutlineFont){
         EAW_ASSERT(pOutlineFont);
         return NULL;

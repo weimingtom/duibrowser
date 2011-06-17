@@ -113,6 +113,7 @@ public:
     void OnMouseMoveEvent(const EA::WebKit::MouseMoveEvent& mouseMoveEvent);
     void OnMouseButtonEvent(const EA::WebKit::MouseButtonEvent& mouseButtonEvent);
     void OnMouseWheelEvent(const EA::WebKit::MouseWheelEvent& mouseWheelEvent);
+	bool OnButtonEvent(const EA::WebKit::ButtonEvent& buttonEvent);
     void OnFocusChangeEvent(bool bHasFocus);
     void OnScrollViewEvent();
 
@@ -141,7 +142,7 @@ private:
     FrameView*              m_frameView;
     PopupMenuClient*        m_popupClient;
     IntPoint                m_menuPosition;
-    EA::Raster::Surface*    m_popupSurface;
+    EA::Raster::ISurface*    m_popupSurface;
     RenderTextArray         m_droplistText;
     bool                    m_wasClicked;
     IntRect                 m_windowRect;

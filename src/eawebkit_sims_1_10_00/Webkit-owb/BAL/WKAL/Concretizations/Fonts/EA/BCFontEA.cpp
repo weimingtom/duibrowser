@@ -38,7 +38,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SimpleFontData.h"
 #include "IntSize.h"
 #include <EASTL/fixed_string.h>
-#include "EARaster.h"
+#include <EARaster/EARaster.h>
 #include "EARaster/internal/EARasterUtils.h"
 #include <EAWebKit/EAWebKit.h>
 #include <EAWebKit/EAWebKitTextInterface.h>  
@@ -115,8 +115,9 @@ void Font::drawGlyphs(GraphicsContext* pGraphicsContext, const SimpleFontData* p
     GlyphBufferGlyph*               glyphs      = const_cast<GlyphBufferGlyph*>(glyphBuffer.glyphs(glyphIndexBegin));
     float                           offset      = 0;   
     int                             x_offset    = 0;
-    EA::Internal::IFont*            pFont       = pSimpleFontData->m_font.mpFont;
-    EA::Internal::IGlyphCache*      pGlyphCache = EA::WebKit::GetGlyphCache(); 
+    EA::WebKit::IFont*            pFont       = pSimpleFontData->m_font.mpFont;	
+    EA::WebKit::IGlyphCache*      pGlyphCache = EA::WebKit::GetGlyphCache(); 
+
     EAW_ASSERT_MSG(pGlyphCache, "GlyphCache is not set");
 	if(!pGlyphCache)
 	{
@@ -124,7 +125,7 @@ void Font::drawGlyphs(GraphicsContext* pGraphicsContext, const SimpleFontData* p
 		return;
 	}
     
-    EA::Internal::ITextureInfo*     pTI         = pGlyphCache->GetTextureInfo(0); // Right now we hard-code usage of what is the only texture.
+    EA::WebKit::ITextureInfo*     pTI         = pGlyphCache->GetTextureInfo(0); // Right now we hard-code usage of what is the only texture.
 	EAW_ASSERT_MSG(pTI, "GlyphCache is not initialized with enough number of textures");
 	if(!pTI)
 	{
@@ -133,14 +134,14 @@ void Font::drawGlyphs(GraphicsContext* pGraphicsContext, const SimpleFontData* p
 	}
 
 	const int32_t                   textureSize = (int32_t)pTI->GetSize();
-    EA::Internal::IGlyphTextureInfo gti;
-    EA::Internal::GlyphMetrics      glyphMetrics;
+    EA::WebKit::IGlyphTextureInfo gti;
+    EA::WebKit::GlyphMetrics      glyphMetrics;
     GlyphDrawInfoArray              gdiArray((size_t)(unsigned)glyphCount);
 
     // Walk through the list of glyphs and build up render info for each one.
     for (int i = 0; i < glyphCount; i++)
     {
-        EA::Internal::GlyphId g = glyphs[i];
+        EA::WebKit::GlyphId g = glyphs[i];
 
         if(!pFont->GetGlyphMetrics(g, glyphMetrics))
         {
@@ -151,35 +152,16 @@ void Font::drawGlyphs(GraphicsContext* pGraphicsContext, const SimpleFontData* p
 
         if(!pGlyphCache->GetGlyphTextureInfo(pFont, g, gti))
         {
-            const EA::Internal::GlyphBitmap* pGlyphBitmap;
-
-            if(pFont->RenderGlyphBitmap(&pGlyphBitmap, g))
-            {
-                if(pGlyphCache->AddGlyphTexture(pFont, g, pGlyphBitmap->mpData, pGlyphBitmap->mnWidth, pGlyphBitmap->mnHeight, 
-                                                              pGlyphBitmap->mnStride, (uint32_t)pGlyphBitmap->mBitmapFormat, gti))
-                {
-                    pGlyphCache->EndUpdate(gti.mpTextureInfo);
-                }
-                else
-                {
-                    EAW_ASSERT_MSG(false, "Font::drawGlyphs: AddGlyphTexture failed.");
-                    gti.mX1 = gti.mX2 = 0; // Make this an empty glyph. Normally this should never execute.
-                }
-
-                pFont->DoneGlyphBitmap(pGlyphBitmap);
-            } 
-            else
-            {
-                EAW_ASSERT_MSG(false, "Font::drawGlyphs: invalid glyph/Font combo.");
-                gti.mX1 = gti.mX2 = 0; // Make this an empty glyph. Normally this should never execute.
-            }
-        }
+            // 8/11/10 CSidhall - Moved this out of the draw because was directly using the **p from the passed EAText package.
+            // It has been moved to DrawGlyphBitmap() in the EAWebKitTextWrapper.h/cpp.
+            pFont->DrawGlyphBitmap(pGlyphCache, g, gti);    
+     }
 
         // Apply kerning.
         // Note by Paul Pedriana: Can we really apply kerning here at the render stage without it looking 
         // wrong? It seems to me this cannot work unless kerning is also taken into account at the 
         // layout stage. To do: See if in fact kerning is taken into account at the layout stage.
-        EA::Internal::Kerning kerning;
+        EA::WebKit::Kerning kerning;
 
         if((i > 0) && pFont->GetKerning(glyphs[i - 1], g, kerning, 0))
             offset += kerning.mfKernX;
@@ -198,10 +180,18 @@ void Font::drawGlyphs(GraphicsContext* pGraphicsContext, const SimpleFontData* p
         // and custom kerning, though kerning adjustments are handled above.
         offset += glyphBuffer.advanceAt(glyphIndexBegin + i);
     
+		// Setting a negative gdiArray[0].x1 to 0 causes the font to overlap a bit if the first characters has 
+		// negative horizonal bearing for small fonts. We need to take care of this if we want fonts to not overlap so we add 
+		// to the offset in case we set this value to 0. 
+		if( (i==0) && (glyphMetrics.mfHBearingX < 0.0f))
+            offset -=glyphMetrics.mfHBearingX;
+
         // Free wrapper
         if(gti.mpTextureInfo)
+        {
             gti.mpTextureInfo->DestroyWrapper();
-    
+            gti.mpTextureInfo = 0;
+        }
     }
 
 	// Find the X and Y minima and maxima of the glyph boxes.
@@ -246,13 +236,14 @@ void Font::drawGlyphs(GraphicsContext* pGraphicsContext, const SimpleFontData* p
         // me that it is chopping off any glyph pixels to the left of zero. This is probably 
         // going to usually be OK, because it is abnormal for the first char of just about any
         // written language to be a combining char (and thus drawn to the left of the pen position).
+		
         if (gdiArray[0].x1 < 0)
-        {
+        {			
             x_offset = gdiArray[0].x1;
             gdiArray[0].x1 = 0;
         }
 
-        EA::Raster::Surface* const pSurface = pGraphicsContext->platformContext();
+        EA::Raster::ISurface* const pSurface = pGraphicsContext->platformContext();
         const Color                penColor = pGraphicsContext->fillColor();
 
         // Write the glyphs into a linear buffer.
@@ -267,54 +258,135 @@ void Font::drawGlyphs(GraphicsContext* pGraphicsContext, const SimpleFontData* p
 		//we save an allocation. This could be significant as it is used for each text draw. Currently, we have
 		//weird full screen draw issues, so this is pretty helpful.
 		//In case (destWidth*destHeight) > 500, following vector would automatically allocate from the heap.
-		Vector<uint32_t,500> glyphRGBABuffer(destWidth * destHeight);
+		Vector<uint32_t, 500> glyphRGBABuffer(destWidth * destHeight);		
         uint32_t  penC    = penColor.rgb();
         uint32_t  penA    = (penC >> 24);
         uint32_t  penRGB  = (penC & 0x00ffffff);
 
         glyphRGBABuffer.fill(0);
 
-		for (int i = 0; i < glyphCount; i++)
+	    for (int i = 0; i < glyphCount; i++)
         {
-			const GlyphDrawInfo& gdi         = gdiArray[i];
-            const uint8_t*       pGlyphAlpha = (pTI->GetData()) + (gdi.ty * pTI->GetStride()) + gdi.tx;
-            const int            yOffset     = (destHeight + yMin) - gdi.y1;
-			// Note by Arpit Baldeva: Old index calculation below caused a memory overrun(or I should say underrun on http://get.adobe.com/flashplayer/).
-			// Basically, yOffset * destWidth) + gdi.x1 could end up being negative if the yOffset is 0 and gdi.x1 is negative. Since I do want
-			// to make sure that index is positive, I just force it to be at least 0. There is not enough understanding about this code as of now
-			// and Paul said that he would take a look at this along with other Font problems he is currently looking at.
-			const int bufferIndex = (yOffset * destWidth) + gdi.x1;
-			EAW_ASSERT_FORMATTED(bufferIndex>=0, "Buffer Index is negative. This would corrupt memory. yOffset:%d,destWidth:%u,gdi.x1:%d",yOffset,destWidth,gdi.x1);
-			uint32_t*            pDestColor  = glyphRGBABuffer.data() + (bufferIndex >= 0 ? bufferIndex : 0);//Old Index calculation- (yOffset * destWidth) + gdi.x1;
-            const int            glyphWidth  = (gdi.x2 - gdi.x1);
-            const int            glyphHeight = (gdi.y1 - gdi.y2);
+		    const GlyphDrawInfo& gdi         = gdiArray[i];
+            const int       yOffset     = (destHeight + yMin) - gdi.y1;
+		    // Note by Arpit Baldeva: Old index calculation below caused a memory overrun(or I should say underrun on http://get.adobe.com/flashplayer/).
+		    // Basically, yOffset * destWidth) + gdi.x1 could end up being negative if the yOffset is 0 and gdi.x1 is negative. Since I do want
+		    // to make sure that index is positive, I just force it to be at least 0. There is not enough understanding about this code as of now
+		    // and Paul said that he would take a look at this along with other Font problems he is currently looking at.				
+		    const int bufferIndex = (yOffset * destWidth) + gdi.x1;
+		    EAW_ASSERT_FORMATTED(bufferIndex>=0, "Buffer Index is negative. This would corrupt memory. yOffset:%d,destWidth:%u,gdi.x1:%d",yOffset,destWidth,gdi.x1);
+		    uint32_t*            pDestColor  = glyphRGBABuffer.data() + (bufferIndex >= 0 ? bufferIndex : 0);//Old Index calculation - (yOffset * destWidth) + gdi.x1;
+									
+		    const int            glyphWidth  = (gdi.x2 - gdi.x1);
+            const int            glyphHeight = (gdi.y1 - gdi.y2);			
 
-			for (int y = 0; y < glyphHeight; ++y)
+
+            // We need to checck what bit format was are in here.
+            if(pTI->GetFormat() == EA::WebKit::kBFARGB)     
             {
-				for (int x = 0; x < glyphWidth; ++x)
-				{
-					//+ 1/5/10 CSidhall - When building the text string texture map, kerning can make certain letters overlap and stomp over the alpha of previous letters so 
-                    // we need to preserve texels that were aleady set. Should be able to OR herer because we have a clean buffer and penRGB is the same.
-                    //+ 2/23/10 YChin - We have switched to using premultiplied colors, so we need to multiply the alpha onto the final color so the Blt
-                    // Old code:
-                    // pDestColor[x] = ((penA * pGlyphAlpha[x] / 255) << 24) | penRGB;
-                    // New code:
-                    uint32_t destAlpha = EA::Raster::DivideBy255Rounded(penA * pGlyphAlpha[x]) | (pDestColor[x] >> 24);
-                    uint32_t destRGB = EA::Raster::MultiplyColorAlpha(penRGB, destAlpha);
-                    pDestColor[x] = (destAlpha << 24 ) | destRGB;
+                const uint32_t* pGlyphAlpha = (uint32_t*) ((pTI->GetData()) + (gdi.ty * pTI->GetStride()) + (gdi.tx<<2) );
+                const uint32_t stride = pTI->GetStride() >> 2; // >> 2 for 32 bits
 
-                    // -CS
-				}
-                
-                pDestColor  += destWidth;
-                pGlyphAlpha += pTI->GetStride();
+                // Normal 32 bit render using the pen color
+                if(fontDescription().getTextEffectType() == EA::WebKit::kEffectNone)        
+                {
+			        for (int y = 0; y < glyphHeight; ++y)
+                    {
+				        for (int x = 0; x < glyphWidth; ++x)
+				        {
+					        //+ 1/5/10 CSidhall - When building the text string texture map, kerning can make certain letters overlap and stomp over the alpha of previous letters so 
+                            // we need to preserve texels that were aleady set. Should be able to OR herer because we have a clean buffer and penRGB is the same.
+                            //+ 2/23/10 YChin - We have switched to using premultiplied colors, so we need to multiply the alpha onto the final color so the Blt
+            		        //uint32_t destAlpha = EA::Raster::DivideBy255Rounded(penA * pGlyphAlpha[x]) | (pDestColor[x] >> 24);
+					        //uint32_t destRGB = EA::Raster::MultiplyColorAlpha(penRGB, destAlpha);
+                            //+ 10/21/10 CSidhall - Adapted to support 32bit textures
+                            uint32_t surfaceAlpha = pDestColor[x] >> 24; 
+                            uint32_t glyphColor = pGlyphAlpha[x]; 
+                            
+                        #if defined(EA_PLATFORM_PS3)
+                            // For some reason, we end up with RGBA here                    
+                            uint32_t glyphAlpha = glyphColor&0xff; 
+                        #else
+                            // ARGB here
+                            uint32_t glyphAlpha = glyphColor >> 24; 
+                        #endif   
+
+                            uint32_t destAlpha = EA::Raster::DivideBy255Rounded(penA * glyphAlpha) | surfaceAlpha;
+                            uint32_t destRGB = EA::Raster::MultiplyColorAlpha(penRGB, destAlpha);
+                            pDestColor[x] = (destAlpha << 24 ) | destRGB;		
+				        }
+                        
+                        pDestColor  += destWidth;
+                        pGlyphAlpha += stride;   
+                    }
+                }
+                else
+                {
+			        // Using the 32bit colors instead of the pen. For multicolored effects. 
+                    for (int y = 0; y < glyphHeight; ++y)
+                    {
+				        for (int x = 0; x < glyphWidth; ++x)
+				        {
+					        //+ 1/5/10 CSidhall - When building the text string texture map, kerning can make certain letters overlap and stomp over the alpha of previous letters so 
+                            // we need to preserve texels that were aleady set. Should be able to OR herer because we have a clean buffer and penRGB is the same.
+                            //+ 2/23/10 YChin - We have switched to using premultiplied colors, so we need to multiply the alpha onto the final color so the Blt
+                            //+ 10/19/10 CSidhall - Adapted to using 32 bit colors 
+                            uint32_t surfaceAlpha = pDestColor[x] >> 24; 
+                            uint32_t glyphColor = pGlyphAlpha[x]; 
+                            
+                        #if defined(EA_PLATFORM_PS3)
+                            // For some reason, we end up with RGBA here                    
+                            uint32_t glyphAlpha = glyphColor&0xff; 
+                            glyphColor >>=8;
+                        #else
+                            uint32_t glyphAlpha = glyphColor >> 24; 
+                            glyphColor &=0x00ffffff;
+                        #endif   
+                            // Note: This seems to work pretty well for the current usage.
+                            // It basically just gives the the RGB wheight to the one that has the 
+                            // strongest alpha.  Another option could be to consider src and dest color blending here. 
+                            if(glyphAlpha > surfaceAlpha)     
+                            {                        
+                                uint32_t destRGB = EA::Raster::MultiplyColorAlpha(glyphColor, glyphAlpha);
+                                pDestColor[x] = (glyphAlpha << 24 ) | destRGB;		
+                            }
+				        }
+                        pDestColor  += destWidth;
+                        pGlyphAlpha += stride;        
+                    }
+                }
             }
+            else // our default: kBFGrayscale     
+            {
+                // This is for the more compact 8bit format. Just passes down the alpha and the pen color provides the RGB
+                const uint8_t*       pGlyphAlpha = (pTI->GetData()) + (gdi.ty * pTI->GetStride()) + gdi.tx;
+                const uint32_t stride = pTI->GetStride();
 
+		        for (int y = 0; y < glyphHeight; ++y)
+                {
+			        for (int x = 0; x < glyphWidth; ++x)
+			        {
+				        //+ 1/5/10 CSidhall - When building the text string texture map, kerning can make certain letters overlap and stomp over the alpha of previous letters so 
+                        // we need to preserve texels that were aleady set. Should be able to OR herer because we have a clean buffer and penRGB is the same.
+                        //+ 2/23/10 YChin - We have switched to using premultiplied colors, so we need to multiply the alpha onto the final color so the Blt
+                        // Old code:
+                        //pDestColor[x] = ((penA * pGlyphAlpha[x] / 255) << 24) | penRGB;
+                        // New code:
+				        uint32_t destAlpha = EA::Raster::DivideBy255Rounded(penA * pGlyphAlpha[x]) | (pDestColor[x] >> 24);
+				        uint32_t destRGB = EA::Raster::MultiplyColorAlpha(penRGB, destAlpha);
+				        pDestColor[x] = (destAlpha << 24 ) | destRGB;					
+			        }
+                    
+                    pDestColor  += destWidth;
+                    pGlyphAlpha += stride;
+                }
+            }     
         }
 
         // It would probably be faster if we kept around a surface for multiple usage instead of 
         // continually recreating this one.
-        EA::Raster::Surface* const pGlyphSurface = EA::Raster::CreateSurface((void*)glyphRGBABuffer.data(), destWidth, destHeight, destWidth * 4, EA::Raster::kPixelFormatTypeARGB, false, false);
+        EA::Raster::IEARaster* pRaster =EA::WebKit::GetEARasterInstance();
+        EA::Raster::ISurface* pGlyphSurface = pRaster->CreateSurface((void*)glyphRGBABuffer.data(), destWidth, destHeight, destWidth * 4, EA::Raster::kPixelFormatTypeARGB, false, false, EA::Raster::kSurfaceCategoryText);
         EA::Raster::Rect rectSrc;
         EA::Raster::Rect rectDest;
 
@@ -324,18 +396,48 @@ void Font::drawGlyphs(GraphicsContext* pGraphicsContext, const SimpleFontData* p
         rectSrc.y  = 0;
         rectDest.x = (int)point.x() + x_offset + pGraphicsContext->origin().width();
         rectDest.y = (int)point.y() - yMax     + pGraphicsContext->origin().height();
+        rectDest.w = pSurface->GetWidth();
+        rectDest.h = pSurface->GetHeight();
 
-        if (pGraphicsContext->transparencyLayer() == 1.0)
-            EA::Raster::Blit(pGlyphSurface, &rectSrc, pSurface, &rectDest);
-        else
+        //+ 12/17/10 CSidhall Added support for CSS affine transformations of text
+        EA::Raster::ISurface* pSurfaceWithAlpha = 0;
+        EA::Raster::ISurface* pSurfaceWithTransform = 0;
+        EA::Raster::ISurface* pS = pGlyphSurface; // Generic
+        
+        if (pGraphicsContext->transparencyLayer() != 1.0f)
         {
-            const float fTransparency = pGraphicsContext->transparencyLayer();
-            EA::Raster::Surface* const pSurfaceWithAlpha = EA::Raster::CreateTransparentSurface(pGlyphSurface, (int)(fTransparency * 255));
-            EA::Raster::Blit(pSurfaceWithAlpha, &rectSrc, pSurface, &rectDest);
-            EA::Raster::DestroySurface(pSurfaceWithAlpha);
-        }
+             const float fTransparency = pGraphicsContext->transparencyLayer();
+             pSurfaceWithAlpha = pRaster->CreateTransparentSurface(pGlyphSurface, (int)(fTransparency * 255));
 
-        EA::Raster::DestroySurface(pGlyphSurface);
+             // Save memory if possible
+             pRaster->DestroySurface(pGlyphSurface); 
+             pGlyphSurface = 0;       
+             
+             pS = pSurfaceWithAlpha;
+        }    
+
+        if(pGraphicsContext->hasTransform())
+        {
+            pSurfaceWithTransform = pGraphicsContext->transform(pS, rectSrc, rectDest);
+
+            // No point in freeing the other surfaces now since already allocated and just could frag.
+            pS = pSurfaceWithTransform;
+        }            
+
+        // Draw to the buffer
+        if(pS)
+            pRaster->Blit(pS, &rectSrc, pSurface, &rectDest);
+
+
+        // Free surfaces in reverse order
+        if(pSurfaceWithTransform)
+             pRaster->DestroySurface(pSurfaceWithTransform);
+
+        if(pSurfaceWithAlpha)
+             pRaster->DestroySurface(pSurfaceWithAlpha);
+        
+        if(pGlyphSurface)
+            pRaster->DestroySurface(pGlyphSurface);
     }
     pTI->DestroyWrapper();
 

@@ -50,7 +50,7 @@
 #include <WindowFeatures.h>
 #include "BAL/Includes/FakedDeepsee.h"
 #include <cstdio>
-
+#include <EAWebKit/EAWebKitView.h>
 using namespace WebCore;
 
 WebChromeClient::WebChromeClient(WebView* webView)
@@ -122,9 +122,9 @@ Page* WebChromeClient::createWindow(Frame*, const FrameLoadRequest& frameLoadReq
 
     Page* page = 0;
     //IWebUIDelegate* uiDelegate = 0;
-    WebMutableURLRequest* request = WebMutableURLRequest::createInstance(frameLoadRequest.resourceRequest());
+    /*WebMutableURLRequest* request = WebMutableURLRequest::createInstance(frameLoadRequest.resourceRequest());
 
-    /*if (SUCCEEDED(m_webView->uiDelegate(&uiDelegate))) {
+    if (SUCCEEDED(m_webView->uiDelegate(&uiDelegate))) {
         IWebView* webView = 0;
         if (SUCCEEDED(uiDelegate->createWebViewWithRequest(m_webView, request, &webView))) {
             page = core(webView);
@@ -132,8 +132,43 @@ Page* WebChromeClient::createWindow(Frame*, const FrameLoadRequest& frameLoadReq
         }
     
         uiDelegate->Release();
-    }*/
-    delete request;
+    }
+	delete request;
+	*/
+	
+	EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();
+	if(pViewNotification)
+	{
+		EA::WebKit::CreateViewInfo createViewInfo;
+		createViewInfo.mpView = EA::WebKit::GetView(m_webView);
+
+		if(features.xSet)
+			createViewInfo.mLeft = (uint16_t)features.x;
+
+		if(features.ySet)
+			createViewInfo.mTop	= (uint16_t)features.y;
+
+		if(features.widthSet)
+			createViewInfo.mWidth = (uint16_t)features.width;
+
+		if(features.heightSet)
+			createViewInfo.mHeight = (uint16_t)features.height;
+
+		createViewInfo.mResizable = features.resizable;
+		createViewInfo.mScrollBars = features.scrollbarsVisible;
+
+		createViewInfo.mFromJavaScript = true;
+
+
+		if(pViewNotification->CreateView(createViewInfo))
+		{
+			if(createViewInfo.mpCreatedView)
+			{
+				page = createViewInfo.mpCreatedView->GetPage();
+			}
+		}
+	}
+
 
     return page;
 }
@@ -305,9 +340,9 @@ void WebChromeClient::mouseDidMoveOverElement(const HitTestResult& result, unsig
 
 }
 
-void WebChromeClient::setToolTip(const String& toolTip)
+void WebChromeClient::setToolTip(const String& toolTip, IntPoint location, const int handleID )
 {
-    m_webView->setToolTip(toolTip);
+    m_webView->setToolTip(toolTip, location, handleID);
 }
 
 void WebChromeClient::print(Frame* frame)

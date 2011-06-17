@@ -112,6 +112,10 @@ void ResourceHandle::clearAuthentication()
 
 static bool portAllowed(const ResourceRequest& request)
 {
+#if PLATFORM(XBOX)
+    // All ports are enabled for xbox.
+    return true;
+#else
     unsigned short port = request.url().port();
 
     // Since most URLs don't have a port, return early for the "no port" case.
@@ -141,7 +145,7 @@ static bool portAllowed(const ResourceRequest& request)
         77,   // priv-rjs
         79,   // finger
         87,   // ttylink
-        //95,   // supdup - Workaround for port 95 being used on tos page
+        95,   // supdup
         101,  // hostriame
         102,  // iso-tsap
         103,  // gppitnp
@@ -198,6 +202,7 @@ static bool portAllowed(const ResourceRequest& request)
     LOG(Loading, "ResourceHandle: Resource load failure due to blocked port.\n");
 
     return false;
+#endif
 }
   
 } // namespace WebCore

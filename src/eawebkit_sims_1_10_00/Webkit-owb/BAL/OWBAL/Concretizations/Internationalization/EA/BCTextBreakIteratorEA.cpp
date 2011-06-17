@@ -60,37 +60,37 @@ static TextBreakIterator gTextBreakIterator;
 
 TextBreakIterator* characterBreakIterator(const UChar* pText, int length)
 {
-    EA::Internal::IFontServer* pServer = EA::WebKit::GetFontServer();
+    EA::WebKit::IFontServer* pServer = EA::WebKit::GetFontServer();
     if(!pServer)
         return 0;
-    gTextBreakIterator.mpBreakIterator = pServer->CharacterBreakIterator((EA::Internal::Char *) pText, length);    
+    gTextBreakIterator.mpBreakIterator = pServer->CharacterBreakIterator((EA::WebKit::Char *) pText, length);    
     return &gTextBreakIterator;
 }
 
 TextBreakIterator* wordBreakIterator(const UChar* pText, int length)
 {
-    EA::Internal::IFontServer* pServer = EA::WebKit::GetFontServer();
+    EA::WebKit::IFontServer* pServer = EA::WebKit::GetFontServer();
     if(!pServer)
         return 0;
-    gTextBreakIterator.mpBreakIterator =pServer->WordBreakIterator((EA::Internal::Char *) pText, length);
+    gTextBreakIterator.mpBreakIterator =pServer->WordBreakIterator((EA::WebKit::Char *) pText, length);
     return &gTextBreakIterator;
 }
 
 TextBreakIterator* lineBreakIterator(const UChar* pText, int length)
 {
-    EA::Internal::IFontServer* pServer = EA::WebKit::GetFontServer();
+    EA::WebKit::IFontServer* pServer = EA::WebKit::GetFontServer();
     if(!pServer)
         return 0;
-    gTextBreakIterator.mpBreakIterator =pServer->LineBreakIterator((EA::Internal::Char *) pText, length);
+    gTextBreakIterator.mpBreakIterator =pServer->LineBreakIterator((EA::WebKit::Char *) pText, length);
     return &gTextBreakIterator;
 }
 
 TextBreakIterator* sentenceBreakIterator(const UChar* pText, int length)
 {
-    EA::Internal::IFontServer* pServer = EA::WebKit::GetFontServer();
+    EA::WebKit::IFontServer* pServer = EA::WebKit::GetFontServer();
     if(!pServer)
         return 0;
-    gTextBreakIterator.mpBreakIterator =pServer->SentenceBreakIterator((EA::Internal::Char *) pText, length);
+    gTextBreakIterator.mpBreakIterator =pServer->SentenceBreakIterator((EA::WebKit::Char *) pText, length);
     return &gTextBreakIterator;
 }
 
@@ -99,7 +99,7 @@ int textBreakFirst(TextBreakIterator* pIterator)
     // We have a problem: EATextBreak doesn't implement a pure-virtual NextBreak/PrevBreak function.
     // It's easy to do this but it requires us to update EAText. We do something of a hack in the 
     // short run to allow this to work now by checking each of the global variables manually.
-    EA::Internal::IFontServer* pServer = EA::WebKit::GetFontServer();
+    EA::WebKit::IFontServer* pServer = EA::WebKit::GetFontServer();
     if(!pServer)
         return 0;    
     return pServer->TextBreakFirst(gTextBreakIterator.mpBreakIterator);   
@@ -107,7 +107,7 @@ int textBreakFirst(TextBreakIterator* pIterator)
 
 int textBreakNext(TextBreakIterator* pIterator)
 {
-    EA::Internal::IFontServer* pServer = EA::WebKit::GetFontServer();
+    EA::WebKit::IFontServer* pServer = EA::WebKit::GetFontServer();
     if(!pServer)
         return 0;
     return pServer->TextBreakNext(gTextBreakIterator.mpBreakIterator);
@@ -115,7 +115,7 @@ int textBreakNext(TextBreakIterator* pIterator)
 
 int textBreakCurrent(TextBreakIterator* pIterator)
 {
-    EA::Internal::IFontServer* pServer = EA::WebKit::GetFontServer();
+    EA::WebKit::IFontServer* pServer = EA::WebKit::GetFontServer();
     if(!pServer)
         return 0;
     return pServer->TextBreakCurrent(gTextBreakIterator.mpBreakIterator);
@@ -123,7 +123,7 @@ int textBreakCurrent(TextBreakIterator* pIterator)
 
 int textBreakPreceding(TextBreakIterator* pIterator, int position)
 {
-    EA::Internal::IFontServer* pServer = EA::WebKit::GetFontServer();
+    EA::WebKit::IFontServer* pServer = EA::WebKit::GetFontServer();
     if(!pServer)
         return 0;
     return pServer->TextBreakPreceding(gTextBreakIterator.mpBreakIterator, position);
@@ -131,7 +131,7 @@ int textBreakPreceding(TextBreakIterator* pIterator, int position)
 
 int textBreakFollowing(TextBreakIterator* pIterator, int position)
 {
-    EA::Internal::IFontServer* pServer = EA::WebKit::GetFontServer();
+    EA::WebKit::IFontServer* pServer = EA::WebKit::GetFontServer();
     if(!pServer)
         return 0;
     return pServer->TextBreakFollowing(gTextBreakIterator.mpBreakIterator, position);
@@ -139,7 +139,7 @@ int textBreakFollowing(TextBreakIterator* pIterator, int position)
 
 bool isTextBreak(TextBreakIterator* pIterator, int position)
 {
-    EA::Internal::IFontServer* pServer = EA::WebKit::GetFontServer();
+    EA::WebKit::IFontServer* pServer = EA::WebKit::GetFontServer();
     if(!pServer)
         return true;
     return pServer->IsTextBreak(gTextBreakIterator.mpBreakIterator, position);  

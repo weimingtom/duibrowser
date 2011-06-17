@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2011 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -46,7 +46,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PlatformScrollBar.h"
 #include "Page.h"
 #include "RenderLayer.h"
-#include "EARaster.h"
+#include <EARaster/EARaster.h>
 #include <EAWebKit/internal/EAWebKitAssert.h>
 #include <EAWebKit/EAWebKitView.h>
 #include <stdio.h>
@@ -139,14 +139,38 @@ void ScrollViewScrollbar::geometryChanged() const
     ASSERT(parent()->isFrameView());
 
     FrameView* frameView = static_cast<FrameView*>(parent());
+    if(!frameView) 
+        return;    
+
     IntPoint loc = frameView->convertToContainingWindow(frameGeometry().location());
 
     // Don't allow the allocation size to be negative
     IntSize sz = frameGeometry().size();
     sz.clampNegativeToZero();
 
-//     GtkAllocation allocation = { loc.x(), loc.y(), sz.width(), sz.height() };
-//     gtk_widget_size_allocate(gtkWidget(), &allocation);
+    // 3/16/11 EA- CSidhall - We add this to the dirty region to trigger a draw so the scroll bar and widget can refresh.
+    // Normally, this is done when there is a scroll delta but a page can change in size through javascript for example without a scroll request.
+
+    IntRect r(loc.x(), loc.y(), sz.width(), sz.height() );
+    int xOffset=0;
+    int yOffset=0;
+    ScrollView* pParent = frameView->parent();
+    ScrollView* pFirstParent = pParent; 
+    while(pParent) {
+        xOffset += pParent->x();       
+        yOffset += pParent->y();       
+        if(pParent != pFirstParent) {    
+            // We only want the scroll offset from higher parents here 
+            xOffset -= pParent->contentsX();
+            yOffset -= pParent->contentsY();
+        }
+        pParent = pParent->parent();
+    }
+    r.move(xOffset,yOffset);   
+    frameView->addToDirtyRegion(r);
+    
+    if(frameView->containingWindow())
+        frameView->SetDirty(true);
 }
 
 
@@ -338,14 +362,23 @@ void ScrollView::updateContents(const IntRect& updateRect, bool /*now*/)
 void ScrollView::update()
 {
     ASSERT(containingWindow());
+    
+    IntRect r = frameGeometry(); // This has the widget location with the scroll. 
 
-    IntRect documentDirtyRect = frameGeometry();
-    //documentDirtyRect.move(scrollOffset().width(), scrollOffset().height());
-    //OWB_PRINTF("update documentDirtyRect x=%d y=%d w=%d h=%d\n", documentDirtyRect.x(), documentDirtyRect.y(), documentDirtyRect.width(), documentDirtyRect.height());
-    addToDirtyRegion(documentDirtyRect);
-
-    //updateView(containingWindow(), frameGeometry());
-    SetDirty(true);
+    //+ 3/16/11 EA - CSidhall - Adjustment for the scroll and offset for the dirty rect which is in view coordinates.  
+    int xOffset=0;
+    int yOffset=0;
+    ScrollView* pParent = parent();
+    while(pParent) {
+        xOffset += pParent->x();       
+        yOffset += pParent->y();        
+        xOffset -= pParent->contentsX();
+        yOffset -= pParent->contentsY();
+        pParent = pParent->parent();
+    }
+    r.move(xOffset,yOffset);   
+    addToDirtyRegion(r);
+    SetDirty(true);    
 }
 
 
@@ -786,14 +819,31 @@ void ScrollView::paint(GraphicsContext* context, const IntRect& rect)
             m_data->vBar->paint(context, scrollViewDirtyRect);
 
         // Fill the scroll corner with white.
-        IntRect hCorner;
+		// 7/23/10 Gautam Narain : Allow for custom scrollbar corner draw. Also I don't see
+		// any edge case where we can have a corner where the vCorner is less than hCorner as it should be available only
+		// when both the bars are visible. If both bars are available we can be sure that we do have a corner
+		if(m_data->vBar && m_data->hBar)
+		{
+			IntRect corner;			
+			corner = IntRect(m_data->vBar->x() + context->origin().width(), 
+						     m_data->hBar->y() + context->origin().height(),
+						     m_data->vBar->width(), m_data->hBar->height());
+
+			EA::Raster::Rect cornerRect;
+			IntRectToEARect(corner, cornerRect);
+			EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
+			if(!pVN || !pVN->DrawScrollbarCorner(context->platformContext(), cornerRect))
+					context->fillRect(corner, Color::white);			
+		}
+
+        /*IntRect hCorner;
         if (m_data->hBar && width() - m_data->hBar->width() > 0) {
             hCorner = IntRect(m_data->hBar->width(),
                               height() - m_data->hBar->height(),
                               width() - m_data->hBar->width(),
                               m_data->hBar->height());
-            if (hCorner.intersects(scrollViewDirtyRect))
-                context->fillRect(hCorner, Color::white);
+			if (hCorner.intersects(scrollViewDirtyRect)) 
+					context->fillRect(hCorner, Color::white);
         }
 
         if (m_data->vBar && height() - m_data->vBar->height() > 0) {
@@ -801,9 +851,10 @@ void ScrollView::paint(GraphicsContext* context, const IntRect& rect)
                             m_data->vBar->height(),
                             m_data->vBar->width(),
                             height() - m_data->vBar->height());
-            if (vCorner != hCorner && vCorner.intersects(scrollViewDirtyRect))
-                context->fillRect(vCorner, Color::white);
-        }
+			if (vCorner != hCorner && vCorner.intersects(scrollViewDirtyRect)) 
+					context->fillRect(vCorner, Color::white);
+			
+        }*/
         context->restore();
     }
 
@@ -820,7 +871,7 @@ void ScrollView::paint(GraphicsContext* context, const IntRect& rect)
 
         if(!r.isEmpty())
         {
-            EA::Raster::Surface* const pSurface = containingWindow();
+            EA::Raster::ISurface* const pSurface = containingWindow();
 
             updateView(pSurface, r);
         }
@@ -830,7 +881,7 @@ void ScrollView::paint(GraphicsContext* context, const IntRect& rect)
 
 
 // ProcessEvents() -> WebView::onExpose -> WebViewPrivate::onExpose -> ScrollView::paint -> updateView.
-bool ScrollView::updateView(EA::Raster::Surface* pSurface, const IntRect& rect)
+bool ScrollView::updateView(EA::Raster::ISurface* pSurface, const IntRect& rect)
 {
     if (pSurface)
     {
@@ -841,19 +892,19 @@ bool ScrollView::updateView(EA::Raster::Surface* pSurface, const IntRect& rect)
                 char       filePath[256];
 
                 sprintf(filePath, "D:\\temp\\Surface%d.ppm", counter++ % 8);  // Use 0, 1, ... 6, 7, 0, 1, ...
-                EA::Raster::WritePPMFile(filePath, pSurface, false);
+                EA::WebKit::GetEARasterInstance()->WritePPMFile(filePath, pSurface, false);
             }
         #endif
 
         EA::Raster::Rect rectUpdate(rect.x(), rect.y(), rect.width(), rect.height());
-        EA::Raster::Rect rectSurface(0, 0, pSurface->mWidth, pSurface->mHeight);
+        EA::Raster::Rect rectSurface(0, 0, pSurface->GetWidth(), pSurface->GetHeight());
         EA::Raster::Rect rectClipped;
 
         IntersectRect(rect, rectSurface, rectClipped);
 
         if(rectClipped.w || rectClipped.h)
         {
-            EA::WebKit::View* pView = static_cast<EA::WebKit::View*>(pSurface->mpUserData);
+            EA::WebKit::View* pView = static_cast<EA::WebKit::View*>(pSurface->GetUserData());
             EAW_ASSERT(pView);
 
             pView->ViewUpdated(rectClipped.x, rectClipped.y, rectClipped.w, rectClipped.h);

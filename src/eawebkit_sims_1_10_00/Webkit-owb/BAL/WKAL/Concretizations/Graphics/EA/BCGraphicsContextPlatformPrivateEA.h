@@ -37,7 +37,7 @@
 #include <wtf/MathExtras.h>
 #include "BALBase.h"
 
-#include "EARaster.h"
+#include <EARaster/EARaster.h>
 
 
 
@@ -66,7 +66,7 @@ public:
     void endTransparencyLayer() {}
 
     Vector<float> layers;
-    EA::Raster::Surface *surface;
+    EA::Raster::ISurface *surface;
 };
 
 } // namespace WebCore

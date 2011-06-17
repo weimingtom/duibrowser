@@ -323,12 +323,12 @@ namespace WTF {
     bool isSeparatorSpace(UChar32 c)
     {
         // We don't support chars above 0xffff.
-        EA::Internal::IFontServer*pServer = EA::WebKit::GetFontServer();
+        EA::WebKit::IFontServer*pServer = EA::WebKit::GetFontServer();
         if(!pServer)
             return false;
 
-        const EA::Internal::CharCategory cc = pServer->GetCharCategory((EA::Internal::Char)c);
-        return (cc == EA::Internal::kCCSpaceSeparator);
+        const EA::WebKit::CharCategory cc = pServer->GetCharCategory((EA::WebKit::Char)c);
+        return (cc == EA::WebKit::kCCSpaceSeparator);
     }
 
 
@@ -337,50 +337,50 @@ namespace WTF {
         //EA_COMPILETIME_ASSERT(EA::Text::kCCSurrogate == 4);  // Just a basic sanity check that the table hasn't been modified.
         
         // We don't support chars above 0xffff.
-        EA::Internal::IFontServer*pServer = EA::WebKit::GetFontServer();
+        EA::WebKit::IFontServer*pServer = EA::WebKit::GetFontServer();
         if(!pServer)
             return false;
 
-        const EA::Internal::CharCategory cc = pServer->GetCharCategory((EA::Internal::Char)c);
-        return (cc <= EA::Internal::kCCSurrogate);  // Currently in EAText all the non-printables are enumerated first.
+        const EA::WebKit::CharCategory cc = pServer->GetCharCategory((EA::WebKit::Char)c);
+        return (cc <= EA::WebKit::kCCSurrogate);  // Currently in EAText all the non-printables are enumerated first.
     }
 
     
     bool isDigit(UChar32 c)
     {
         // We don't support chars above 0xffff.
-        EA::Internal::IFontServer*pServer = EA::WebKit::GetFontServer();
+        EA::WebKit::IFontServer*pServer = EA::WebKit::GetFontServer();
         if(!pServer)
             return false;
 
-        const EA::Internal::CharCategory cc = pServer->GetCharCategory((EA::Internal::Char)c);
-        return (cc == EA::Internal::kCCDecimalDigitNumber);
+        const EA::WebKit::CharCategory cc = pServer->GetCharCategory((EA::WebKit::Char)c);
+        return (cc == EA::WebKit::kCCDecimalDigitNumber);
     }
 
 
     bool isPunct(UChar32 c)
     {
          // We don't support chars above 0xffff.
-        EA::Internal::IFontServer*pServer = EA::WebKit::GetFontServer();
+        EA::WebKit::IFontServer*pServer = EA::WebKit::GetFontServer();
         if(!pServer)
             return false;
-        const EA::Internal::CharCategory cc = pServer->GetCharCategory((EA::Internal::Char)c);
-        return (cc == EA::Internal::kCCDashPunctuation
-             || cc == EA::Internal::kCCStartPunctuation
-             || cc == EA::Internal::kCCEndPunctuation
-             || cc == EA::Internal::kCCConnectorPunctuation
-             || cc == EA::Internal::kCCOtherPunctuation
-             || cc == EA::Internal::kCCInitialPunctuation
-             || cc == EA::Internal::kCCFinalPunctuation);
+        const EA::WebKit::CharCategory cc = pServer->GetCharCategory((EA::WebKit::Char)c);
+        return (cc == EA::WebKit::kCCDashPunctuation
+             || cc == EA::WebKit::kCCStartPunctuation
+             || cc == EA::WebKit::kCCEndPunctuation
+             || cc == EA::WebKit::kCCConnectorPunctuation
+             || cc == EA::WebKit::kCCOtherPunctuation
+             || cc == EA::WebKit::kCCInitialPunctuation
+             || cc == EA::WebKit::kCCFinalPunctuation);
     }
 
 
     UChar32 mirroredChar(UChar32 c)
     {
-        EA::Internal::IFontServer*pServer = EA::WebKit::GetFontServer();
+        EA::WebKit::IFontServer*pServer = EA::WebKit::GetFontServer();
         if(!pServer)
             return false;
-        return pServer->GetMirrorChar((EA::Internal::Char)c);
+        return pServer->GetMirrorChar((EA::WebKit::Char)c);
     }
 
 
@@ -388,11 +388,11 @@ namespace WTF {
     {
         using namespace WTF::Unicode;
         
-        EA::Internal::IFontServer*pServer = EA::WebKit::GetFontServer();
+        EA::WebKit::IFontServer*pServer = EA::WebKit::GetFontServer();
         if(!pServer)
             return LeftToRight;
        
-        const EA::Internal::BidiClass bidiClass = pServer->GetBidiClass((EA::Internal::Char)c);
+        const EA::WebKit::BidiClass bidiClass = pServer->GetBidiClass((EA::WebKit::Char)c);
 
         // The EAText BidiClass is the same thing as the WTF::Unicode::Direction enum, 
         // except that they have a different ordering. We may be able to change the 
@@ -401,25 +401,25 @@ namespace WTF {
 
         switch (bidiClass)
         {
-            case EA::Internal::kBidiClassON:  return OtherNeutral;
-            case EA::Internal::kBidiClassL:   return LeftToRight;
-            case EA::Internal::kBidiClassR:   return RightToLeft;
-            case EA::Internal::kBidiClassAN:  return ArabicNumber;
-            case EA::Internal::kBidiClassEN:  return EuropeanNumber;
-            case EA::Internal::kBidiClassAL:  return RightToLeftArabic;
-            case EA::Internal::kBidiClassNSM: return NonSpacingMark;
-            case EA::Internal::kBidiClassCS:  return CommonNumberSeparator;
-            case EA::Internal::kBidiClassES:  return EuropeanNumberSeparator;
-            case EA::Internal::kBidiClassET:  return EuropeanNumberTerminator;
-            case EA::Internal::kBidiClassBN:  return BoundaryNeutral;
-            case EA::Internal::kBidiClassS:   return SegmentSeparator;
-            case EA::Internal::kBidiClassWS:  return WhiteSpaceNeutral;
-            case EA::Internal::kBidiClassB:   return BlockSeparator;
-            case EA::Internal::kBidiClassRLO: return RightToLeftOverride;
-            case EA::Internal::kBidiClassRLE: return RightToLeftEmbedding;
-            case EA::Internal::kBidiClassLRO: return LeftToRightOverride;
-            case EA::Internal::kBidiClassLRE: return LeftToRightEmbedding;
-            case EA::Internal::kBidiClassPDF: return PopDirectionalFormat;
+            case EA::WebKit::kBidiClassON:  return OtherNeutral;
+            case EA::WebKit::kBidiClassL:   return LeftToRight;
+            case EA::WebKit::kBidiClassR:   return RightToLeft;
+            case EA::WebKit::kBidiClassAN:  return ArabicNumber;
+            case EA::WebKit::kBidiClassEN:  return EuropeanNumber;
+            case EA::WebKit::kBidiClassAL:  return RightToLeftArabic;
+            case EA::WebKit::kBidiClassNSM: return NonSpacingMark;
+            case EA::WebKit::kBidiClassCS:  return CommonNumberSeparator;
+            case EA::WebKit::kBidiClassES:  return EuropeanNumberSeparator;
+            case EA::WebKit::kBidiClassET:  return EuropeanNumberTerminator;
+            case EA::WebKit::kBidiClassBN:  return BoundaryNeutral;
+            case EA::WebKit::kBidiClassS:   return SegmentSeparator;
+            case EA::WebKit::kBidiClassWS:  return WhiteSpaceNeutral;
+            case EA::WebKit::kBidiClassB:   return BlockSeparator;
+            case EA::WebKit::kBidiClassRLO: return RightToLeftOverride;
+            case EA::WebKit::kBidiClassRLE: return RightToLeftEmbedding;
+            case EA::WebKit::kBidiClassLRO: return LeftToRightOverride;
+            case EA::WebKit::kBidiClassLRE: return LeftToRightEmbedding;
+            case EA::WebKit::kBidiClassPDF: return PopDirectionalFormat;
         }
         return LeftToRight;
     }
@@ -428,12 +428,12 @@ namespace WTF {
     bool isLower(UChar32 c)
     {
          // We don't support chars above 0xffff.
-        EA::Internal::IFontServer*pServer = EA::WebKit::GetFontServer();
+        EA::WebKit::IFontServer*pServer = EA::WebKit::GetFontServer();
         if(!pServer)
             return false;
         
-        const EA::Internal::CharCategory cc = pServer->GetCharCategory((EA::Internal::Char)c);
-        return (cc == EA::Internal::kCCLowercaseLetter);
+        const EA::WebKit::CharCategory cc = pServer->GetCharCategory((EA::WebKit::Char)c);
+        return (cc == EA::WebKit::kCCLowercaseLetter);
     }
 
 
@@ -460,11 +460,11 @@ namespace WTF {
     {
         // To do: Make sure that the EAText combining class values are the same as ICU.
         //        They should be so, as EAText follows the Unicode Standard on this.
-        EA::Internal::IFontServer*pServer = EA::WebKit::GetFontServer();
+        EA::WebKit::IFontServer*pServer = EA::WebKit::GetFontServer();
         if(!pServer)
             return false;
         
-        const int32_t cc = pServer->GetCombiningClass((EA::Internal::Char)c);
+        const int32_t cc = pServer->GetCombiningClass((EA::WebKit::Char)c);
         return (unsigned char)(uint32_t)cc;
     }
 

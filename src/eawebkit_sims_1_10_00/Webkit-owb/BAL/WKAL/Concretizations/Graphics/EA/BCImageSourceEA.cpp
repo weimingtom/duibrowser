@@ -47,7 +47,7 @@
 #include "XBMImageDecoder.h"
 #include "SharedBuffer.h"
 #include "Cache.h"
-#include "EARaster.h"
+#include <EARaster/EARaster.h>
 #include <EAWebKit/EAWebKit.h>
 
 namespace WKAL {
@@ -191,7 +191,7 @@ NativeImagePtr ImageSource::createFrameAtIndex(size_t index)
     int   h = buffer->height();
 
     // This version will use (share) the decoder buffer directly instead of making another copy.
-    EA::Raster::Surface* pSurface  = 0;
+    EA::Raster::ISurface* pSurface  = 0;
     
     // 7/13/09 CSidhall - set copy to false so we use the decode buffer directly
     bool copyBuffer;
@@ -200,7 +200,7 @@ NativeImagePtr ImageSource::createFrameAtIndex(size_t index)
         copyBuffer = false;
     else
         copyBuffer = true;
-    pSurface = EA::Raster::CreateSurface(p, w, h, w * 4, EA::Raster::kPixelFormatTypeARGB, copyBuffer, false);
+    pSurface =   EA::WebKit::GetEARasterInstance()->CreateSurface(p, w, h, w * 4, EA::Raster::kPixelFormatTypeARGB, copyBuffer, false, EA::Raster::kSurfaceCategoryImage);
     return pSurface;
 }
 

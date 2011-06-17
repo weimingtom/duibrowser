@@ -58,6 +58,7 @@
 #include <EARaster/EARaster.h>
 #include <EARaster/EARasterColor.h>
 #include <EAWebKit/EAWebKit.h>
+#include <EAWebKit/internal/EAWebKitAssert.h>
 
 #ifndef M_PI
     #define M_PI 3.14159265359
@@ -82,6 +83,8 @@ namespace WKAL {
 GraphicsContext::GraphicsContext(PlatformGraphicsContext* cr)
     : m_common(createGraphicsContextPrivate())
     , m_data(new GraphicsContextPlatformPrivate)
+    , clippingRect(0,0,0,0)
+    , m_expose(0)
 {
     m_data->surface = cr;
     setPaintingDisabled(!cr);
@@ -95,16 +98,55 @@ GraphicsContext::~GraphicsContext()
 
 AffineTransform GraphicsContext::getCTM() const
 {
-    NotImplemented();
-    AffineTransform a;
-    return a;
+    return m_common->state.transform;
+}
+
+bool GraphicsContext::hasTransform() const
+{
+    return !m_common->state.transform.isIdentity(); 
+}
+
+
+EA::Raster::ISurface* GraphicsContext::transform(EA::Raster::ISurface *pSrc, EA::Raster::Rect &srcRect, EA::Raster::Rect &dstRect )
+{
+    WKAL::AffineTransform t = getCTM();
+    
+    // Convert to external matrix format
+    EA::Raster::Matrix2D m(t.a(),t.b(),t.c(),t.d(),t.e(),t.f());
+    
+    // Build the transformed surface
+    EA::Raster::IEARaster* pRaster = EA::WebKit::GetEARasterInstance();
+    EA::Raster::ISurface *pTransformSurface = pRaster->TransformSurface(pSrc, srcRect, m);
+    if(!pTransformSurface)
+        return pTransformSurface;    
+    
+
+    // Build the source rect and rotate it to find the new rotated position
+    IntRect rect = t.mapRect(srcRect);
+
+    // Adjust the position of the dstRect in local space (remove origin)
+    t.setE(0);
+    t.setF(0);
+    int x1 = dstRect.x - origin().width();
+    int y1 = dstRect.y - origin().height();
+    double x2, y2;
+    t.map((double) x1, (double) y1, &x2, &y2);
+    dstRect.x = rect.x() + origin().width() + (int) x2;
+    dstRect.y = rect.y() + origin().height() + (int) y2;  
+
+    // Reset to the new source surface
+    srcRect.x =0; 
+    srcRect.y =0; 
+    srcRect.w = pTransformSurface->GetWidth(); 
+    srcRect.h = pTransformSurface->GetHeight(); 
+
+    return pTransformSurface;
 }
 
 PlatformGraphicsContext* GraphicsContext::platformContext() const
 {
     return m_data->surface;
 }
-
 
 PlatformGraphicsContext* GraphicsContext::setPlatformContext(PlatformGraphicsContext* p)
 {
@@ -119,7 +161,7 @@ void GraphicsContext::savePlatformState()
         return;
 
     // 2/11/09 CSidhall - Save clip rect 
-    m_common->state.setClipRectRestore(m_data->surface->mClipRect);    
+    m_common->state.setClipRectRestore(m_data->surface->GetClipRect());    
   
     m_common->stack.append(m_common->state);
 }
@@ -135,7 +177,7 @@ void GraphicsContext::restorePlatformState()
     }
 
     // 2/11/09 CSidhall - Restore the clip rect 
-    m_data->surface->mClipRect = m_common->state.getClipRectRestore();
+    m_data->surface->SetClipRect(m_common->state.getClipRectRestore());
 
     m_common->state = m_common->stack.last();
     m_common->stack.removeLast();
@@ -152,7 +194,7 @@ void GraphicsContext::drawRect(const IntRect& rect)
     if (paintingDisabled())
         return;
 
-    EA::Raster::Surface* pSurface = m_data->surface;
+    EA::Raster::ISurface* pSurface = m_data->surface;
 
     EA::Raster::Rect dstRect;
     dstRect.x = rect.x() + origin().width();
@@ -160,18 +202,18 @@ void GraphicsContext::drawRect(const IntRect& rect)
     dstRect.w = rect.width();
     dstRect.h = rect.height();
 
-    if (fillColor().alpha())
+     if (fillColor().alpha())
     {
         if (!m_data->layers.isEmpty())
         {
             const EA::Raster::Color rectFillColor(fillColor().red(), fillColor().green(), fillColor().blue(), static_cast<int>(fillColor().alpha() * m_data->layers.last()));
 
-            EA::Raster::FillRectColor(pSurface, &dstRect, rectFillColor);
+            EA::WebKit::GetEARasterInstance()->FillRectColor(pSurface, &dstRect, rectFillColor);
         }
         else
         {
             const EA::Raster::Color rectFillColor(fillColor().rgb());
-            EA::Raster::FillRectColor(pSurface, &dstRect, rectFillColor);
+            EA::WebKit::GetEARasterInstance()->FillRectColor(pSurface, &dstRect, rectFillColor);
         }
     }
 
@@ -203,19 +245,19 @@ void GraphicsContext::drawRect(const IntRect& rect)
 }
 
 
-// This is only used to draw borders.
+// This is only used to draw borders.  
 void GraphicsContext::drawLine(const IntPoint& point1, const IntPoint& point2)
 {
     if (paintingDisabled())
         return;
 
-    StrokeStyle style = strokeStyle();  // To do: Handle SolidStroke, DottedStroke, DashedStroke here.
+    StrokeStyle style = strokeStyle();  // Note: SolidStroke does not handle thickness.
     if (style == NoStroke)
         return;
     
-    float width = strokeThickness();    // To do: Handle width here. // For odd widths, we may need to add in 0.5 to the appropriate x/y so that the float arithmetic works.
-    if (width < 1)
-        width = 1;
+    int thickness = static_cast<int> (strokeThickness());    
+    if (thickness < 1)
+        thickness = 1;
 
     IntPoint p1(point1 + origin());
     IntPoint p2(point2 + origin());
@@ -228,26 +270,174 @@ void GraphicsContext::drawLine(const IntPoint& point1, const IntPoint& point2)
     else
         alpha = strokeColor().alpha();
 
-    if (p1.y() == p2.y())
+    // Default (dotted)
+    int width = thickness;  // The width of the dot or dash
+    int space = thickness;  // The empty space in between 2 dots or dashes
+
+    switch(style)
     {
-        EA::Raster::LineRGBA(m_data->surface,
-                             p1.x()    , p1.y(),
-                             p2.x() - 1, p2.y(),
-                             color.red(),
-                             color.green(),
-                             color.blue(),
-                             alpha);
-    }
-    else
-    {
-        EA::Raster::LineRGBA(m_data->surface,
-                             p1.x(), p1.y(),
-                             p2.x(), p2.y(),
-                             color.red(),
-                             color.green(),
-                             color.blue(),
-                             alpha);
-    }
+        case DashedStroke:
+        {
+            const int kDashWidth = 3;   // These numbers are based on experimentation with other browsers.  About the same.
+            const int kDaskSpace = 2;
+
+            width = kDashWidth * thickness;  
+            space = kDaskSpace * thickness;  
+        }
+         // Fall into DottedStroke here...
+
+        case DottedStroke:
+        {
+            int x1 =  p1.x();
+            int y1 =  p1.y();
+            int x2 =  p2.x();
+            int y2 =  p2.y();
+            
+            // Safety ordering 
+            if(x1 > x2)
+            {
+                int temp =x2;
+                x2 = x1;
+                x1 = temp;
+            }
+            if(y1 > y2)
+            {
+                int temp =y2;
+                y2 = y1;
+                y1 = temp;
+            }    
+
+            // It appears that the passed line should not include the last point but in some cases, we do want it.
+            // This box draw also assumes that the thickness will be added so gives the averaged center of the line instead
+            // of just a box that contains the thick line.
+            if(y1 == y2) // Since the lines are axis aligned for now, this should work.
+            {
+                x2 -= 1; 
+            }
+            else if(x1 == x2)
+            {
+                y2 -= 1;
+            }
+
+            // Build the delta
+            int deltaX = x2 - x1;
+            int deltaY = y2 - y1;
+            int length = static_cast<int> (sqrt( static_cast<float> ((deltaX * deltaX) + (deltaY * deltaY)) ));
+            if(length <= 0)
+                return;         // Not a line
+
+            // Normalize the dash/dot vector to the width       
+            int dashX = (deltaX * (width-1))/ length; // The dot does not include the end point so width -1
+            int dashY = (deltaY * (width-1))/ length;
+
+            //Normalize the space vector to the space
+            int spaceX = (deltaX * (space+1))/length; // This is the empty space delta from the dash/dot location ( so + 1.0f) 
+            int spaceY = (deltaY * (space+1))/length;
+
+            // Normalize it to the displacement         // The displacement is how much we need to move the center line to take into account the line thickness.         
+            int displace = thickness >> 1;  // /2 to find how much should go over the center. A 1 pixel line would have 0 displacement.
+            if(y1 != y2)
+                displace = -displace; // Flip normal for vertical lines so that we start on the right side
+            int displaceX = (deltaY * displace) / length;
+            int displaceY = (-deltaX * displace) / length;
+
+            // Preset the line color    
+            Color    c(color.red(), color.green(), color.blue(), alpha);                
+
+            // Starting coord    
+            int curX1 = x1;
+            int curY1 = y1;
+            int curX2, curY2; 
+
+            // Width and height of the rectangle
+            int w,h;
+            if(y1 != y2)
+            {
+                h = width;
+                w = thickness;           
+            }
+            else
+            {
+                w = width;
+                h = thickness;  
+            }
+
+            // Find out how many dots we need to draw
+            int dotCount = ( (length + (width + space -1)) / (width + space) );  // We add a partial extra dot with (width + space -1)
+
+            // Note: Seems that some other browsers might adjust their starting dot/dash width so that the end point does not 
+            // end on a blank space, leaving a corner bare.  We could consider this.  The current system clips the end point instead 
+            // if needed.
+
+            EA::Raster::Rect rect;
+
+            // Draw loop
+            while(dotCount--)
+            {
+                // new end point
+                curX2 = curX1 + dashX;
+                curY2 = curY1 + dashY;
+                
+                // Overflow checks - Should only kick in for the last dot
+                if(curX2 > x2)
+                {
+                    EAW_ASSERT(!dotCount);                   
+                    curX2 = x2;
+                    // Don't draw if too small in relation to the thickness or it looks like a pixel bug
+                    w = (curX2 - curX1) ;                 
+                    if((w  <= 2) && (width > 3)) 
+                        break;
+                }
+                if(curY2 > y2)
+                {
+                    EAW_ASSERT(!dotCount);              
+                    curY2 = y2;
+                    // Don't draw if too small in relation to the thickness
+                    h = (curY2 - curY1) + 1; // +1 because the starting point is included  
+                    if( (h <= 2) && (width > 3) ) 
+                        break;
+                }
+ 
+                rect.x = curX1 + displaceX;
+                rect.y = curY1 + displaceY;
+                rect.w = w;
+                rect.h = h;
+                EA::WebKit::GetEARasterInstance()->FillRectColor(m_data->surface, &rect, c);
+
+           
+                // new start point
+                curX1 = curX2 + spaceX;
+                curY1 = curY2 + spaceY;
+            }
+            break;
+
+        }
+        
+        // Used by the scroll bar, the regular CSS border does not seem to use this one. 
+        case SolidStroke:
+        default:
+        {
+            int x2 = p2.x();
+            int y2 = p2.y();
+
+            if (p1.y() == p2.y())
+            {
+                x2 -=1;  // Correction to not include end point
+            }
+            else
+            {
+                // TODO: Verify if y2 should also be -1 here 
+            }
+
+            EA::WebKit::GetEARasterInstance()->LineRGBA(m_data->surface,
+                                     p1.x(), p1.y(),
+                                     x2, y2,
+                                     color.red(),
+                                     color.green(),
+                                     color.blue(),
+                                     alpha);
+        }
+  }    
 }
 
 // This method is only used to draw the little circles used in lists.
@@ -280,7 +470,7 @@ void GraphicsContext::drawEllipse(const IntRect& rect)
     else
         alpha = strokeColor().alpha();
 
-    EA::Raster::EllipseRGBA(m_data->surface, 
+    EA::WebKit::GetEARasterInstance()->EllipseRGBA(m_data->surface, 
                             (int)(rect.x() + origin().width() + xRadius),
                             (int)(rect.y() + origin().height() + yRadius),
                             (int)(xRadius),
@@ -293,15 +483,18 @@ void GraphicsContext::drawEllipse(const IntRect& rect)
 
 
 // TODO: draw points instead of lines for nicer circles
-inline void drawArc(EA::Raster::Surface* pSurface, const WebCore::Color color, int zone, int xc, int yc, float& x0, float& y0, float x1, float y1, bool doSwap = true)
+inline void drawArc(EA::Raster::ISurface* pSurface, const WebCore::Color color, int zone, int xc, int yc, float& x0, float& y0, float x1, float y1, bool doSwap = true)
 {
+
+    EA::Raster::IEARaster* pRaster =EA::WebKit::GetEARasterInstance();
+
     // Mean First draw => will not draw just a point.
     if (x0 != x1)
     {
         switch(zone)
         {
             case 0:
-                EA::Raster::LineRGBA(pSurface,
+                pRaster->LineRGBA(pSurface,
                             static_cast<int>(xc + ceilf(x0)), static_cast<int>(yc - ceilf(y0)),
                             static_cast<int>(xc + ceilf(x1)), static_cast<int>(yc - ceilf(y1)),
                             color.red(),
@@ -311,7 +504,7 @@ inline void drawArc(EA::Raster::Surface* pSurface, const WebCore::Color color, i
                 break;
 
             case 1:
-                EA::Raster::LineRGBA(pSurface,
+                pRaster->LineRGBA(pSurface,
                             static_cast<int>(xc - ceilf(y0)), static_cast<int>(yc - ceilf(x0)),
                             static_cast<int>(xc - ceilf(y1)), static_cast<int>(yc - ceilf(x1)),
                             color.red(),
@@ -321,7 +514,7 @@ inline void drawArc(EA::Raster::Surface* pSurface, const WebCore::Color color, i
                 break;
 
             case 2:
-                EA::Raster::LineRGBA(pSurface,
+                pRaster->LineRGBA(pSurface,
                             static_cast<int>(xc - ceilf(x0)), static_cast<int>(yc + ceilf(y0)),
                             static_cast<int>(xc - ceilf(x1)), static_cast<int>(yc + ceilf(y1)),
                             color.red(),
@@ -331,7 +524,7 @@ inline void drawArc(EA::Raster::Surface* pSurface, const WebCore::Color color, i
                 break;
 
             case 3:
-                EA::Raster::LineRGBA(pSurface,
+                pRaster->LineRGBA(pSurface,
                             static_cast<int>(xc + ceilf(y0)), static_cast<int>(yc + ceilf(x0)),
                             static_cast<int>(xc + ceilf(y1)), static_cast<int>(yc + ceilf(x1)),
                             color.red(),
@@ -350,7 +543,7 @@ inline void drawArc(EA::Raster::Surface* pSurface, const WebCore::Color color, i
 }
 
 
-void drawArc(EA::Raster::Surface* pSurface, const IntRect rect, uint16_t startAngle, uint16_t angleSpan, const WebCore::Color color)
+void drawArc(EA::Raster::ISurface* pSurface, const IntRect rect, uint16_t startAngle, uint16_t angleSpan, const WebCore::Color color)
 {
     //
     //        |y          (This diagram is supposed to be a circle).
@@ -580,7 +773,7 @@ void GraphicsContext::drawConvexPolygon(size_t npoints, const FloatPoint* points
 
     Color color = fillColor();
 
-    EA::Raster::FilledPolygonRGBA(m_data->surface, pUsedVX, pUsedVY, npoints,
+    EA::WebKit::GetEARasterInstance()->FilledPolygonRGBA(m_data->surface, pUsedVX, pUsedVY, npoints,
                                    color.red(),
                                    color.green(),
                                    color.blue(),
@@ -602,19 +795,52 @@ void GraphicsContext::fillRect(const IntRect& rectWK, const Color& color, bool s
     const IntSize&   o = origin();
     EA::Raster::Rect rect(rectWK.x() + o.width(), rectWK.y() + o.height(), rectWK.width(), rectWK.height());
 
-    EA::Raster::Surface* const pSurface = m_data->surface;
-    // 7/23/09 CSidhall - Added a solid fill option to force a full clear
-    if(solidFill)
-    {
-        EA::Raster::FillRectSolidColor(pSurface, &rect, color);
-    }
-    else if (color.alpha())
+    EA::Raster::ISurface* const pSurface = m_data->surface;
+    EA::Raster::IEARaster* pRaster = EA::WebKit::GetEARasterInstance();
+
+    EA::Raster::Color c(color.red(), color.green(), color.blue(), color.alpha());
+    if( (!solidFill) &&  (color.alpha()) )
     {
         // To do: What really want to do is modify the alpha of 'color' in place instead of create temporary.
-        const int            alpha = m_data->layers.isEmpty() ? strokeColor().alpha() : static_cast<int>(strokeColor().alpha() * m_data->layers.last());
-        const EA::Raster::Color c(color.red(), color.green(), color.blue(), alpha);
+        // 12/8/10 CSidhall - Replaced the alpha stroke by the color alpha to fix background color fills with alpha and text highlight bug.       
+        // Note: Still remains an issue with overlapping child nodes with a same alpha which should not be darker.
+        // const int            alpha = m_data->layers.isEmpty() ? strokeColor().alpha() : static_cast<int>(strokeColor().alpha() * m_data->layers.last());
+        const int            alpha = m_data->layers.isEmpty() ? color.alpha() : static_cast<int>(color.alpha() * m_data->layers.last());    
+        c.setAlpha(alpha);
+    }
 
-        EA::Raster::FillRectColor(pSurface, &rect, c);
+    // 12/18/10 CSidhall - Added transform support for fill.
+    if(hasTransform())
+    {
+        AffineTransform t = getCTM();
+        double x[4];
+        double y[4];
+        double x1 = double (rect.x - origin().width());       
+        double y1 = double (rect.y - origin().height());       
+        
+        t.map( x1, y1, &x[0],&y[0]);
+        t.map((x1 + (double) rect.w), (y1 + (double) rect.h), &x[1],&y[1]);
+        t.map((x1 + (double) rect.w), y1, &x[2],&y[2]);
+        t.map( x1,  (y1 + (double) rect.h), &x[3],&y[3]);
+
+        int orgW = origin().width();
+        int orgH = origin().height();
+        int vx[3] ={ (int) x[0] + orgW ,(int) x[2] + orgW,(int) x[3] + orgW}; 
+        int vy[3] ={ (int) y[0] + orgH,(int) y[2] + orgH,(int) y[3] + orgH}; 
+            
+        pRaster->FilledPolygonColor( pSurface, &vx[0], &vy[0], 3 ,c);
+
+        vx[0] = (int) x[1] + orgW;
+        vy[0] = (int) y[1] + orgH;
+        pRaster->FilledPolygonColor( pSurface, &vx[0], &vy[0], 3 ,c);
+    }
+    else if(solidFill)
+    {
+        pRaster->FillRectSolidColor(pSurface, &rect, c);
+    }
+    else
+    {    
+        pRaster->FillRectColor(pSurface, &rect, c);
     }
 }
 
@@ -654,10 +880,10 @@ FloatRect GraphicsContext::getClip() const
     // Note: seems m_data might be decrepated eventually
     if((m_data) && (m_data->surface))
     {
-        rect.setX( (float) m_data->surface->mClipRect.x);
-        rect.setY((float) m_data->surface->mClipRect.y);
-        rect.setWidth(m_data->surface->mClipRect.width());
-        rect.setHeight(m_data->surface->mClipRect.height());
+        rect.setX( (float) m_data->surface->GetClipRect().x);
+        rect.setY((float) m_data->surface->GetClipRect().y);
+        rect.setWidth(m_data->surface->GetClipRect().width());
+        rect.setHeight(m_data->surface->GetClipRect().height());
     }
     return rect;
 }
@@ -693,18 +919,18 @@ void GraphicsContext::drawFocusRing(const Color& color)
 
     EA::WebKit::FocusRingDrawInfo focusInfo;
     
-    EA::Raster::Surface* pSurface = m_data->surface; 
+    EA::Raster::ISurface* pSurface = m_data->surface; 
     EA::WebKit::View* pView = NULL;
     if(pSurface)
-        pView = static_cast<EA::WebKit::View*> (pSurface->mpUserData);  // Need to verify that this cast is always safe...
+        pView = static_cast<EA::WebKit::View*> (pSurface->GetUserData());  // Need to verify that this cast is always safe...
     
     focusInfo.mpView = pView;
-    EA::Raster::IntRectToEARect(finalFocusRect, focusInfo.mFocusRect);
+    EA::WebKit::GetEARasterInstance()->IntRectToEARect(finalFocusRect, focusInfo.mFocusRect);
     focusInfo.mFocusRect.h -= 1;
     focusInfo.mFocusRect.w -= 1;
     focusInfo.mSuggestedColor.setRGB(color.rgb());
     focusInfo.mpSurface = m_data->surface;
-    if(pVN != NULL)
+    if(pVN)
     {
         useDefaultFocusRingDraw = !pVN->DrawFocusRing(focusInfo);
     }
@@ -714,7 +940,7 @@ void GraphicsContext::drawFocusRing(const Color& color)
     {
         // Force the alpha to 50%. This matches what the Mac does with outline rings.
         const  EA::Raster::Color ringColor(color.red(), color.green(), color.blue(), 127);
-        EA::Raster::RectangleColor(focusInfo.mpSurface, focusInfo.mFocusRect, ringColor);
+        EA::WebKit::GetEARasterInstance()->RectangleColor(focusInfo.mpSurface, focusInfo.mFocusRect, ringColor);
     }
 }
 
@@ -784,9 +1010,9 @@ void GraphicsContext::setURLForRect(const KURL& link, const IntRect& destRect)
     notImplemented();
 }
 
-void GraphicsContext::concatCTM(const AffineTransform& transform)
+void GraphicsContext::concatCTM(const WKAL::AffineTransform& transform)
 {
-    NotImplemented();
+    m_common->state.transform *= transform;
 }
 
 void GraphicsContext::addInnerRoundedRectClip(const IntRect& rect, int thickness)

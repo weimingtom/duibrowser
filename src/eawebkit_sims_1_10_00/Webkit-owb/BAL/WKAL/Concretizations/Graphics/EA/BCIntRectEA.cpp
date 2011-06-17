@@ -29,7 +29,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "config.h"
 #include "IntRect.h"
 
-#include "EARaster.h"
+#include <EARaster/EARaster.h>
 
 
 namespace WKAL {

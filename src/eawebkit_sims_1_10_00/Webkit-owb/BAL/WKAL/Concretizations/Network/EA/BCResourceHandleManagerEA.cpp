@@ -78,6 +78,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BCFormDataStreamEA.h"
 #include <wtf/StringExtras.h>
 #include <EAWebKit/internal/EAWebKitViewHelper.h> // For multiview support
+#include "WebError.h"
 
 #ifdef GetJob // If windows.h has #defined GetJob to GetJobA...
     #undef GetJob
@@ -206,15 +207,35 @@ ResourceHandleManager::ResourceHandleManager()
     // To consider: Move this init to somewhere else, like with the cookie manager.
     m_AuthenticationManager.Init();
 
-    #if EAWEBKIT_DUMP_TRANSPORT_FILES
-        #if defined(EA_PLATFORM_WINDOWS)
-			m_DebugFileImageDirectory = L"c://temp//EAWebKitDebug//";
+#if EAWEBKIT_DUMP_TRANSPORT_FILES
+	char8_t baseDir[EA::IO::kMaxDirectoryLength];
+	memset(baseDir, 0, EA::IO::kMaxDirectoryLength); 
+	if(EA::WebKit::GetFileSystem()->GetBaseDirectory(baseDir, EA::IO::kMaxDirectoryLength - 1)
+		&& baseDir[0])
+	{
+		EA::IO::Path::PathString8 fullPath(baseDir);
+		EA::IO::Path::Append(fullPath, "TransportFilesDump");
+		EA::IO::Path::EnsureTrailingSeparator(fullPath);
+
+		EA::WebKit::FixedString8_256 fullPathStr(fullPath.c_str());
+		EA::WebKit::ConvertToString16(fullPathStr, m_DebugFileImageDirectory);
+	}
+	else //Old code path.
+	{
+		#if defined(EA_PLATFORM_WINDOWS)
+			m_DebugFileImageDirectory = L"c:\\temp\\TransportFilesDump\\";
 		#elif defined(EA_PLATFORM_XENON)
-			m_DebugFileImageDirectory = L"d:\\temp\\EAWebKitDebug\\";
+			m_DebugFileImageDirectory = L"d:\\temp\\TransportFilesDump\\";
 		#elif defined(EA_PLATFORM_PS3)
-			m_DebugFileImageDirectory = L"/app_home/EAWebKitDebug/";
-	    #endif
-			EA::IO::Directory::Create(m_DebugFileImageDirectory.c_str());
+			m_DebugFileImageDirectory = L"/app_home/TransportFilesDump/";
+		#endif
+	}
+
+	
+	EA::WebKit::FixedString8_256 debugFileImageDirectory8;
+	EA::WebKit::ConvertToString8(m_DebugFileImageDirectory, debugFileImageDirectory8);
+
+	EA::WebKit::GetFileSystem()->MakeDirectory(debugFileImageDirectory8.c_str());
 	#endif
 }
 
@@ -286,7 +307,10 @@ void ResourceHandleManager::add(ResourceHandle* pRH)
         const char16_t* pScheme = sScheme.charactersWithNullTermination();
         EA::WebKit::TransportHandler* pTH = GetTransportHandler(pScheme);
         if( (!pTH)&& (!kurl.protocolIs("data")) )  // 6/17/09 CSidhall. Data scheme is supported in code.
-			EAW_ASSERT_FORMATTED(pTH != NULL, "There is no transport handler for this scheme: %ls\n", pScheme); // There is no transport handler for this scheme.
+		{
+			EAW_ASSERT_FORMATTED(pTH != NULL, "There is no transport handler for this scheme: %ls\n", pScheme); // There is no transport handler for this scheme.						
+		}
+
     #endif
 
     m_resourceHandleList.append(pRH);
@@ -616,6 +640,7 @@ int ResourceHandleManager::AddTHJob(ResourceHandle* pRH, EA::WebKit::TransportHa
         jobInfo.mJobState			= kJSInit;
         jobInfo.mpTH				= pTH;
         jobInfo.mbSynchronous		= bSynchronous;
+		jobInfo.mTInfo.mbAsync		= !bSynchronous;
 
         GetFixedString(jobInfo.mTInfo.mURI)->assign(url.characters(), url.length());
         GetFixedString(jobInfo.mTInfo.mEffectiveURI)->assign(GetFixedString(jobInfo.mTInfo.mURI)->c_str());
@@ -643,15 +668,25 @@ int ResourceHandleManager::AddTHJob(ResourceHandle* pRH, EA::WebKit::TransportHa
         // Nothing to do. The transport handler fills this in.
         // jobInfo.mTInfo.mHeaderMapIn;
 
-        GetFixedString(jobInfo.mTInfo.mCookieFilePath)->assign(m_cookieFilePath.c_str());
         jobInfo.mTInfo.mResultCode     = 0;  // We expect an HTTP-style code such as 200 or 404.
 
         const String& method = pRH->request().httpMethod();
-        size_t i, iEnd;
+        
+		if(equalIgnoringCase(method,"GET"))
+			jobInfo.mTInfo.mHttpRequestType = EA::WebKit::kHttpRequestTypeGET;
+		else if(equalIgnoringCase(method,"HEAD"))
+			jobInfo.mTInfo.mHttpRequestType = EA::WebKit::kHttpRequestTypeHEAD;
+		else if(equalIgnoringCase(method,"POST"))
+			jobInfo.mTInfo.mHttpRequestType = EA::WebKit::kHttpRequestTypePOST;
+		else if(equalIgnoringCase(method,"PUT"))
+			jobInfo.mTInfo.mHttpRequestType = EA::WebKit::kHttpRequestTypePUT;
+		else if(equalIgnoringCase(method,"DELETE"))
+			jobInfo.mTInfo.mHttpRequestType = EA::WebKit::kHttpRequestTypeDELETE;
+		else if(equalIgnoringCase(method,"OPTIONS"))
+			jobInfo.mTInfo.mHttpRequestType = EA::WebKit::kHttpRequestTypeOPTIONS;
+		else
+			EAW_ASSERT_MSG(false, "Unknown http method\n");
 
-        for(i = 0, iEnd = method.length(); (i < iEnd) && (i < sizeof(jobInfo.mTInfo.mMethod)/sizeof(jobInfo.mTInfo.mMethod[0]) - 1); ++i)
-            jobInfo.mTInfo.mMethod[i] = (char)method[i];
-        jobInfo.mTInfo.mMethod[i] = 0;
 
         // Absolute timeout time.
         double timeNow = EA::WebKit::GetTime();
@@ -679,9 +714,9 @@ int ResourceHandleManager::AddTHJob(ResourceHandle* pRH, EA::WebKit::TransportHa
         jobInfo.mTInfo.mTransportHandlerData    = 0;
         jobInfo.mTInfo.mpCookieManager          = &m_cookieManager;
 
-        if(EA::Internal::Stricmp(jobInfo.mTInfo.mMethod, "POST") == 0)
+		if(jobInfo.mTInfo.mHttpRequestType == EA::WebKit::kHttpRequestTypePOST)
             SetupTHPost(&jobInfo);
-        else if(EA::Internal::Stricmp(jobInfo.mTInfo.mMethod, "PUT") == 0)
+        else if(jobInfo.mTInfo.mHttpRequestType == EA::WebKit::kHttpRequestTypePUT)
             SetupTHPut(&jobInfo);
 
         //Nicki Vankoughnett:  This is where we decide if we want to load via the cache.
@@ -789,12 +824,11 @@ int ResourceHandleManager::AddTHJob(ResourceHandle* pRH, EA::WebKit::TransportHa
                 {
                     sFilePath += sDirName;                
                     EA::IO::Directory::Create(sFilePath.c_str());
-                    #if defined(EA_PLATFORM_XENON)
-                    sFilePath +='\\';
-                    #else
-                    sFilePath +='/';
-                    sFilePath +='/';
-                    #endif
+#if defined(EA_PLATFORM_WINDOWS) || defined(EA_PLATFORM_XENON)
+					sFilePath += '\\';
+#elif defined(EA_PLATFORM_PS3)
+					sFilePath += '/';
+#endif
                 }
 
   
@@ -1075,7 +1109,7 @@ int ResourceHandleManager::ProcessTHJobs()
                         // To consider: Make a means for the transport handler to specify its own error code type and localized string.
 						const WebCore::String sURI(GetFixedString(jobInfo.mTInfo.mURI)->data(), GetFixedString(jobInfo.mTInfo.mURI)->length());
                         const WebCore::String sError; // To consider: Assign a meaningful string to this, such as "Transport error."
-
+						
                         ResourceError error(sURI, jobInfo.mTInfo.mResultCode, sURI, sError);
                         pRHC->didFail(jobInfo.mpRH, error);
                     }
@@ -1160,10 +1194,10 @@ bool ResourceHandleManager::SetRedirect(EA::WebKit::TransportInfo* pTInfo, const
         pRHC->willSendRequest(pRH, redirectedRequest, pRHI->m_response);
     }
 
-    // Alternatively to the following, we should be able to call our SetEffectiveURI function.
-	GetFixedString(pTInfo->mEffectiveURI)->assign(sURI.characters(), sURI.length());
+	EA::WebKit::FixedString8_128 url8; 
+	Local::ConvertWebCoreStr16ToEAString8(newURL.string(),url8);
+	SetEffectiveURI(pTInfo,url8.c_str());
     pRHI->m_request.setURL(newURL); // Do we need or want to do this?
-    pRHI->m_response.setUrl(newURL);
 
     return true;
 }
@@ -1332,16 +1366,41 @@ bool ResourceHandleManager::HeadersReceived(EA::WebKit::TransportInfo* pTInfo)
 								GetFixedString(pTInfo->mAuthorizationRealm)->assign(&sValue[pos + 1], &sValue[posEnd]);
                         }
                     }
+					else
+					{
+						// To consider: Make a means for the transport handler to specify its own error code type and localized string.
+						const WebCore::String sURI(GetFixedString(pJobInfo->mTInfo.mURI)->data(), GetFixedString(pJobInfo->mTInfo.mURI)->length());                        
+
+                        ResourceError error(sURI, WebURLErrorUserAuthenticationUnsupported, sURI, GetWebkitErrorString(WebURLErrorUserAuthenticationUnsupported));
+                        pRHC->didFail(pJobInfo->mpRH, error);
+					}
                 }
             }
         }
         else
             pRHI->m_response.setHTTPStatusCode(pTInfo->mResultCode);
 
-        if(pRHC)
+		//Note by Arpit Baldeva:
+		//We set the response URL as soon as we get the headers. This is so that we can inform the application deep down through the didReceiveResponse.
+		//In following, if status code indicates a redirect, we set the response URL to be the original to indicate the URL for which we received response. 
+		//Note that this is not the redirected URL.
+		//If status code is regular, we use effective URI which should be correct in case of both normal and redirect flow.
+		//It may sound opposite initially but it is not.
+		if(pTInfo->mResultCode >=300 && pTInfo->mResultCode <= 399)
+		{
+			const KURL url(GetFixedString(pTInfo->mURI)->c_str());
+			pRHI->m_response.setUrl(url);
+		}
+		else
+		{
+			const KURL url(GetFixedString(pTInfo->mEffectiveURI)->c_str());
+			pRHI->m_response.setUrl(url);
+		}
+		
+		if(pRHC)
             pRHC->didReceiveResponse(pRH, pRHI->m_response);
-
-        pRHI->m_response.setResponseFired(true);
+		
+		pRHI->m_response.setResponseFired(true);
 
         return true;
     }
@@ -1379,23 +1438,12 @@ bool ResourceHandleManager::DataReceived(EA::WebKit::TransportInfo* pTInfo, cons
         // We run the code here for local files to resolve the issue.
         // Note by Paul Pedriana: This code here is similar to the Curl version of this code.
         JobInfo* pJobInfo = (JobInfo*)pTInfo->mpTransportServerJobInfo;
-
-        #if EAWEBKIT_DUMP_TRANSPORT_FILES
-            if(pJobInfo->mFileImage.GetAccessFlags()) // If it's open... echo the data to it.
-                pJobInfo->mFileImage.Write(pData, (EA::IO::size_type)size);
-        #endif
-
         if(!pRHI->m_response.responseFired())
         {
-            if(!pTInfo->mbEffectiveURISet)
-            {
-                pTInfo->mbEffectiveURISet = true;
-
-                // We set the "effective" URI to be the original URI.
-				const KURL url(GetFixedString(pTInfo->mURI)->c_str());
-                pRHI->m_response.setUrl(url);
-            }
-
+            // Note by Arpit Baldeva - Modified following to use mEffectiveURI instead of mURI. In fact, this is what is used in the DataDone() below.
+			const KURL url(GetFixedString(pTInfo->mEffectiveURI)->c_str());
+            pRHI->m_response.setUrl(url);
+       
             if(pRHC)
                pRHC->didReceiveResponse(pRH, pRHI->m_response);
 
@@ -1410,6 +1458,16 @@ bool ResourceHandleManager::DataReceived(EA::WebKit::TransportInfo* pTInfo, cons
             if(pRHC)
                 pRHC->didReceiveData(pRH, (char*)pData, (size_t)size, 0);
         }
+		else //Save data for later use so if the user cancels authorization, the message can be displayed.
+		{
+			m_AuthenticationManager.SaveCancelMessageData(pRH,(char*)pData, (size_t)size );
+		}
+
+#if EAWEBKIT_DUMP_TRANSPORT_FILES
+		if(pJobInfo->mFileImage.GetAccessFlags()) // If it's open... echo the data to it.
+			pJobInfo->mFileImage.Write(pData, (EA::IO::size_type)size);
+#endif
+
 
         return true;
     }
@@ -1427,7 +1485,7 @@ int64_t ResourceHandleManager::ReadData(EA::WebKit::TransportInfo* pTInfo, void*
 
     size_t readSize = 0;
 
-    if(EA::Internal::Stricmp(pTInfo->mMethod, "POST") == 0)
+    if(pTInfo->mHttpRequestType == EA::WebKit::kHttpRequestTypePOST)
     {
         if(size && !pRHI->m_cancelled)
         {
@@ -1439,7 +1497,7 @@ int64_t ResourceHandleManager::ReadData(EA::WebKit::TransportInfo* pTInfo, void*
                 cancel(pRH); // Something went wrong so cancel the pRH.
         }
     }
-    else if(EA::Internal::Stricmp(pTInfo->mMethod, "PUT") == 0)
+    else if(pTInfo->mHttpRequestType == EA::WebKit::kHttpRequestTypePUT)
     {
         // We don't currently handle this.
     }

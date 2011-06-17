@@ -37,7 +37,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Assertions.h"
 #include "Widget.h"
 
-#include "EARaster.h"
+#include <EARaster/EARaster.h>
 
 
 namespace WKAL {
@@ -45,7 +45,7 @@ namespace WKAL {
 int screenDepth(Widget* widget)
 {
     ASSERT(widget->containingWindow());
-    return widget->containingWindow()->mPixelFormat.mBytesPerPixel * 8;
+    return widget->containingWindow()->GetPixelFormat().mBytesPerPixel * 8;
 }
 
 int screenDepthPerComponent(Widget*)
@@ -63,15 +63,20 @@ bool screenIsMonochrome(Widget* /*widget*/)
 FloatRect screenRect(Widget* widget)
 {
     ASSERT(widget->containingWindow());
-    const EA::Raster::Rect& rect = widget->containingWindow()->mClipRect;
+    const EA::Raster::Rect& rect = widget->containingWindow()->GetClipRect();
     return FloatRect(rect.x, rect.y, rect.w, rect.h);
 }
 
-FloatRect screenAvailableRect(Widget*)
+FloatRect screenAvailableRect(Widget* widget)
 {
-    // What are we supposed to return here?
-    NotImplemented();
-    return FloatRect();
+	//NotImplemented();
+	//return FloatRect();
+	
+	// Update 10/14/2010 - Note by Arpit Baldeva: Commented out the code above. It should simply return our screenRect(Which is View surface for us) as the entire surface can be used
+	// for display purpose. The Windows port of WebKit returns MONITORINFOEX.rcWork here and MONITORINFOEX.rcMonitor for screenRect.
+	// The difference between two is explained at http://msdn.microsoft.com/en-us/library/dd145066(VS.85).aspx.  
+	return screenRect(widget);
+	
 }
 
 } // namespace WebCore

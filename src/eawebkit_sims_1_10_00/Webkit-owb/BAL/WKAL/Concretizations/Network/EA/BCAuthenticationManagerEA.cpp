@@ -72,7 +72,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Base64.h"
 #include "ResourceHandle.h"
 #include "ResourceRequest.h"
-
+#include "ResourceError.h"
+#include "WebError.h"
 
 namespace EA
 {
@@ -116,6 +117,7 @@ AuthenticationManager::AuthenticationManager(WebCore::ResourceHandleManager* pRe
   : mpResourceHandleManager(pResourceHandleManager)
   , mSavedCredentialsList()
   , mTransportInfoList()
+  , mResourceHandleCancelMessageMap()
 {
 }
 
@@ -150,12 +152,16 @@ void AuthenticationManager::BeginAuthorization(EA::WebKit::TransportInfo& tiNew)
     WebCore::ResourceHandle* pRH = (WebCore::ResourceHandle*)ti.mpRH;
     EAW_ASSERT(pRH != NULL);
     pRH->ref(); // We'll own this ref until we are finished with this job.
+	
+	WebCore::ResourceHandleInternal* pRHI = pRH->getInternal();
+	WebCore::ResourceHandleClient*   pRHC = pRHI->client();
+	pRHC->didReceiveAuthenticationChallenge(pRH, WebCore::AuthenticationChallenge());
 
     // Set the timeout to be a very long time, now that we are waiting for manual
     // user input to supply a name and password. Perhaps we should save the 
     // timeout interval for restoration later.
     WebCore::ResourceRequest& rRequest = const_cast<WebCore::ResourceRequest&>(pRH->request());  // ResourceHandle allows only const access to the ResourceRequest, but we need to set something.
-    rRequest.setTimeoutInterval(1000000000.0);
+    rRequest.setTimeoutInterval(1000000000.0);		
 }
 
 
@@ -197,7 +203,7 @@ void AuthenticationManager::Tick()
             if(ai.mResult == kAIResultCancel)
             {
                 Cancel(ti);
-                bRemoveEntry = true;
+                bRemoveEntry = true;				
             }
             else if(ai.mResult == kAIResultOK)
             {
@@ -296,6 +302,7 @@ bool AuthenticationManager::ProvideCredentialsHeader(EA::WebKit::TransportInfo& 
         else
             it->second.assign(entry.second.c_str(), entry.second.length());
     }
+	
 
     return (pSC != NULL);
 }
@@ -391,6 +398,20 @@ void AuthenticationManager::MungeString(FixedString16_32& s, bool /*bMunge*/)
     }
 }
 
+void AuthenticationManager::SaveCancelMessageData(const WebCore::ResourceHandle* pRH, const char* data, size_t length)
+{
+	ResourceHandleCancelMessageMap::iterator iter = mResourceHandleCancelMessageMap.find((uintptr_t)(pRH));
+	if(iter != mResourceHandleCancelMessageMap.end())
+	{
+		iter->second.append(data,length);
+	}
+	else
+	{
+		ResourceHandleCancelMessageMap::mapped_type mapped(data,length);
+		mResourceHandleCancelMessageMap.insert(ResourceHandleCancelMessagePair((uintptr_t)(pRH),mapped));
+	}
+
+}
 
 void AuthenticationManager::Proceed(EA::WebKit::TransportInfo& ti, const EA::WebKit::AuthenticationInfo& ai)
 {
@@ -413,7 +434,12 @@ void AuthenticationManager::Proceed(EA::WebKit::TransportInfo& ti, const EA::Web
     rRequest.setTimeoutInterval(ti.mTimeoutInterval);  // Restore the original timeout interval for this request.
     mpResourceHandleManager->add(pRH);  // Takes over the ref we have.
 
-    // We save the credentials for future use. 
+	ResourceHandleCancelMessageMap::iterator iter = mResourceHandleCancelMessageMap.find((uintptr_t)(pRH));
+	if(iter != mResourceHandleCancelMessageMap.end())
+	{
+		mResourceHandleCancelMessageMap.erase(iter);
+	}
+	// We save the credentials for future use. 
     // However, note that these credentials might fail in the future. 
     // In reality we don't want to save the credentials here but we need to 
     // have them be saved if the ResourceHandleManager is successful in the
@@ -435,12 +461,28 @@ void AuthenticationManager::Cancel(EA::WebKit::TransportInfo& ti)
     ResourceHandleClient*   pRHC = pRHI->client();
 
     EAW_ASSERT((pRH != NULL) && (pRHI != NULL));
-    pRHI->m_response.setHTTPStatusCode(ti.mResultCode);
-    if(pRHC)
+	if(pRHC)
+		pRHC->didCancelAuthenticationChallenge(pRH, AuthenticationChallenge());
+    
+	pRHI->m_response.setHTTPStatusCode(ti.mResultCode);
+    
+	if(pRHC)
         pRHC->didReceiveResponse(pRH, pRHI->m_response);
-    pRHI->m_response.setResponseFired(true);
-    pRHC->didFinishLoading(pRH);
-
+    
+	pRHI->m_response.setResponseFired(true);
+	
+	ResourceHandleCancelMessageMap::iterator iter = mResourceHandleCancelMessageMap.find((uintptr_t)(pRH));
+	if( iter != mResourceHandleCancelMessageMap.end())
+	{
+		if(pRHC)
+			pRHC->didReceiveData(pRH, iter->second.data(), (size_t)iter->second.length(), 0);
+		
+		mResourceHandleCancelMessageMap.erase(iter);
+	}
+	
+	if(pRHC)
+		pRHC->didFinishLoading(pRH);	
+	
     pRH->deref();
 
     // We don't remove ti from our mTransportInfoList, as we expect the caller to do that.

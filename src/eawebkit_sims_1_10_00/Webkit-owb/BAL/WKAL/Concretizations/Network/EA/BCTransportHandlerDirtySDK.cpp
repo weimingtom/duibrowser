@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2011 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -636,46 +636,62 @@ bool TransportHandlerDirtySDK::Connect(EA::WebKit::TransportInfo* pTInfo, bool& 
     // set callback user info
     HttpManagerControl(mpHttpManager, pDirtySDKInfo->mHttpHandle, MULTICHAR_CONST('c','b','u','p'), 0, 0, (void *)pTInfo);
    
-    // Initiate the HTTP transfer.
-    if(EA::TransportHelper::Stricmp(pTInfo->mMethod, "GET") == 0)
-    {
-        iResult = HttpManagerGet(mpHttpManager, pDirtySDKInfo->mHttpHandle, pDirtySDKInfo->mURI.c_str(), PROTOHTTP_HEADBODY);
-    }
-    else if(EA::TransportHelper::Stricmp(pTInfo->mMethod, "POST") == 0)
-    {
-        // Original code that did a chunked send but which doesn't work with HTTP servers.
-        // pDirtySDKInfo->mbPostActive        = true;
-        // pDirtySDKInfo->mPostBufferSize     = 0;
-        // pDirtySDKInfo->mPostBufferPosition = 0;
-        // iResult = ProtoHttpPost(pDirtySDKInfo->mpProtoHttp, pDirtySDKInfo->mURI.c_str(), NULL, PROTOHTTP_STREAM_BEGIN, PROTOHTTP_POST);
-        // if(iResult == PROTOHTTP_STREAM_BEGIN) // PROTOHTTP_STREAM_BEGIN == -1, so we can have an iResult that is negative yet not really an error.
-        //    iResult = 0;
+	switch(pTInfo->mHttpRequestType)
+	{
+	case EA::WebKit::kHttpRequestTypeGET:
+	case EA::WebKit::kHttpRequestTypeHEAD:
+		//iResult = HttpManagerGet(mpHttpManager, pDirtySDKInfo->mHttpHandle, pDirtySDKInfo->mURI.c_str(), PROTOHTTP_HEADBODY);
+		iResult = HttpManagerRequest(mpHttpManager, pDirtySDKInfo->mHttpHandle, pDirtySDKInfo->mURI.c_str(), NULL, 0, ((pTInfo->mHttpRequestType == EA::WebKit::kHttpRequestTypeGET) ? PROTOHTTP_REQUESTTYPE_GET : PROTOHTTP_REQUESTTYPE_HEAD));
+		break;
+	case EA::WebKit::kHttpRequestTypePOST:
+	case EA::WebKit::kHttpRequestTypePUT:
+		{
 
-        // New code whereby we don't use chunked data.
-        pDirtySDKInfo->mPostData.clear();      // Shouldn't be necessary.
-        pDirtySDKInfo->mbPostActive = false;    // Skip right to reading the data from the server (see the Transfer function).
+			// Original code that did a chunked send but which doesn't work with HTTP servers.
+			// pDirtySDKInfo->mbPostActive        = true;
+			// pDirtySDKInfo->mPostBufferSize     = 0;
+			// pDirtySDKInfo->mPostBufferPosition = 0;
+			// iResult = ProtoHttpPost(pDirtySDKInfo->mpProtoHttp, pDirtySDKInfo->mURI.c_str(), NULL, PROTOHTTP_STREAM_BEGIN, PROTOHTTP_POST);
+			// if(iResult == PROTOHTTP_STREAM_BEGIN) // PROTOHTTP_STREAM_BEGIN == -1, so we can have an iResult that is negative yet not really an error.
+			//    iResult = 0;
 
-        char    buffer[256];
-        int64_t size;
+			// New code whereby we don't use chunked data.
+			pDirtySDKInfo->mPostData.clear();      // Shouldn't be necessary.
+			pDirtySDKInfo->mbPostActive = false;    // Skip right to reading the data from the server (see the Transfer function).
 
-        do {
-            size = pTInfo->mpTransportServer->ReadData(pTInfo, buffer, sizeof(buffer));
-            if(size > 0)
-                pDirtySDKInfo->mPostData.append(buffer, size);
-        } while(size > 0);
+			char    buffer[256];
+			int64_t size;
 
-        EAW_ASSERT(size == 0);
-        if(size == 0)
-        {
-			char16_t bufferLen[32];
-			swprintf(bufferLen,32, L"%u",pDirtySDKInfo->mPostData.length());
+			do {
+				size = pTInfo->mpTransportServer->ReadData(pTInfo, buffer, sizeof(buffer));
+				if(size > 0)
+					pDirtySDKInfo->mPostData.append(buffer, size);
+			} while(size > 0);
 
-			ACCESS_EAWEBKIT_API(SetHeaderMapValue(pTInfo->mHeaderMapOut, L"Content-Length", bufferLen));
-            iResult = HttpManagerPost(mpHttpManager, pDirtySDKInfo->mHttpHandle, pDirtySDKInfo->mURI.c_str(), pDirtySDKInfo->mPostData.c_str(), (int32_t) pDirtySDKInfo->mPostData.length(), PROTOHTTP_POST);
-        }
-    }
-    else
-        iResult = 0;
+			EAW_ASSERT(size == 0);
+			if(size == 0)
+			{
+				char16_t bufferLen[32];
+				swprintf(bufferLen,32, L"%u",pDirtySDKInfo->mPostData.length());
+
+				ACCESS_EAWEBKIT_API(SetHeaderMapValue(pTInfo->mHeaderMapOut, L"Content-Length", bufferLen));
+				//iResult = HttpManagerPost(mpHttpManager, pDirtySDKInfo->mHttpHandle, pDirtySDKInfo->mURI.c_str(), pDirtySDKInfo->mPostData.c_str(), (int32_t) pDirtySDKInfo->mPostData.length(), PROTOHTTP_POST);
+				iResult = HttpManagerRequest(mpHttpManager, pDirtySDKInfo->mHttpHandle, pDirtySDKInfo->mURI.c_str(), pDirtySDKInfo->mPostData.c_str(), (int32_t) pDirtySDKInfo->mPostData.length(), ((pTInfo->mHttpRequestType == EA::WebKit::kHttpRequestTypePOST) ? PROTOHTTP_REQUESTTYPE_POST : PROTOHTTP_REQUESTTYPE_PUT));
+
+			}
+			break;
+		}
+
+	case EA::WebKit::kHttpRequestTypeOPTIONS:
+		//iResult = HttpManagerRequest(mpHttpManager, pDirtySDKInfo->mHttpHandle, pDirtySDKInfo->mURI.c_str(), NULL, 0, PROTOHTTP_REQUESTTYPE_OPTIONS);
+		break;
+	case EA::WebKit::kHttpRequestTypeDELETE:
+		iResult = HttpManagerRequest(mpHttpManager, pDirtySDKInfo->mHttpHandle, pDirtySDKInfo->mURI.c_str(), NULL, 0, PROTOHTTP_REQUESTTYPE_DELETE);
+		break;
+	default:
+		EAW_ASSERT_MSG(false,"Unsupported Http request method\n");
+		break;
+	}
 
     if(iResult < 0)
     {
@@ -827,7 +843,7 @@ int32_t TransportHandlerDirtySDK::DirtySDKSendHeaderCallback(char* pHeader, uint
 		
         *pHeader = 0; // In case there are no header lines in mHeaderMapOut which we write next.
 
-        if(EA::TransportHelper::Stricmp(pTInfo->mMethod, "POST") == 0)
+        if(pTInfo->mHttpRequestType == EA::WebKit::kHttpRequestTypePOST)
             ACCESS_EAWEBKIT_API(SetHeaderMapValue(pTInfo->mHeaderMapOut, L"Content-Type", L"application/x-www-form-urlencoded"));
 
         // Nicki Vankoughnett: A redirection may create a situation whereby we need to send different
@@ -1035,151 +1051,170 @@ bool TransportHandlerDirtySDK::Tick()
 
 bool TransportHandlerDirtySDK::Transfer(EA::WebKit::TransportInfo* pTInfo, bool& bStateComplete)
 {
-    bool          bReturnValue = true;
-    char          buffer[1024]; 
-    int32_t       iResult;
-    DirtySDKInfo* pDirtySDKInfo = (DirtySDKInfo*)pTInfo->mTransportHandlerData;
+	bool          bReturnValue = true;
+	char          buffer[1024]; 
+	int32_t       iResult = 0;
+	DirtySDKInfo* pDirtySDKInfo = (DirtySDKInfo*)pTInfo->mTransportHandlerData;
 
 	const double dCurrentTime = ACCESS_EAWEBKIT_API(GetTime());
- 
-    if(dCurrentTime > pTInfo->mTimeout)
-        bReturnValue = false;
 
-	if((EA::TransportHelper::Stricmp(pTInfo->mMethod, "GET") == 0) || !pDirtySDKInfo->mbPostActive) // If we are doing a GET or we are doing a POST but have already written the POST data...
-    {
-		
-        while((iResult = HttpManagerRecv(mpHttpManager, pDirtySDKInfo->mHttpHandle, buffer, 1, sizeof(buffer))) > 0)  // While there is received data...
-        {
-			EAW_ASSERT_MSG(pDirtySDKInfo->mbHeadersReceived,"The headers should have been received and processed by this time through the DirtySDK callback\n");
-#if ENABLE_PAYLOAD_DECOMPRESSION
-			if(pDirtySDKInfo->mStreamDecompressor)
+	if(dCurrentTime > pTInfo->mTimeout)
+		bReturnValue = false;
+
+	switch(pTInfo->mHttpRequestType)
+	{
+		//Note by Arpit Baldeva: GET and POST method response usually would have some data to go with.
+	case EA::WebKit::kHttpRequestTypeGET:
+	case EA::WebKit::kHttpRequestTypePOST:
+
+	case EA::WebKit::kHttpRequestTypePUT:
+	case EA::WebKit::kHttpRequestTypeHEAD:
+	case EA::WebKit::kHttpRequestTypeDELETE:
+	case EA::WebKit::kHttpRequestTypeOPTIONS:
+		{
+			while((iResult = HttpManagerRecv(mpHttpManager, pDirtySDKInfo->mHttpHandle, buffer, 1, sizeof(buffer))) > 0)  // While there is received data...
 			{
-				if(pDirtySDKInfo->mStreamDecompressor->Decompress((uint8_t*)buffer,iResult)<0)//if there is any error in the processing of stream, error out.
+				EAW_ASSERT_MSG(pDirtySDKInfo->mbHeadersReceived,"The headers should have been received and processed by this time through the DirtySDK callback\n");
+#if ENABLE_PAYLOAD_DECOMPRESSION
+				if(pDirtySDKInfo->mStreamDecompressor)
 				{
-					pTInfo->mpTransportServer->DataDone(pTInfo, false);
-					bReturnValue   = false;
-					bStateComplete = true;
-					return bReturnValue;
+					if(pDirtySDKInfo->mStreamDecompressor->Decompress((uint8_t*)buffer,iResult)<0)//if there is any error in the processing of stream, error out.
+					{
+						pTInfo->mpTransportServer->DataDone(pTInfo, false);
+						bReturnValue   = false;
+						bStateComplete = true;
+						return bReturnValue;
+					}
+				}
+				else
+#endif
+				{
+					pTInfo->mpTransportServer->DataReceived(pTInfo, buffer,iResult);
 				}
 			}
-			else
-#endif
+			break;
+		}
+	case EA::WebKit::kHttpRequestTypeCount:
+		EAW_ASSERT_MSG(false, "No supported type");
+		break;
+	}
+
+	// iResult is one of:
+	//   #define  PROTOHTTP_RECVDONE   (-1) // receive operation complete, and all data has been read 
+	//   #define  PROTOHTTP_RECVFAIL   (-2) // receive operation failed 
+	//   #define  PROTOHTTP_RECVWAIT   (-3) // waiting for body data 
+	//   #define  PROTOHTTP_RECVHEAD   (-4) // in headonly mode and header has been received 
+	//   #define  PROTOHTTP_RECVBUFF   (-5) // recvall did not have enough space in the provided buffer 
+
+
+	switch (iResult)
+	{
+	case PROTOHTTP_RECVDONE:
+		//Note by Arpit Baldeva: Old code processed the header here as well. But we should really be processing headers from the DirtySDK callback. 
+		//Old comment - "It's possible this will be called if the body size is zero."
+		EAW_ASSERT_MSG(pDirtySDKInfo->mbHeadersReceived,"The headers should have been received and processed by this time through the DirtySDK callback\n");
+		pTInfo->mpTransportServer->DataDone(pTInfo, true);
+		bReturnValue   = true;
+		bStateComplete = true;
+		break;
+
+	case PROTOHTTP_RECVFAIL:
+		{
+			pTInfo->mpTransportServer->DataDone(pTInfo, false);
+			bReturnValue   = false;
+			bStateComplete = true;
+
+			//We would rather not have code structured as follows (multiple if conditions) but in DirtySDK, there is no uniform set of errors. The error interpretation
+			//depends on what you are querying. 
+			//We don't see this getting bigger so its okay for now.
+			EA::WebKit::NetworkErrorInfo info;
+			int32_t timeout = HttpManagerStatus(mpHttpManager, pDirtySDKInfo->mHttpHandle, 0x74696d65 /*'time'*/, NULL, 0);
+			if(timeout)
 			{
-				pTInfo->mpTransportServer->DataReceived(pTInfo, buffer,iResult);
+				info.mNetworkErrorType = EA::WebKit::kNetworkErrorTimeOut;
+				info.mNetworkErrorCode = timeout;
+				ACCESS_EAWEBKIT_API(GetViewNotification())->NetworkError(info);
+				break;
 			}
-        }
-
-		// iResult is one of:
-        //   #define  PROTOHTTP_RECVDONE   (-1) // receive operation complete, and all data has been read 
-        //   #define  PROTOHTTP_RECVFAIL   (-2) // receive operation failed 
-        //   #define  PROTOHTTP_RECVWAIT   (-3) // waiting for body data 
-        //   #define  PROTOHTTP_RECVHEAD   (-4) // in headonly mode and header has been received 
-        //   #define  PROTOHTTP_RECVBUFF   (-5) // recvall did not have enough space in the provided buffer 
-
-        switch (iResult)
-        {
-            case PROTOHTTP_RECVDONE:
-				//Note by Arpit Baldeva: Old code processed the header here as well. But we should really be processing headers from the DirtySDK callback. 
-				//Old comment - "It's possible this will be called if the body size is zero."
-				EAW_ASSERT_MSG(pDirtySDKInfo->mbHeadersReceived,"The headers should have been received and processed by this time through the DirtySDK callback\n");
-                pTInfo->mpTransportServer->DataDone(pTInfo, true);
-                bReturnValue   = true;
-                bStateComplete = true;
-                break;
-
-            case PROTOHTTP_RECVFAIL:
-				{
-					pTInfo->mpTransportServer->DataDone(pTInfo, false);
-					bReturnValue   = false;
-					bStateComplete = true;
-					
-					//We would rather not have code structured as follows (multiple if conditions) but in DirtySDK, there is no uniform set of errors. The error interpretation
-					//depends on what you are querying. 
-					//We don't see this getting bigger so its okay for now.
-					EA::WebKit::NetworkErrorInfo info;
-					int32_t timeout = HttpManagerStatus(mpHttpManager, pDirtySDKInfo->mHttpHandle, 0x74696d65 /*'time'*/, NULL, 0);
-					if(timeout)
-					{
-						info.mNetworkErrorType = EA::WebKit::kNetworkErrorTimeOut;
-						info.mNetworkErrorCode = timeout;
-						ACCESS_EAWEBKIT_API(GetViewNotification())->NetworkError(info);
-						break;
-					}
 
 #if DIRTYVERS >= 0x07060A00
-					int32_t essl = HttpManagerStatus(mpHttpManager, pDirtySDKInfo->mHttpHandle, DIRTY_ESSL, NULL, 0);
-					if(essl < 0 && pDirtySDKInfo->mURI.find("https") != -1)//DirtySDK triggers the error for even non SSL links. Don't report those errors.
-					{
-						info.mNetworkErrorType = EA::WebKit::kNetworkErrorSSLCert;
-						info.mNetworkErrorCode = essl;
-						ACCESS_EAWEBKIT_API(GetViewNotification())->NetworkError(info);
-						break;
-					}
+			int32_t essl = HttpManagerStatus(mpHttpManager, pDirtySDKInfo->mHttpHandle, DIRTY_ESSL, NULL, 0);
+			if(essl < 0 && pDirtySDKInfo->mURI.find("https") != -1)//DirtySDK triggers the error for even non SSL links. Don't report those errors.
+			{
+				info.mNetworkErrorType = EA::WebKit::kNetworkErrorSSLCert;
+				info.mNetworkErrorCode = essl;
+				ACCESS_EAWEBKIT_API(GetViewNotification())->NetworkError(info);
+				break;
+			}
 #endif //DIRTYVERS >= 0x07060A00
 
-					//Default case.
-					ACCESS_EAWEBKIT_API(GetViewNotification())->NetworkError(info);
-					break;
+			//Default case.
+			ACCESS_EAWEBKIT_API(GetViewNotification())->NetworkError(info);
+			break;
+		}
+
+	case PROTOHTTP_RECVWAIT:
+		break;
+	case PROTOHTTP_RECVHEAD:
+		//Note by Arpit Baldeva: Sticking a DataDone here because DirtySDK explicitly notifies about this return value.
+		EAW_ASSERT_MSG(pDirtySDKInfo->mbHeadersReceived,"The headers should have been received and processed by this time through the DirtySDK callback\n");
+		pTInfo->mpTransportServer->DataDone(pTInfo, true);
+		bReturnValue   = true;
+		bStateComplete = true;
+	case PROTOHTTP_RECVBUFF:
+		break;
+	}
+#if 0 //Note by Arpit Baldeva: Disable the unused code for http post streaming.	
+	else // POST
+	{
+		if(pDirtySDKInfo->mPostBufferSize == 0)
+		{
+			EAW_ASSERT(pDirtySDKInfo->mPostBufferPosition == 0);
+
+			pDirtySDKInfo->mPostBufferSize = pTInfo->mpTransportServer->ReadData(pTInfo, pDirtySDKInfo->mPostBuffer, sizeof(pDirtySDKInfo->mPostBuffer));
+
+			if(pDirtySDKInfo->mPostBufferSize == 0) // If there was nothing else to read, and the read was thus completed...
+			{
+				HttpManagerSend(mpHttpManager, pDirtySDKInfo->mHttpHandle, NULL, PROTOHTTP_STREAM_END);
+				pDirtySDKInfo->mbPostActive = false;
+
+			}
+			else if(pDirtySDKInfo->mPostBufferSize < 0)
+			{
+				bReturnValue   = false;
+				bStateComplete = true;
+			}
+			// Else we have POST data, so fall through and send it
+		}
+
+		int64_t postSize = (pDirtySDKInfo->mPostBufferSize - pDirtySDKInfo->mPostBufferPosition);
+
+		if(postSize > 0)
+		{
+			iResult = HttpManagerSend(mpHttpManager, pDirtySDKInfo->mHttpHandle, pDirtySDKInfo->mPostBuffer + pDirtySDKInfo->mPostBufferPosition, (int32_t)postSize);
+
+			if(iResult > 0)
+			{
+				pDirtySDKInfo->mPostBufferPosition += iResult;;
+
+				if(pDirtySDKInfo->mPostBufferPosition == pDirtySDKInfo->mPostBufferSize)
+				{
+					pDirtySDKInfo->mPostBufferPosition = 0;
+					pDirtySDKInfo->mPostBufferSize     = 0;
 				}
+			}
+			else if(iResult < 0)
+			{
+				bReturnValue   = false;
+				bStateComplete = true;
+			}
+			// else do nothing because nothing was sent.
+		}
+	}
+#endif //if 0
 
-            case PROTOHTTP_RECVWAIT:
-            case PROTOHTTP_RECVHEAD:
-            case PROTOHTTP_RECVBUFF:
-                // Nothing to do.
-                break;
-        }
-    }
-    else // POST
-    {
-        if(pDirtySDKInfo->mPostBufferSize == 0)
-        {
-            EAW_ASSERT(pDirtySDKInfo->mPostBufferPosition == 0);
-
-            pDirtySDKInfo->mPostBufferSize = pTInfo->mpTransportServer->ReadData(pTInfo, pDirtySDKInfo->mPostBuffer, sizeof(pDirtySDKInfo->mPostBuffer));
-
-            if(pDirtySDKInfo->mPostBufferSize == 0) // If there was nothing else to read, and the read was thus completed...
-            {
-                HttpManagerSend(mpHttpManager, pDirtySDKInfo->mHttpHandle, NULL, PROTOHTTP_STREAM_END);
-                pDirtySDKInfo->mbPostActive = false;
-                
-            }
-            else if(pDirtySDKInfo->mPostBufferSize < 0)
-            {
-                bReturnValue   = false;
-                bStateComplete = true;
-            }
-            // Else we have POST data, so fall through and send it
-        }
-
-        int64_t postSize = (pDirtySDKInfo->mPostBufferSize - pDirtySDKInfo->mPostBufferPosition);
-
-        if(postSize > 0)
-        {
-            iResult = HttpManagerSend(mpHttpManager, pDirtySDKInfo->mHttpHandle, pDirtySDKInfo->mPostBuffer + pDirtySDKInfo->mPostBufferPosition, (int32_t)postSize);
-
-            if(iResult > 0)
-            {
-                pDirtySDKInfo->mPostBufferPosition += iResult;;
-
-                if(pDirtySDKInfo->mPostBufferPosition == pDirtySDKInfo->mPostBufferSize)
-                {
-                    pDirtySDKInfo->mPostBufferPosition = 0;
-                    pDirtySDKInfo->mPostBufferSize     = 0;
-                }
-            }
-            else if(iResult < 0)
-            {
-                bReturnValue   = false;
-                bStateComplete = true;
-            }
-            // else do nothing because nothing was sent.
-        }
-    }
-
-    return bReturnValue;
+	return bReturnValue;
 }
-
-
 bool TransportHandlerDirtySDK::CanCacheToDisk()
 {
     return true;

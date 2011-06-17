@@ -31,8 +31,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BAL/Includes/FakedDeepsee.h"
 #include "stdio.h"
 
-#include "EARaster.h"
-
 
 namespace WKAL {
 

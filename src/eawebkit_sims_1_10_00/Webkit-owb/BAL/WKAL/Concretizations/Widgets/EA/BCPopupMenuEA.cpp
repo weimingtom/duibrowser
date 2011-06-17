@@ -54,7 +54,7 @@
 #include "RenderLayer.h"
 #include "ObserverService.h"
 #include "GraphicsContext.h"
-#include "EARaster.h"
+#include <EARaster/EARaster.h>
 #include "RenderTheme.h"
 #include <EAWebKit/internal/EAWebKitAssert.h>
 #include <EAWebKit/EAWebKitView.h>
@@ -134,7 +134,7 @@ PopupMenu::~PopupMenu()
 // The Windows version of this code implements a Windows HWND manually and modally tracks it.
 // It doesn't work via any HTML/Javascript implementation. We implement our own modal popup
 // list via a Raster surface we create ourselves.
-void PopupMenu::show(const IntRect& r, FrameView* v, int index)
+void PopupMenu::show(const IntRect& r, FrameView* v, int indexIn)
 {
     m_View = EA::WebKit::GetView(v);
     calculatePositionAndSize(r, v);
@@ -147,14 +147,22 @@ void PopupMenu::show(const IntRect& r, FrameView* v, int index)
         populateDropListText();
         m_View->SetModalInput(this);
 
-        m_popupSurface = EA::Raster::CreateSurface(m_windowRect.width(), m_windowRect.height(), EA::Raster::kPixelFormatTypeARGB);
+        m_popupSurface =   EA::WebKit::GetEARasterInstance()->CreateSurface(m_windowRect.width(), m_windowRect.height(), EA::Raster::kPixelFormatTypeARGB, EA::Raster::kSurfaceCategorySelectDropDown);
+
+		// 10/05/2010 Gautam Narain : If we don't set the clip rect then sometimes the scrollbar draw causes memory corruption
+		// and causes a crash on a popup hide() call when deleting the memory. 
+		const EA::Raster::Rect clipRect(0, 0, m_windowRect.width(), m_windowRect.height());
+		m_popupSurface->SetClipRect(&clipRect);
 
         if(m_popupSurface)
         {
             // We store a pointer to the view 'this' in the Surface.
-            m_popupSurface->mpUserData = static_cast<EA::WebKit::View*>(m_View);
+            m_popupSurface->SetUserData(m_View);
             
-            // Scroll offset correction
+			// Update the focused index otherwise the scroll bar system does not get the proper offset and m_scrollItemOffset
+			// is stuck to 0.
+			setFocusedIndex(indexIn);
+			// Scroll offset correction
             int index;
             int count;
             if(m_scrollBarActive)
@@ -170,6 +178,14 @@ void PopupMenu::show(const IntRect& r, FrameView* v, int index)
 
             redrawItems(index, count);
             m_View->SetOverlaySurface(m_popupSurface, EA::Raster::Rect(m_windowRect));
+
+			// Todo : Gautam Narain 08/05/2010 To investigate if we can make the popup surface a widget so that then the rendering layer will
+			// work correctly in case of of scrollbar redrawing. For now if it is a popup we will just not do the redrawing of the scrollbar.			
+			if(m_scrollVBar.get())
+			{
+				//m_scrollVBar.get()->setContainingWindow(m_popupSurface);
+				m_scrollVBar.get()->SetIsFromPopup(true);
+			}
         }
     }
 }
@@ -186,7 +202,7 @@ void PopupMenu::hide()
     if(m_popupSurface)
     {
         m_View->RemoveOverlaySurface(m_popupSurface);
-        EA::Raster::DestroySurface(m_popupSurface);
+        EA::WebKit::GetEARasterInstance()->DestroySurface(m_popupSurface);
         m_popupSurface = NULL;
     }
     
@@ -227,8 +243,33 @@ void PopupMenu::updateFromElement()
 
 void PopupMenu::updateFocusedIndex(int newFocusedIndex)
 {
-    if(newFocusedIndex != m_focusedIndex) // If there is a change...
-    {
+    // Update 10/15/2010 - Note by Arpit Baldeva:
+	// Disabled this check.
+	// 1. This function is not called unnecessarily so there is no real need for this change.
+	// 2. This bit me few weeks ago too when calling the function like updateFocusedIndex(m_focusedIndex++) as this check would inadvertently fail.
+	// 3. If there is a scroll bar, and you select an item down the list -> close the list -> reopen, you would want to see the item being drawn
+	// on screen. However, currently that check is done few lines below. We can probably take that code out here and do more adjustments but that
+	// seems like more trouble. 
+	
+	// 11/01/10 - Update: Enabled the check again otherwise it results in random visual glitch. 
+	// Solved the problem of bringing the last selected item in the visible area by checking if the scroll bar is active. If the scroll bar is active, 
+	// force a draw at least one time. 
+
+	bool forceDraw = false;
+	if(m_scrollBarActive)
+	{
+		if(newFocusedIndex < m_scrollItemOffset)
+		{
+			forceDraw = true;
+		}
+		else if(newFocusedIndex >= (m_scrollItemOffset + m_scrollItemCount)) 
+		{
+			forceDraw = true;
+		}
+	}
+		
+	if(newFocusedIndex != m_focusedIndex || forceDraw) // If there is a change...
+	{
         if( (newFocusedIndex < 0) || (newFocusedIndex >= m_itemCount) )
             return;
         
@@ -275,7 +316,7 @@ void PopupMenu::updateFocusedIndex(int newFocusedIndex)
             redrawItems(m_scrollItemOffset, m_scrollItemCount);        
         }
 
-        if(m_popupSurface) // Just to make sure.
+        if(m_popupSurface) 
             m_View->SetOverlaySurface(m_popupSurface, EA::Raster::Rect(m_windowRect));
     }
 }
@@ -385,7 +426,7 @@ void PopupMenu::calculatePositionAndSize(const IntRect& r, FrameView* v)
 
         if(m_scrollVBar.get())
         {
-            m_scrollRect.setX(v->x() + rScreenCoords.width() - kPopUpScrollWidth - kPopUpScrollOffset);
+			m_scrollRect.setX(v->x() + rScreenCoords.width() - kPopUpScrollWidth - kPopUpScrollOffset);
             m_scrollRect.setY(v->y());
             m_scrollRect.setWidth(kPopUpScrollWidth);
             m_scrollRect.setHeight(naturalHeight);
@@ -397,7 +438,7 @@ void PopupMenu::calculatePositionAndSize(const IntRect& r, FrameView* v)
             m_scrollVBar->setEnabled(true);
             m_vBar->setSteps(1, min(1, m_scrollItemCount -1), naturalHeight);
             m_vBar->setProportion(m_scrollItemCount, m_itemCount);
-            m_vBar->setEnabled(true);  
+            m_vBar->setEnabled(true); 			
         }        
     }
     else
@@ -504,14 +545,15 @@ void PopupMenu::redrawItems(int index, int count)
         if(m_scrollBarActive)
             offset = m_scrollItemOffset;
 
+        EA::Raster::IEARaster* pRaster =EA::WebKit::GetEARasterInstance();    
         for(int i = index; i < index + count; ++i)
         {
             const bool bHighlighted(i == m_focusedIndex);
             const int y = (i - offset) * m_itemHeight;
 
-            const EA::Raster::Rect rect(0, y, m_popupSurface->mWidth, m_itemHeight);
+            const EA::Raster::Rect rect(0, y, m_popupSurface->GetWidth(), m_itemHeight);
 
-            EAW_ASSERT(((rect.x + rect.w) <= m_popupSurface->mWidth) && ((rect.y + rect.h) <= m_popupSurface->mHeight));
+            EAW_ASSERT(((rect.x + rect.w) <= m_popupSurface->GetWidth()) && ((rect.y + rect.h) <= m_popupSurface->GetHeight()));
             if(m_scrollBarActive)
             {
                 if( (i < m_scrollItemOffset) || (i > (m_scrollItemOffset + m_scrollItemCount)) ) 
@@ -520,13 +562,13 @@ void PopupMenu::redrawItems(int index, int count)
 
             if(bHighlighted)
             {
-                EA::Raster::FillRectSolidColor(m_popupSurface, &rect, cSelectedBack);
+                pRaster->FillRectSolidColor(m_popupSurface, &rect, cSelectedBack);
                 ctx.setFillColor(WebCore::Color(cSelectedText.rgb()));
             }
             else
             {
                 EA::Raster::Color cNormalBack(m_popupClient->itemBackgroundColor(i));  // I copied this from the Windows port (PopupMenuWin.cpp)
-                EA::Raster::FillRectSolidColor(m_popupSurface, &rect, cNormalBack);
+                pRaster->FillRectSolidColor(m_popupSurface, &rect, cNormalBack);
                 EA::Raster::Color cNormalText(m_popupClient->itemStyle(i)->color());
                 ctx.setFillColor(WebCore::Color(cNormalText.rgb()));           
             }
@@ -540,8 +582,8 @@ void PopupMenu::redrawItems(int index, int count)
         }
 
         // Draw the outline for the entire box all the time. We could make this a little more efficient by doing just what we need.
-        const int x2 = m_popupSurface->mWidth  - 1;
-        const int y2 = m_popupSurface->mHeight - 1;
+        const int x2 = m_popupSurface->GetWidth()  - 1;
+        const int y2 = m_popupSurface->GetHeight() - 1;
 
         //+ Draw scroll bar draw if active
         if( (m_scrollBarActive) && (m_vBar) )
@@ -550,13 +592,10 @@ void PopupMenu::redrawItems(int index, int count)
         EA::Raster::Color cOutlineTL(0xffc0c0c0);   // We need an enumerated color Parameter for these.
         EA::Raster::Color cOutlineBR(0xff000000);
 
-        EA::Raster::HLineColor(m_popupSurface, 0,  x2,  0, cOutlineTL);
-        EA::Raster::VLineColor(m_popupSurface, 0,   0, y2, cOutlineTL);
-        EA::Raster::HLineColor(m_popupSurface, 0 , x2, y2, cOutlineBR);
-        EA::Raster::VLineColor(m_popupSurface, x2,  0, y2, cOutlineBR);
-
-
-        
+        pRaster->HLineColor(m_popupSurface, 0,  x2,  0, cOutlineTL);
+        pRaster->VLineColor(m_popupSurface, 0,   0, y2, cOutlineTL);
+        pRaster->HLineColor(m_popupSurface, 0 , x2, y2, cOutlineBR);
+        pRaster->VLineColor(m_popupSurface, x2,  0, y2, cOutlineBR);      
             
         #ifdef EA_DEBUG
             if(m_popupSurface == NULL) // This is impossible; we use it for debugging whereby you move the instruction pointer to the next line..
@@ -565,10 +604,10 @@ void PopupMenu::redrawItems(int index, int count)
                 char       filePath[256];
 
                 sprintf(filePath, "D:\\temp\\Popup%d.ppm", counter % 8);  // Use 0, 1, ... 6, 7, 0, 1, ...
-                EA::Raster::WritePPMFile(filePath, m_popupSurface, false);
+                pRaster->WritePPMFile(filePath, m_popupSurface, false);
 
                 sprintf(filePath, "D:\\temp\\Popup%dAlpha.ppm", counter % 8);
-                EA::Raster::WritePPMFile(filePath, m_popupSurface, true);
+                pRaster->WritePPMFile(filePath, m_popupSurface, true);
 
                 ++counter;
             }
@@ -688,7 +727,7 @@ void PopupMenu::OnMouseMoveEvent(const EA::WebKit::MouseMoveEvent& mouseMoveEven
             IntPoint localPos(x - offset.width(),y - offset.height()); 
             IntPoint pos(mouseMoveEvent.mX,mouseMoveEvent.mY);
             
-            WebCore::MouseEventType mousePressType;
+            WebCore::MouseEventType mousePressType;			
             if(m_scrollbarCapturingMouse)
                 mousePressType = WKAL::MouseEventPressed;
             else
@@ -775,29 +814,54 @@ void PopupMenu::OnMouseButtonEvent(const EA::WebKit::MouseButtonEvent& mouseButt
         
         if(mouseButtonEvent.mbDepressed)
         {
-            int selectedIndex = (mouseButtonEvent.mY - m_windowRect.y()) / m_itemHeight;
-        
-            if(m_scrollBarActive)
-            {
-                if(selectedIndex < 0)
-                    selectedIndex = 0;
-                else if(selectedIndex >= m_scrollItemCount)
-                    selectedIndex = (m_scrollItemCount -1);
-                
-                    selectedIndex +=m_scrollItemOffset;
-            }
-            
-            
-            setFocusedIndex(selectedIndex);
-
-            m_View->SetModalInput(NULL);
-            m_popupClient->hidePopup();
-
-            if(m_windowRect.contains(mouseButtonEvent.mX, mouseButtonEvent.mY))
+            // We should only change the selected element if the user clicked inside the html select element. Otherwise, following code would
+			// set the focus to a random element based on where the user clicks in the rest of the window.
+			if(m_windowRect.contains(mouseButtonEvent.mX, mouseButtonEvent.mY))
 		    {
-			    m_popupClient->valueChanged(m_focusedIndex);
+				int selectedIndex = (mouseButtonEvent.mY - m_windowRect.y()) / m_itemHeight;
+
+				if(m_scrollBarActive)
+				{
+					if(selectedIndex < 0)
+						selectedIndex = 0;
+					else if(selectedIndex >= m_scrollItemCount)
+						selectedIndex = (m_scrollItemCount -1);
+
+					selectedIndex +=m_scrollItemOffset;
+				}
+
+
+				setFocusedIndex(selectedIndex);
+
+
+				m_popupClient->valueChanged(m_focusedIndex);
 			    m_popupClient->setTextFromItem(m_focusedIndex); //Note by Arpit Baldeva: This is needed otherwise the text is not updated. 
 		    }
+			else 
+			{
+#if PLATFORM(PS3) || PLATFORM(XBOX)
+				bool onConsole = true;
+#elif PLATFORM(WIN_OS)
+				bool onConsole = m_View->IsEmulatingConsoleOnPC();
+#else
+				#error "Unknown Platform"
+#endif
+				if(onConsole)
+				{
+					IntRect windowRectIncludingNode = m_windowRect;
+					//Shift the rectangle to encompass the original node(That is where our cursor is as we dont move it).
+					windowRectIncludingNode.move(0, -m_itemHeight);
+					if(windowRectIncludingNode.contains(mouseButtonEvent.mX, mouseButtonEvent.mY))
+					{
+						m_popupClient->valueChanged(m_focusedIndex);
+						m_popupClient->setTextFromItem(m_focusedIndex); //Note by Arpit Baldeva: This is needed otherwise the text is not updated. 
+					}
+				}
+			}
+
+			m_View->SetModalInput(NULL);
+			m_popupClient->hidePopup();
+
         }
     }
 }
@@ -805,6 +869,7 @@ void PopupMenu::OnMouseButtonEvent(const EA::WebKit::MouseButtonEvent& mouseButt
 // 2/15/10 CSidhall - Added for scroll change detection outside of normal mouse\keyboard events 
 // so that we can shut down the popup. It keeps track of the original scroll value and exits if
 // it detects any new delta.   
+//
 void PopupMenu::OnScrollViewEvent()
 {
     if(m_View)
@@ -823,17 +888,66 @@ void PopupMenu::OnScrollViewEvent()
 
 void PopupMenu::OnMouseWheelEvent(const EA::WebKit::MouseWheelEvent& mouseWheelEvent)
 {
-    int delta = static_cast<int>(mouseWheelEvent.mLineDelta);
-    
-    int selectedIndex = m_focusedIndex - delta;
-    setFocusedIndex(selectedIndex);
+	// 6/15/2010: Note by Gautam Narain - Scrolling on a popup box like list boxes will force us
+	// to scroll down if we are scrolling on the left and right axis
+	if(!mouseWheelEvent.mbShift)
+	{
+		int delta = static_cast<int>(mouseWheelEvent.mLineDelta);
+/*
+		if(abs(mouseWheelEvent.mLineDelta) < 1.4)
+		{
+			if(mouseWheelEvent.mLineDelta>0.0)
+				delta = 1;
+			else
+				delta = -1;
+		}
+*/
+		int selectedIndex = m_focusedIndex - delta;
+		setFocusedIndex(selectedIndex);
+	}
 }
 
+bool PopupMenu::OnButtonEvent(const EA::WebKit::ButtonEvent& buttonEvent)
+{
+	switch(buttonEvent.mID)
+	{
+		case EA::WebKit::kButton1://Up 
+		{
+			
+			if(m_focusedIndex == 0)
+				return true;//intentional to return true so that we indicate that the modal input client handled the input so that we don't end up jumping else where on the page.
+			
+			setFocusedIndex(m_focusedIndex-1);
+			return true;
+		}
+
+		case EA::WebKit::kButton3://Down 
+		{
+			if(m_focusedIndex == m_itemCount-1)
+				return true;//intentional to return true so that we indicate that the modal input client handled the input so that we don't end up jumping else where on the page.
+			
+			setFocusedIndex(m_focusedIndex+1);
+			return true;
+		}
+		
+		default:
+		{
+			//OnFocusChangeEvent(false);
+			return false;
+		}
+	}
+
+	return false;
+}
 
 void PopupMenu::OnFocusChangeEvent(bool bHasFocus)
 {
-    m_View->SetModalInput(NULL);
-    m_popupClient->hidePopup();
+    if(!bHasFocus)
+	{
+		m_View->SetModalInput(NULL);
+		m_popupClient->hidePopup();
+	}
+	
 }
 
 

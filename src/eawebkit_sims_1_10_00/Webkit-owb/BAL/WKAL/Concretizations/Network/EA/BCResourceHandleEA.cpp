@@ -47,12 +47,13 @@ namespace WKAL {
 
 class WebCoreSynchronousLoader : public ResourceHandleClient {
 public:
-    WebCoreSynchronousLoader();
+    WebCoreSynchronousLoader(Frame* frame);
 
     virtual void didReceiveResponse(ResourceHandle*, const ResourceResponse&);
     virtual void didReceiveData(ResourceHandle*, const char*, int, int lengthReceived);
     virtual void didFinishLoading(ResourceHandle*);
     virtual void didFail(ResourceHandle*, const ResourceError&);
+    virtual Frame* getFrame() { return m_frame; }
 
     ResourceResponse resourceResponse() const { return m_response; }
     ResourceError resourceError() const { return m_error; }
@@ -62,9 +63,11 @@ private:
     ResourceResponse m_response;
     ResourceError    m_error;
     Vector<char>     m_data;
+    Frame*           m_frame;   // 7/26/10 Fix proposed by Yee Cheng Chin to fix assert problem with a missing view frame
 };
 
-WebCoreSynchronousLoader::WebCoreSynchronousLoader()
+WebCoreSynchronousLoader::WebCoreSynchronousLoader(Frame* frame)
+    : m_frame(frame)
 {
 }
 
@@ -144,9 +147,9 @@ bool ResourceHandle::loadsBlocked()
     return false;
 }
 
-void ResourceHandle::loadResourceSynchronously(const ResourceRequest& request, ResourceError& error, ResourceResponse& response, Vector<char>& data, Frame*)
+void ResourceHandle::loadResourceSynchronously(const ResourceRequest& request, ResourceError& error, ResourceResponse& response, Vector<char>& data, Frame* frame)
 {
-    WebCoreSynchronousLoader syncLoader;
+    WebCoreSynchronousLoader syncLoader(frame);
     ResourceHandle handle(request, &syncLoader, true, false, true);
 	handle.ref();
 

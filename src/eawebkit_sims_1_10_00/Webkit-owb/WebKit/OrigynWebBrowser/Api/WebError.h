@@ -109,6 +109,13 @@ enum
     WebURLErrorDownloadDecodingFailedToComplete =-3007,
 };
 
+struct WebErrorInfo
+{
+	int mWebkitErrorCode;
+	char16_t *mErrorString;
+};
+
+const char16_t *GetWebkitErrorString(int webkitErrorCode);
 
 #define WebKitErrorDomain "WebKitErrorDomain"
 #define WebURLErrorDomain "URLErrorDomain"

@@ -49,12 +49,12 @@ namespace WKAL {
 
 void SimpleFontData::platformInit()
 {
-    EA::Internal::IFont* const pFont = m_font.mpFont;
+    EA::WebKit::IFont* const pFont = m_font.mpFont;
     EAW_ASSERT(pFont);
 
 	if(pFont)
 	{
-		EA::Internal::FontMetrics fontMetrics;
+		EA::WebKit::FontMetrics fontMetrics;
 		pFont->GetFontMetrics(fontMetrics);
 
 		// With this code EAWebKit implements line spacing seemingly just like Safari on Windows:
@@ -71,11 +71,11 @@ void SimpleFontData::platformInit()
 		m_unitsPerEm  = 1000;                           // This is a typical value for a TrueType font, not necessarily the actual value.
 		m_xHeight     = fontMetrics.mfXHeight;
 
-		const EA::Internal::Char  cSpace  = ' ';
-		EA::Internal::GlyphId  glyphId = 0;
+		const EA::WebKit::Char  cSpace  = ' ';
+		EA::WebKit::GlyphId  glyphId = 0;
 		pFont->GetGlyphIds(&cSpace, 1, &glyphId, true);
 
-		EA::Internal::GlyphMetrics glyphMetrics;
+		EA::WebKit::GlyphMetrics glyphMetrics;
 		pFont->GetGlyphMetrics(glyphId, glyphMetrics);
 		m_spaceWidth = glyphMetrics.mfHAdvanceX;
 	}
@@ -134,7 +134,7 @@ SimpleFontData* SimpleFontData::smallCapsFontData(const FontDescription& fontDes
 bool SimpleFontData::containsCharacters(const UChar* characters, int length) const
 {
     int i = 0;
-    EA::Internal::IFont* const pFont = m_font.mpFont;
+    EA::WebKit::IFont* const pFont = m_font.mpFont;
     EAW_ASSERT(pFont);
 
     if(pFont)
@@ -155,10 +155,10 @@ void SimpleFontData::determinePitch()
 
 float SimpleFontData::platformWidthForGlyph(Glyph glyphId) const
 {
-    EA::Internal::IFont* const pFont = m_font.mpFont;
+    EA::WebKit::IFont* const pFont = m_font.mpFont;
     EAW_ASSERT(pFont);
 
-    EA::Internal::GlyphMetrics glyphMetrics;
+    EA::WebKit::GlyphMetrics glyphMetrics;
     glyphMetrics.mfHAdvanceX = m_spaceWidth; // Default value.
     if(pFont)
 		pFont->GetGlyphMetrics(glyphId, glyphMetrics);

@@ -49,6 +49,8 @@
 #include <wtf/Noncopyable.h>
 #include <wtf/Platform.h>
 #include "BALBase.h"
+#include "BCAffineTransformEA.h"
+#include <EARaster/EARaster.h>
 
 namespace WKAL {
 
@@ -195,8 +197,10 @@ namespace WKAL {
         
         void setURLForRect(const KURL&, const IntRect&);
 
-        void concatCTM(const AffineTransform&);
+        void concatCTM(const WKAL::AffineTransform&);
         AffineTransform getCTM() const;
+        bool hasTransform() const;
+        EA::Raster::ISurface* transform(EA::Raster::ISurface* pSrc, EA::Raster::Rect &srcRect, EA::Raster::Rect &dstRect);
 
         void setUseAntialiasing(bool = true);
 

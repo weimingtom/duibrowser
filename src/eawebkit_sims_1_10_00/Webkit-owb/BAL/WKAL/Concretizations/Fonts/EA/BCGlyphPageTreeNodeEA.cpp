@@ -64,17 +64,17 @@ bool GlyphPage::fill(unsigned offset, unsigned length, UChar* buffer, unsigned b
    // Is this always true?
     if (bufferLength <= WKAL::GlyphPage::size)
     {
-        EA::Internal::IFont* const pFont = pSimpleFontData->m_font.mpFont;
+        EA::WebKit::IFont* const pFont = pSimpleFontData->m_font.mpFont;
 
         if (pFont)
         {
             for (unsigned i = 0; i < bufferLength; i++)
             {
-                EA::Internal::GlyphId glyphId = EA::Internal::kGlyphIdInvalid;
+                EA::WebKit::GlyphId glyphId = EA::WebKit::kGlyphIdInvalid;
 
                 pFont->GetGlyphIds(&buffer[i], 1, &glyphId, false);
 
-                if (glyphId != EA::Internal::kGlyphIdInvalid)
+                if (glyphId != EA::WebKit::kGlyphIdInvalid)
                 {
                     setGlyphDataForIndex(i, glyphId, pSimpleFontData);
                     haveGlyphs = true;

@@ -136,25 +136,31 @@ void RenderThemeBal::setCheckboxSize(RenderStyle* style) const
 bool RenderThemeBal::paintCheckbox(RenderObject* o, const RenderObject::PaintInfo& i, const IntRect& r)
 {
     const bool isChecked = o->element()->isChecked();
-    const bool isActive  = o->element()->active();
+    const bool isActive  = o->element()->active();	
+	const bool isDisabled = !o->element()->isEnabled();
+
     i.context->save();
 
     EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
     EA::WebKit::ButtonDrawInfo bdi;
 
-    EA::Raster::Surface* const pSurface = i.context->platformContext();;
+    EA::Raster::ISurface* const pSurface = i.context->platformContext();;
     EA::WebKit::View* pView = NULL;
     if(pSurface)
-        pView  = static_cast<EA::WebKit::View*>(pSurface->mpUserData);  // Need to verify if this cast is safe...
+        pView  = static_cast<EA::WebKit::View*>(pSurface->GetUserData());  // Need to verify if this cast is safe...
   
-    bdi.mpView      = pView;
-    bdi.mpSurface   = pSurface;
-    bdi.mDirtyRect  = r;            // This probably isn't correct.
-    bdi.mButtonRect = r;
-    bdi.mButtonType = EA::WebKit::ButtonDrawInfo::Checkbox;
-    bdi.mIsHovered  = false;        // How do we tell this?
-    bdi.mIsChecked  = isChecked;
-    bdi.mIsFocused  = isActive;
+	// 8/17/2010 Gautam Narain : We need to offset the rectangle by origin width and height. I am not sure if the mDirtyRect was incorrect due to this issue.
+	// Hence I have commented that code instead of deleting it completely        
+    bdi.mpView			= pView;
+    bdi.mpSurface		= pSurface;
+	//bdi.mDirtyRect		= r;			// This is probably not correct
+    bdi.mDirtyRect		= EA::Raster::Rect(r.x() + i.context->origin().width(), r.y() + i.context->origin().height(), r.width(), r.height());            // This probably isn't correct.
+    bdi.mButtonRect		= EA::Raster::Rect(r.x() + i.context->origin().width(), r.y() + i.context->origin().height(), r.width(), r.height());
+    bdi.mButtonType		= EA::WebKit::ButtonDrawInfo::Checkbox;
+    bdi.mIsHovered		= false;        // How do we tell this?
+    bdi.mIsChecked		= isChecked;
+    bdi.mIsFocused		= isActive;	
+	bdi.mIsDisabled		= isDisabled;
 
     if(!pVN || !pVN->DrawButton(bdi))
     {
@@ -235,33 +241,31 @@ bool RenderThemeBal::paintRadio(RenderObject* o, const RenderObject::PaintInfo& 
 
     const bool isChecked = o->element()->isChecked();
     const bool isActive  = o->element()->active();
-
-   // 11/18/09 CS - Disabled or unfocus check    
-    bool isFocusable  = o->element()->isFocusable();
-    if( (isFocusable) && (o->element()->isHTMLElement()) )
-    {
-        // Extra check if focusable to confirm if disabled    
-        WebCore::HTMLElement* htmlElement = (WebCore::HTMLElement*)o->element();
-        if(htmlElement->disabled())
-            isFocusable = false;
-    }
+	
+    // 11/18/09 CS - Disabled or unfocus check 	
+	const bool isDisabled = !o->element()->isEnabled();
 
     EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
     EA::WebKit::ButtonDrawInfo bdi;
 
-    EA::Raster::Surface* const pSurface = i.context->platformContext();;
+    EA::Raster::ISurface* const pSurface = i.context->platformContext();;
     EA::WebKit::View* pView = NULL;
     if(pSurface)
-        pView  = static_cast<EA::WebKit::View*>(pSurface->mpUserData);
+        pView  = static_cast<EA::WebKit::View*>(pSurface->GetUserData());
 
+	// 8/17/2010 Gautam Narain : We need to offset the rectangle by origin width and height. I am not sure if the mDirtyRect was incorrect due to this issue.
+	// Hence I have commented that code instead of deleting it completely
     bdi.mpView      = pView;
     bdi.mpSurface   = pSurface;
-    bdi.mDirtyRect  = r;            // This probably isn't correct.
-    bdi.mButtonRect = r;
+	//bdi.mDirtyRect  = r;		// This probably isn't correct.
+	bdi.mDirtyRect  = EA::Raster::Rect(r.x() + i.context->origin().width(), r.y() + i.context->origin().height(), r.width(), r.height());            
+    bdi.mButtonRect = EA::Raster::Rect(r.x() + i.context->origin().width(), r.y() + i.context->origin().height(), r.width(), r.height());
     bdi.mButtonType = EA::WebKit::ButtonDrawInfo::Radio;
     bdi.mIsHovered  = false;        // How do we tell this?
     bdi.mIsChecked  = isChecked;
     bdi.mIsFocused  = isActive;
+	bdi.mIsDisabled = isDisabled;
+
     // CSidhall - TODO: It should be noted that we don't currently pass down the user if the radio is disabled
 
     if(!pVN || !pVN->DrawButton(bdi))
@@ -270,26 +274,35 @@ bool RenderThemeBal::paintRadio(RenderObject* o, const RenderObject::PaintInfo& 
         //border
         int halfWidth = r.width() >> 1;
         int halfHeight = r.height() >> 1;
-        const EA::Raster::Color c(88,88,88);
         EA::Raster::Point center(r.x() + halfWidth, r.y() + halfHeight);
 
         // 2/12/09 CSidahll - Added to fix scroll problem with radio butter which did not move          
         center.x +=i.context->origin().width();
         center.y +=i.context->origin().height();
-        
-        EA::Raster::EllipseColor(bdi.mpSurface, center.x, center.y, halfWidth, halfHeight, c);
-       
+        const EA::Raster::Color circleColor(60,60,60);
+        EA::Raster::IEARaster* pRaster =EA::WebKit::GetEARasterInstance();     
         if(isChecked) {
+            // Selected
+            pRaster->FilledEllipseColor(bdi.mpSurface, center.x, center.y, (halfWidth - borderWidth), (halfHeight - borderWidth), EA::Raster::Color::WHITE);
+            pRaster->EllipseColor(bdi.mpSurface, center.x, center.y, halfWidth, halfHeight, circleColor);
+
             halfWidth -= borderWidth + 2;
             halfHeight -= borderWidth + 2;
-            EA::Raster::FilledEllipseColor(bdi.mpSurface, center.x, center.y, halfWidth, halfHeight, EA::Raster::Color::BLACK);
+            pRaster->FilledEllipseColor(bdi.mpSurface, center.x, center.y, halfWidth, halfHeight, EA::Raster::Color::BLACK);
         }
-        else if(!isFocusable) {
+        else if(isDisabled) {
+           
             // 11/18/09 CS - For a disabled radio
-            halfWidth -= borderWidth;
-            halfHeight -= borderWidth;
-            const EA::Raster::Color col(220,220,220);           
-            EA::Raster::FilledEllipseColor(bdi.mpSurface, center.x, center.y, halfWidth, halfHeight, col);
+            // We don't want a too dark grey color or it looks like it is selected.
+            const EA::Raster::Color fillColorUnfocused(210,210,210);                 
+            const EA::Raster::Color circleColorUnfocused(140,140,140);    
+            pRaster->FilledEllipseColor(bdi.mpSurface, center.x, center.y, (halfWidth - borderWidth), (halfHeight - borderWidth), fillColorUnfocused);
+            pRaster->EllipseColor(bdi.mpSurface, center.x, center.y, halfWidth, halfHeight, circleColorUnfocused);
+        }
+        else {
+            // Not selected
+            pRaster->FilledEllipseColor(bdi.mpSurface, center.x, center.y, (halfWidth - borderWidth), (halfHeight - borderWidth), EA::Raster::Color::WHITE);
+            pRaster->EllipseColor(bdi.mpSurface, center.x, center.y, halfWidth, halfHeight, circleColor);
         }
     }
     
@@ -306,25 +319,31 @@ void RenderThemeBal::adjustButtonStyle(CSSStyleSelector* selector, RenderStyle* 
 bool RenderThemeBal::paintButton(RenderObject* o, const RenderObject::PaintInfo& i, const IntRect& r)
 {
     const bool isActive = o->element()->active();
-    i.context->save();
+	const bool isDisabled = !o->element()->isEnabled();
+
+    i.context->save();	
 
     EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
     EA::WebKit::ButtonDrawInfo bdi;
-    EA::Raster::Surface* const pSurface = i.context->platformContext();;
+    EA::Raster::ISurface* const pSurface = i.context->platformContext();;
     EA::WebKit::View* pView = NULL;
     if(pSurface)
-        pView  = static_cast<EA::WebKit::View*>(pSurface->mpUserData);
+        pView  = static_cast<EA::WebKit::View*>(pSurface->GetUserData());
 
+	// 8/17/2010 Gautam Narain : We need to offset the rectangle by origin width and height. I am not sure if the mDirtyRect was incorrect due to this issue.
+	// Hence I have commented that code instead of deleting it completely    
     bdi.mpView      = pView;
     bdi.mpSurface   = pSurface;
-    bdi.mDirtyRect  = r;        // This probably isn't correct.
-    bdi.mButtonRect = r;
+	//bdi.mDirtyRect	= r;			// This probably isn't correct.
+	bdi.mDirtyRect  = EA::Raster::Rect(r.x() + i.context->origin().width(), r.y() + i.context->origin().height(), r.width(), r.height());        
+    bdi.mButtonRect = EA::Raster::Rect(r.x() + i.context->origin().width(), r.y() + i.context->origin().height(), r.width(), r.height());
     bdi.mButtonType = EA::WebKit::ButtonDrawInfo::Button;
     bdi.mIsHovered  = false;    // How do we tell this?
     bdi.mIsChecked  = false;
     bdi.mIsFocused  = isActive;
+	bdi.mIsDisabled = isDisabled;
 
-    if(!pVN || !pVN->DrawButton(bdi))
+	if(!pVN || !pVN->DrawButton(bdi))
     {
         o->paintFillLayerExtended(i, o->style()->backgroundColor(), o->style()->backgroundLayers(), r.y(), o->height(), r.x(), r.y(), o->width(), o->height());
         o->paintBorder(i.context, r.x(), r.y(), r.width(), r.height(), o->style(), true, true);
@@ -354,8 +373,10 @@ void RenderThemeBal::adjustMenuListStyle(CSSStyleSelector* selector, RenderStyle
 
 bool RenderThemeBal::paintMenuList(RenderObject* o, const RenderObject::PaintInfo& i, const IntRect& r)
 {
-    const bool isActive = o->element()->active();
-    i.context->save();
+    const bool isActive = o->element()->active();	
+	const bool isDisabled = !o->element()->isEnabled();
+
+	i.context->save();
 
     EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
     EA::WebKit::PopupMenuDrawInfo pdi;
@@ -365,19 +386,20 @@ bool RenderThemeBal::paintMenuList(RenderObject* o, const RenderObject::PaintInf
     // side (for left-to-right locales) which indicates this is clickable item. When this is 
     // clicked then 
     
-    EA::Raster::Surface* const pSurface = i.context->platformContext();;
+    EA::Raster::ISurface* const pSurface = i.context->platformContext();;
     EA::WebKit::View* pView = NULL;
     if(pSurface)
-        pView  = static_cast<EA::WebKit::View*>(pSurface->mpUserData);
+        pView  = static_cast<EA::WebKit::View*>(pSurface->GetUserData());
    
     
     pdi.mpView      = pView;
     pdi.mpSurface   = pSurface;
-    pdi.mDirtyRect   = r;        // This probably isn't correct.
-    pdi.mMenuRect    = r;
+    pdi.mDirtyRect   = EA::Raster::Rect(r.x() + i.context->origin().width(), r.y() + i.context->origin().height(), r.width(), r.height());        // This probably isn't correct.
+    pdi.mMenuRect    = EA::Raster::Rect(r.x() + i.context->origin().width(), r.y() + i.context->origin().height(), r.width(), r.height());
     pdi.mIsHovered   = false;    // How do we tell this?
     pdi.mIsFocused   = isActive;
     pdi.mIsActivated = false;
+	pdi.mIsDisabled	 = isDisabled;
 
     if(!pVN || !pVN->DrawPopupMenu(pdi))
     {
@@ -421,7 +443,7 @@ bool RenderThemeBal::paintMenuList(RenderObject* o, const RenderObject::PaintInf
         const int      arrowX   = xyOrigin.width()  + (rx + rw) - kPopupMenuBorderPadding - (kPopupMenuArrowSize / 2);
         const int      arrowY   = xyOrigin.height() + (ry + (rh / 2) + 2);
 
-        EA::Raster::SimpleTriangle(pdi.mpSurface, arrowX, arrowY, 4, EA::Raster::kODown, Color(0xff000000));  // To consider: Make this color configurable or make it it match the text color or something.
+        EA::WebKit::GetEARasterInstance()->SimpleTriangle(pdi.mpSurface, arrowX, arrowY, 4, EA::Raster::kODown, Color(0xff000000));  // To consider: Make this color configurable or make it it match the text color or something.
     }
 
     i.context->restore();
@@ -446,9 +468,9 @@ bool RenderThemeBal::paintTextField(RenderObject* o, const RenderObject::PaintIn
     EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
     EA::WebKit::TextFieldDrawInfo tdi;
     EA::WebKit::View* pView = NULL;
-    EA::Raster::Surface* const pSurface = i.context->platformContext();;
+    EA::Raster::ISurface* const pSurface = i.context->platformContext();;
     if(pSurface)
-        pView  = static_cast<EA::WebKit::View*>(pSurface->mpUserData);
+        pView  = static_cast<EA::WebKit::View*>(pSurface->GetUserData());
     
     tdi.mpView      = pView;
     tdi.mpSurface   = pSurface;
@@ -650,7 +672,6 @@ void RenderThemeBal::systemFont(int /*propId*/, WebCore::FontDescription& fd) co
         fd.setGenericFamily(FontDescription::NoFamily); // enum GenericFamilyType { NoFamily, StandardFamily, SerifFamily, SansSerifFamily, MonospaceFamily, CursiveFamily, FantasyFamily };
     }
 }
-
 
 BalContainer* RenderThemeBal::balContainer() const
 {
