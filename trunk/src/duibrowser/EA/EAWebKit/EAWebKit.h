@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -43,7 +43,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <EAWebKit/EAWebkitSTLWrapper.h>
 #include <EAWebKit/EAWebKitLocalizedStringsEnum.h>
 #include <EAWebKit/EAWebKitTextInterface.h>
-
+#include <EAWebKit/EAWebKitJavascriptValue.h>
 
 namespace EA
 {
@@ -135,20 +135,27 @@ namespace EA
  
 		struct DiskCacheInfo
         {
-            uint32_t mDiskCacheSize;        // In bytes
-            const char8_t* mCacheDiskDirectory;   // Full file path to writable directory. SetDiskCacheUsage copies this string.
-
-			DiskCacheInfo()
-				: mDiskCacheSize(256 * 1024 * 1024)
-				, mCacheDiskDirectory(0)
-			{
+            uint32_t mDiskCacheSize;                // In bytes
+            const char8_t* mCacheDiskDirectory;     // Full file path to writable directory. SetDiskCacheUsage copies this string.
+            uint32_t mMaxNumberOfCachedFiles;       // Max number of files that can be cached in the cache directory (+1 for the cache ini ctrl file). So a limit of 2 files will cache 2 files + 1 shared ctrl init file.   
+			uint32_t mMaxNumberOfOpenFiles;         // Max number of files that can keep stay open 
+            uint32_t mMinFileSizeToCache;           // Min file size in bytes to be cached.  This can prevent small 32 byte files from being cached for example.
+            DiskCacheInfo()
+				: mDiskCacheSize(256 * 1024 * 1024) // Max size that the file cache can use
+				, mCacheDiskDirectory(0)            // Path to the file cache
+                , mMaxNumberOfCachedFiles(2048)     // Max files that can be cached (+1 for the init ctrl file)
+                , mMaxNumberOfOpenFiles(24)         // Max number of files that can stay open
+                , mMinFileSizeToCache(1024)         // Min file size in bytes to be cached 
+            {
 			}
 
-			DiskCacheInfo(uint32_t diskCacheSize, const char8_t* cacheDiskDirectory)
+			DiskCacheInfo(uint32_t diskCacheSize, const char8_t* cacheDiskDirectory, uint32_t maxNumberOfCachedFiles = 2048, uint32_t maxNumberOfOpenFiles = 24, uint32_t minFileSizeToCache = 1024)
 				: mDiskCacheSize(diskCacheSize)
 				, mCacheDiskDirectory(cacheDiskDirectory)
+                , mMaxNumberOfCachedFiles(maxNumberOfCachedFiles)
+                , mMaxNumberOfOpenFiles(maxNumberOfOpenFiles)
+                , mMinFileSizeToCache(minFileSizeToCache)
 			{
-
 			}
 
         };
@@ -157,7 +164,7 @@ namespace EA
         EAWEBKIT_API void SetRAMCacheUsage(const RAMCacheInfo& ramCacheInfo);
 		EAWEBKIT_API void GetRAMCacheUsage(RAMCacheInfo& ramCacheInfo);
 		EAWEBKIT_API bool SetDiskCacheUsage(const DiskCacheInfo& diskCacheInfo); //Returns a bool that Indicates if Cache directory is successfully created.
-		EAWEBKIT_API void GetDiskCacheUsage(DiskCacheInfo& ramCacheInfo);
+		EAWEBKIT_API void GetDiskCacheUsage(DiskCacheInfo& diskCacheInfo);
 		EAWEBKIT_API void PurgeCache(bool bPurgeRAMCache, bool bPurgeFontCache, bool bPurgeDiskCache);
 
         ///////////////////////////////////////////////////////////////////////
@@ -166,7 +173,7 @@ namespace EA
 
         struct CookieInfo
         {
-            const char* mCookieFilePath;           // Full file path to a cookie file path (e.g. cache:\cookies.txt). SetCookieUsage copies this string; it doesn't need to be persistent.
+            const char* mCookieFilePath;           // Full file path to a cookie file path (e.g. cache:\cookies.txt on XBox 360). SetCookieUsage copies this string; it doesn't need to be persistent.
             uint32_t    mMaxIndividualCookieSize;  // Should usually be at least 4096. The usable space is mMaxIndividualCookieSize-1.
             uint32_t    mDiskCookieStorageSize;    // Should usually be at least 32768.
             uint16_t    mMaxCookieCount;           // Max number of concurrent cookies. Should usually be at least 16. Set to zero to clear and disable cookies.
@@ -245,6 +252,22 @@ namespace EA
 		EAWEBKIT_API void SetHighResolutionTimer(EAWebKitTimerCallback timer); //A resolution of at least milliseconds is expected.
 
 
+        ///////////////////////////////////////////////////////////////////////
+        // Thread stack base callback API
+        ///////////////////////////////////////////////////////////////////////
+        // By Default EAWebKit uses the current enty stack position as the collector stack base.
+            
+        typedef void* (*EAWebKitStackBaseCallback)();
+        EAWEBKIT_API void SetStackBaseCallback(EAWebKitStackBaseCallback);
+
+        ///////////////////////////////////////////////////////////////////////
+        // Debug file dump
+        ///////////////////////////////////////////////////////////////////////
+        // This is just to dump loaded files to a dir for debug.
+        // Currently, the path is hardcoded to a dir. 
+        // For example PC is C:\Temp\EAWebKitDebug
+        // Inactive in release builds. In debug builds, default is off.
+        EAWEBKIT_API void SetDebugFileDumpStatus(const bool enabled);
 
         ///////////////////////////////////////////////////////////////////////
         // Notification
@@ -350,7 +373,8 @@ namespace EA
 			uint32_t            mMaxTransportJobs;          // Defaults to 32. Specifies maximum number of concurrent transport jobs (e.g. HTTP requests).
             double              mTransportPollTimeSeconds;  // Defaults to 0.05 seconds. Specifies frequency of polling transport protocols.
             uint32_t            mPageTimeoutSeconds;        // Defaults to kPageTimeoutDefault. Page load timeout, in seconds.
-            bool                mbVerifyPeers;              // Defaults to true. If true then we do SSL/TLS peer verification via security certificates. You should set this to false only in non-shipping builds.
+            bool				mbEnableHttpPipelining;		// Defaults to false.
+			bool                mbVerifyPeers;              // Defaults to true. If true then we do SSL/TLS peer verification via security certificates. You should set this to false only in non-shipping builds.
             bool                mbDrawIntermediatePages;    // Defaults to true. If false then a page is only drawn after it has been completely loaded.
             float               mCaretBlinkSeconds;         // Defaults to 1.0. Defines the number of seconds for the duration of a text edit caret blink.
             uint32_t            mCheckboxSize;              // Defaults to kCheckboxSizeDefault. As page text becomes larger or screen resolution becomes higher, this value should be increased.
@@ -395,6 +419,11 @@ namespace EA
         EAWEBKIT_API void        SetParameters(const Parameters& parameters);
         EAWEBKIT_API Parameters& GetParameters();
 
+		//allowedDomain is something like .ea.com and excludedPaths is an optional semicolon separated list of paths they you may want do not include, 
+		//eg, "/ads;/scr" 
+		EAWEBKIT_API void		AddAllowedDomainInfo(const char8_t* allowedDomain, const char8_t* excludedPaths = 0);
+		//Pass in a fully qualified URL (eg, http://mygame.ea.com/ to see if it is in the White list setup using the API above. 
+		EAWEBKIT_API bool		CanNavigateToURL(const char8_t* url);
 
 		EAWEBKIT_API const char16_t* GetCharacters(const EASTLFixedString16Wrapper& str);
 		EAWEBKIT_API void SetCharacters(const char16_t* chars, EASTLFixedString16Wrapper& str);
@@ -489,7 +518,7 @@ namespace EA
             virtual void SetRAMCacheUsage(const RAMCacheInfo& ramCacheInfo) = 0;
 			virtual void GetRAMCacheUsage(RAMCacheInfo& ramCacheInfo) = 0;
 			virtual bool SetDiskCacheUsage(const DiskCacheInfo& diskCacheInfo) = 0;
-			virtual void GetDiskCacheUsage(DiskCacheInfo& ramCacheInfo) = 0;
+			virtual void GetDiskCacheUsage(DiskCacheInfo& diskCacheInfo) = 0;
 			virtual void PurgeCache(bool bPurgeRAMCache, bool bPurgeFontCache, bool bPurgeDiskCache) = 0;
 			
 			virtual void RemoveCookies() = 0;
@@ -504,10 +533,14 @@ namespace EA
 			virtual void GetNetworkMetrics(NetworkMetrics& metrics) = 0;
 			virtual double GetTime() = 0;
 			virtual void SetHighResolutionTimer(EAWebKitTimerCallback timer) = 0;
-
+			virtual void SetStackBaseCallback(EAWebKitStackBaseCallback callback) = 0;
+            virtual void SetDebugFileDumpStatus(const bool) = 0;
 			virtual void        SetParameters(const Parameters& parameters) = 0;
 			virtual Parameters& GetParameters() = 0;
 			
+			virtual void		AddAllowedDomainInfo(const char8_t* allowedDomain, const char8_t* excludedPaths = 0) = 0;
+			virtual bool		CanNavigateToURL(const char8_t* url) = 0;
+
 			virtual void        SetFileSystem(FileSystem* pFileSystem) = 0;
 			virtual FileSystem* GetFileSystem() = 0;
 
@@ -564,6 +597,10 @@ namespace EA
             virtual const char* GetVersion() = 0; // Get the EAWebKit version as a string.
 			virtual void SetPlatformSocketAPI(EA::WebKit::PlatformSocketAPI& platformSocketAPI) = 0;
 
+
+            virtual EA::WebKit::JavascriptValue* CreateJavaScriptValue() = 0; 
+            virtual void DestroyJavaScriptValue(EA::WebKit::JavascriptValue* pValue) = 0 ;  
+
 			virtual ~IEAWebkit()
 			{
 
@@ -572,6 +609,9 @@ namespace EA
 	}
 }
 
+#if defined(EA_PLATFORM_PS3)
+	extern "C" EA::WebKit::IEAWebkit* CreateEAWebkitInstance(void);
+#endif
 
 
 namespace EA
@@ -600,7 +640,7 @@ namespace EA
 			virtual void SetRAMCacheUsage(const RAMCacheInfo& ramCacheInfo);
 			virtual void GetRAMCacheUsage(RAMCacheInfo& ramCacheInfo);
 			virtual bool SetDiskCacheUsage(const DiskCacheInfo& diskCacheInfo);
-			virtual void GetDiskCacheUsage(DiskCacheInfo& ramCacheInfo);
+			virtual void GetDiskCacheUsage(DiskCacheInfo& diskCacheInfo);
 			virtual void PurgeCache(bool bPurgeRAMCache, bool bPurgeFontCache, bool bPurgeDiskCache);
 
 			virtual void RemoveCookies();
@@ -616,10 +656,15 @@ namespace EA
 			virtual void GetNetworkMetrics(NetworkMetrics& metrics);
 			virtual double GetTime();
 			virtual void SetHighResolutionTimer(EAWebKitTimerCallback timer);
+            virtual void SetStackBaseCallback(EAWebKitStackBaseCallback callback);
+            virtual void SetDebugFileDumpStatus(const bool);
 
 			virtual void        SetParameters(const Parameters& parameters);
 			virtual Parameters& GetParameters();
 
+			virtual void		AddAllowedDomainInfo(const char8_t* allowedDomain, const char8_t* excludedPaths = 0);
+			virtual bool		CanNavigateToURL(const char8_t* url);
+	
 			virtual void        SetFileSystem(FileSystem* pFileSystem);
 			virtual FileSystem* GetFileSystem();
 
@@ -675,6 +720,10 @@ namespace EA
             virtual const char* GetVersion(); 
 			
 			virtual void SetPlatformSocketAPI(EA::WebKit::PlatformSocketAPI& platformSocketAPI);
+            
+            // Use if you want to get a return Javascriptvalue from the View::EvaluateJavaScript(). 
+            virtual EA::WebKit::JavascriptValue* CreateJavaScriptValue(); 
+            virtual void DestroyJavaScriptValue(EA::WebKit::JavascriptValue* pValue);  
 
 			virtual ~EAWebkitConcrete()
 			{

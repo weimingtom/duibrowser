@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -36,6 +36,13 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define EAWEBKIT_EAWEBKITJAVASCRIPTBINDING_H
 
 #include <EAWebKit/EAWebKitJavascriptValue.h>
+#include <EAWebKit/internal/EAWebKitEASTLHelpers.h> // For fixed string
+#include <EAWebKit/internal/EAWebKitAssert.h>  
+
+#include "BAL/OWBAL/Concretizations/Types/WK/BCbalValuePrivateWK.h" // For setting the JS ExecState
+
+      
+
 
 #if EAWEBKIT_THROW_BUILD_ERROR
 #error This file should be included only in a dll build
@@ -53,9 +60,9 @@ namespace EA
 		public:
 			//////////////////////////////////////////////////////////////////////////
 			//
-			JavascriptBindingObject(ViewNotification* viewNotification)
-			:	mViewNotification(viewNotification)
-			{
+            JavascriptBindingObject(EA::WebKit::View *pView = NULL)
+                : mpView(pView)
+            {
 			}
 
 			//////////////////////////////////////////////////////////////////////////
@@ -66,25 +73,32 @@ namespace EA
 
 			//////////////////////////////////////////////////////////////////////////
 			//
-			BalValue* invoke( const char *name, Vector<BalValue*> args)
+            BalValue* invoke(const char *name, Vector<BalValue*> args, KJS::ExecState* exec )
 			{
-				if (mViewNotification)
+
+    			EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
+                if (pVN)
 				{
-					JavascriptMethodInvokedInfo info;
-					info.mMethodName = name;
-
+                    JavascriptMethodInvokedInfo info;
+                    info.mpView = mpView;
+                    info.mMethodName = name;
+                    
 					unsigned counter = 0;
-
+                    
 					for (Vector<BalValue*>::const_iterator i = args.begin(); i != args.end(); ++i)
 					{
-						info.mArguments[counter++] = Translate(*i);
+                        Translate(*i, info.mArguments[counter++]);
 					}
 					info.mArgumentCount = counter;
 
+					pVN->JavascriptMethodInvoked(info);
 
-					mViewNotification->JavascriptMethodInvoked(info);
+                	// CSidhall 3/25/10 -We need to set the exec in the private BalValuePrivate 
+                    // so that the translate can call the exec to allocated a string when a string is returned.
+                    if(mValue.d)
+                        mValue.d->setExec(exec);
 
-					return Translate(info.mReturn);
+					return Translate(info.mReturn, mValue);
 				}
 				else
 				{
@@ -97,96 +111,105 @@ namespace EA
 
 			//////////////////////////////////////////////////////////////////////////
 			//
-			BalValue *getProperty(const char *name)
+			BalValue *getProperty(const char *name, KJS::ExecState* exec)
 			{
-				if (mViewNotification)
+                BalValue* translated = new BalValue;    // The BAL is expecting the delete the returned BalValue so we create one to make it happy.
+                EAW_ASSERT(translated);
+                if(translated->d)
+                    translated->d->setExec(exec);                        
+
+                EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
+                if (pVN)
 				{
 					JavascriptPropertyInfo info;
-					info.mPropertyName = name;
-					mViewNotification->GetJavascriptProperty(info);
-					return Translate(info.mValue);
+					info.mpView = mpView;
+                    info.mPropertyName = name;
+					pVN->GetJavascriptProperty(info);   // On the client side, we flip it so that a get is a set. 
+					Translate(info.mValue, *translated);
 				}
 				else
 				{
-					BalValue* value = &mValue;
-					value->balUndefined();
-					return value;
+					translated->balUndefined();
 				}
-			};
+                return translated;
+            };
 
 			//////////////////////////////////////////////////////////////////////////
 			//
-			void setProperty( const char *name, const BalValue *value) 
+			void setProperty( const char *name, BalValue *value) 
 			{
-				if (mViewNotification)
+				EA::WebKit::ViewNotification* pVN = EA::WebKit::GetViewNotification();
+                if (pVN)
 				{
 					JavascriptPropertyInfo info;
-					info.mPropertyName = name;
-					info.mValue = Translate(value);
-					mViewNotification->SetJavascriptProperty(info);
+                    info.mpView = mpView;				
+                    info.mPropertyName = name;
+					Translate(value, info.mValue);
+					pVN->SetJavascriptProperty(info); // On the client side, we flip it so that a set is a get.
 				}
 			};
-
 
 		private:
 			//////////////////////////////////////////////////////////////////////////
 			// object marshalling 
-			BalValue* Translate(JavascriptValue& value)
+			BalValue* Translate(JavascriptValue& value, BalValue& translated)
 			{
-				BalValue* translated = &mValue;
-
 				switch (value.GetType())
 				{
-				case JavascriptValueType_Undefined:
-					translated->balUndefined();
+                case JavascriptValueType_Undefined:
+					translated.balUndefined();
 					break;	
 				case JavascriptValueType_Boolean:
-					translated->balBoolean(value.GetBooleanValue());
+					translated.balBoolean(value.GetBooleanValue());
 					break;
 				case JavascriptValueType_Number:
-					translated->balNumber(value.GetNumberValue());
+					translated.balNumber(value.GetNumberValue());
 					break;
 				case JavascriptValueType_String:
-					translated->balString(value.GetStringValue());
-					break;
-
+                    {
+                        wchar_t* pVal = (wchar_t*) GetFixedString(value.GetStringValue())->c_str();
+                        translated.balString(pVal);
+                    }
+                    break;
+                default:
+                      EAW_ASSERT(0);
+                    break;
 				}
 
-				return translated;
+				return &translated;
 			}
 
 			//////////////////////////////////////////////////////////////////////////
 			//
-			JavascriptValue Translate(const BalValue* value)
+			JavascriptValue* Translate(const BalValue* value, JavascriptValue& translated)
 			{
-				JavascriptValue translated;
-
 				switch (value->type())
 				{
-				case BooleanType:
+                case KJS::BooleanType:
 					translated.SetBooleanValue(value->toBoolean());
 					break;
-				case UndefinedType:
+				case KJS::UndefinedType:
 					translated.SetUndefined();
 					break;
-				case NumberType:
+				case KJS::NumberType:
 					translated.SetNumberValue(value->toNumber());
 					break;
-				case StringType:
-					mString = value->toString();
-					translated.SetStringValue(mString.charactersWithNullTermination());
-
-
+				case KJS::StringType:
+                    {
+                        mString = value->toString();
+					    GetFixedString(translated.GetStringValue())->assign(mString.charactersWithNullTermination());
+                        translated.SetStringType();
+                    }
 					break;
 				default:
-					// maybe should assert?
+					translated.SetUndefined();  // Bal has some other types like null or unspecified
 					break;
 				}
 
-				return translated;
+				return &translated;
 			}
 
-			ViewNotification*	mViewNotification;
+            EA::WebKit::View*   mpView; // 3/17/10 CSidhall - Added for multiview support in notifications
 			BalValue			mValue;
 			WebCore::String		mString;
 		};

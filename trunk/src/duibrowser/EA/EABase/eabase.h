@@ -229,7 +229,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         typedef double              double_t;
     #endif
 
-   #if defined(EA_PLATFORM_LINUX) 
+   #if defined(EA_PLATFORM_LINUX) || defined(EA_PLATFORM_PS3) || defined(EA_PLATFORM_PS3_SPU)
        typedef signed long long    int64_t;
        typedef unsigned long long  uint64_t;
 
@@ -242,7 +242,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
            typedef unsigned long       uint64_t;
        #endif
 
-   #elif defined(EA_PLATFORM_WINDOWS) || defined(EA_PLATFORM_MAC)
+   #elif defined(EA_PLATFORM_WINDOWS) || defined(EA_PLATFORM_XBOX) || defined(EA_PLATFORM_XENON) || defined(EA_PLATFORM_MAC)
        #if defined(EA_COMPILER_MSVC) || defined(EA_COMPILER_BORLAND)  || defined(EA_COMPILER_INTEL)
            typedef signed __int64      int64_t;
            typedef unsigned __int64    uint64_t;
@@ -298,8 +298,13 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             #define  UINT8_C(x)   uint8_t(x)
             #define  INT16_C(x)   int16_t(x)
             #define UINT16_C(x)  uint16_t(x)     // Possibly we should make this be uint16_t(x##u). Let's see how compilers react before changing this.
-            #define  INT32_C(x)  x##L
-            #define UINT32_C(x)  x##UL
+            #if defined(EA_PLATFORM_PS3)         // PS3 defines long as 64 bit, so we cannot use any size suffix.
+                #define  INT32_C(x)  int32_t(x)
+                #define UINT32_C(x)  uint32_t(x)
+            #else                                // Else we are working on a platform whereby sizeof(long) == sizeof(int32_t).
+                #define  INT32_C(x)  x##L
+                #define UINT32_C(x)  x##UL
+            #endif
             #define  INT64_C(x)  x##LL         // The way to deal with this is to compare ULONG_MAX to 0xffffffff and if not equal, then remove the L.
             #define UINT64_C(x)  x##ULL        // We need to follow a similar approach for LL.
         #endif

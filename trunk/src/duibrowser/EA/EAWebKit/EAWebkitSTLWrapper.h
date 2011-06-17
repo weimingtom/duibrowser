@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -47,7 +47,7 @@ namespace EA
 {
     namespace WebKit
     {
-		//This wraps eastl::fixed_string<char8_t,  256, true, EASTLAllocator>.
+		//This wraps eastl::fixed_string<char8_t,  128, true, EASTLAllocator>.
 		class EASTLFixedString8Wrapper
 		{
 		public:
@@ -55,18 +55,13 @@ namespace EA
 			EASTLFixedString8Wrapper(const char8_t* str);
 			EASTLFixedString8Wrapper(const EASTLFixedString8Wrapper& rhs);
 			EASTLFixedString8Wrapper& operator = (const EASTLFixedString8Wrapper& rhs);
-			virtual ~EASTLFixedString8Wrapper();
-			void* GetImpl() const
-			{
-				return mString8;
-			}
-
-			const char8_t* c_str() const;
+			~EASTLFixedString8Wrapper();
+			void* GetImpl() const;
 		private:
 			void* mString8;
 		};
 
-		//This wraps eastl::fixed_string<char16_t,  256, true, EASTLAllocator>.
+		//This wraps eastl::fixed_string<char16_t,  128, true, EASTLAllocator>.
 		class EASTLFixedString16Wrapper
 		{
 		public:
@@ -74,29 +69,21 @@ namespace EA
 			EASTLFixedString16Wrapper(const char16_t* str);
 			EASTLFixedString16Wrapper(const EASTLFixedString16Wrapper& rhs);
 			EASTLFixedString16Wrapper& operator = (const EASTLFixedString16Wrapper& rhs);
-			virtual ~EASTLFixedString16Wrapper();
-			void* GetImpl() const
-			{
-				return mString16;
-			}
-
-			const char16_t* c_str() const;
+			~EASTLFixedString16Wrapper();
+			void* GetImpl() const;
 		private:
 			void* mString16;
 		};
 		
-		//This wraps typedef eastl::fixed_multimap<FixedString16, FixedString16, 8, true, fstr_iless, EASTLAllocator> HeaderMap;
+		//This wraps typedef eastl::fixed_multimap<FixedString16_64, FixedString16_64, 8, true, fstr_iless, EASTLAllocator> HeaderMap;
 		class EASTLHeaderMapWrapper
 		{
 		public:
 			EASTLHeaderMapWrapper();
 			EASTLHeaderMapWrapper(const EASTLHeaderMapWrapper& rhs);
 			EASTLHeaderMapWrapper& operator = (const EASTLHeaderMapWrapper& rhs);
-			virtual ~EASTLHeaderMapWrapper();
-			void* GetImpl() const
-			{
-				return mHeaderMap;
-			}
+			~EASTLHeaderMapWrapper();
+			void* GetImpl() const;
 		private:
 			void* mHeaderMap;
 		};

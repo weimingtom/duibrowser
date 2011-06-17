@@ -34,6 +34,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *-----------------------------------------------------------------------------
  * Currently supported platform indentification defines include:
+ *    EA_PLATFORM_PS3
+ *    EA_PLATFORM_PS3_PPU
+ *    EA_PLATFORM_PS3_SPU
+ *    EA_PLATFORM_XENON (a.k.a. XBox2)
  *    EA_PLATFORM_MAC
  *    EA_PLATFORM_OSX
  *    EA_PLATFORM_LINUX
@@ -55,7 +59,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Todo: 
  *    Consider making abbreviated platform definitions in order to make
  *    this file be consistent with standard EA build configuration names.
- *    
+ *    Thus, EA_PLATFORM_PLAYSTATION3 would become EA_PLATFORM_PS3.
  *    
  * Todo: 
  *    Consider making EA_PLATFORM_WINDOWS be EA_PLATFORM_PC in order to be
@@ -70,8 +74,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *    of platform vs. identification of operating system and identification of
  *    processor. The definitions provided here are perhaps not precise enough
  *    for all uses. For example, EA_PLATFORM_LINUX refers to an operating system
- *    and not to any particular hardware that it runs on. Consider finding a way to
- *    resolve this clarity issue.   
+ *    and not to any particular hardware that it runs on. On the other hand, 
  *---------------------------------------------------------------------------*/
 
 
@@ -79,13 +82,68 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define INCLUDED_eaplatform_H
 
 
+
+// PlayStation 3 PPU (Primary Processing Unit)
+#if defined(EA_PLATFORM_PS3_PPU) || defined(EA_PLATFORM_PS3) || defined(__PU__) || defined(__PPU__)
+    #undef  EA_PLATFORM_PS3_PPU
+    #define EA_PLATFORM_PS3_PPU 1
+    #undef  EA_PLATFORM_PS3
+    #define EA_PLATFORM_PS3 1
+    #define EA_PLATFORM_NAME "PS3"
+    #define EA_PROCESSOR_POWERPC
+    #define EA_SYSTEM_BIG_ENDIAN
+    #define EA_PLATFORM_DESCRIPTION "PS3 on PowerPC"
+
+// PlayStation 3 SPU (Synergistic Processing Unit)
+#elif defined(EA_PLATFORM_PS3_SPU) || defined(__SPU__)
+    #undef  EA_PLATFORM_PS3_SPU
+    #define EA_PLATFORM_PS3_SPU 1
+    #define EA_PLATFORM_NAME "PS3 SPU"
+    #define EA_PROCESSOR_SPU
+    #define EA_SYSTEM_BIG_ENDIAN
+    #define EA_PLATFORM_DESCRIPTION "PS3 SPU on SPU"
+
+// XBox
+// _XBOX is defined by the VC++ project, not the compiler. There is no way
+// to tell if the compiler is compiling for XBox unless _XBOX is #defined 
+// in the project files or otherwise. _M_IX86 is the VC++ way of detecting 
+// an x86 target, which would mean XBox and not Xenon (a.k.a. XBox2).
+#elif defined(EA_PLATFORM_XBOX) || (defined(_XBOX) && defined(_M_IX86))
+    #undef  EA_PLATFORM_XBOX
+    #define EA_PLATFORM_XBOX 1
+    #define EA_PLATFORM_NAME "XBox"
+    #define EA_PROCESSOR_X86
+    #define EA_SYSTEM_LITTLE_ENDIAN
+    #define EA_PLATFORM_DESCRIPTION "XBox on X86"
+    #if defined(_MSC_VER) || defined(__ICL)
+       #define EA_ASM_STYLE_INTEL
+    #endif
+
+// Xenon (XBox 360)
+// The Xenon compiler doesn't define anything in particular to indicate that the 
+// target is the Xenon platform. The Xenon SDK, however, expects that XBOX and
+// _XBOX are #defined, so the project build file must make sure these are defined.
+// Since the Xenon compiler in fact defines _M_PPC, we can use this information 
+// to infer that Xenon is the target if neither _XENON nor _XBOX2 are specifically 
+// defined by the project build file.
+#elif defined(EA_PLATFORM_XENON) || defined(_XENON) || defined(_XBOX2) || ((defined(_XBOX) || defined(XBOX)) && defined(_M_PPC))
+    #undef  EA_PLATFORM_XENON
+    #define EA_PLATFORM_XENON 1
+    #define EA_PLATFORM_NAME "Xenon"
+    #define EA_PROCESSOR_POWERPC
+    #define EA_SYSTEM_BIG_ENDIAN
+    #define EA_PLATFORM_DESCRIPTION "Xenon on PowerPC"
+    #if defined(_MSC_VER) || defined(__ICL)
+       #define EA_ASM_STYLE_INTEL
+    #endif
+
 // Macintosh OS (non-OSX)
 // TARGET_OS_MAC is defined by the Metrowerks and MacOS AppleC compilers.
 // __dest_os is defined by the Metrowerks compiler.
 // TARGET_CPU_PPC is defined by the Metrowerks and AppleC compilers.
 // powerc and __powerc are defined by the Metrowerks and GCC compilers.
 // __m68k__ is defined by the GCC compiler.
-#if defined(EA_PLATFORM_MAC) || (defined(TARGET_OS_MAC) && !defined(__MACH__)) || (defined(__MSL__) && (__dest_os == __mac_os))
+#elif defined(EA_PLATFORM_MAC) || (defined(TARGET_OS_MAC) && !defined(__MACH__)) || (defined(__MSL__) && (__dest_os == __mac_os))
     #undef  EA_PLATFORM_MAC
     #define EA_PLATFORM_MAC 1
     #define EA_PLATFORM_NAME "MAC"
@@ -174,7 +232,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // _M_IX86, _M_AMD64 and _M_IA64 are defined by the VC++, Intel, and Borland compilers.
 // _X86_, _AMD64_, and _IA64_ are defined by the Metrowerks compiler.
 // _M_ARM is defined by the VC++ compiler.
-#elif (defined(EA_PLATFORM_WINDOWS) || (defined(_WIN32) || defined(__WIN32__) || defined(_WIN64) || (defined(__MWERKS__) && defined(_X86_)))) 
+#elif (defined(EA_PLATFORM_WINDOWS) || (defined(_WIN32) || defined(__WIN32__) || defined(_WIN64) || (defined(__MWERKS__) && defined(_X86_)))) && !defined(_XBOX)
     #undef  EA_PLATFORM_WINDOWS
     #define EA_PLATFORM_WINDOWS 1
     #define EA_PLATFORM_NAME "Windows"
@@ -320,7 +378,11 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // have 64 bit registers but 32 bit pointers.
 //
 #ifndef EA_PLATFORM_WORD_SIZE
-  #define EA_PLATFORM_WORD_SIZE EA_PLATFORM_PTR_SIZE
+   #if defined(EA_PLATFORM_XENON) || defined(EA_PLATFORM_PS3) 
+      #define EA_PLATFORM_WORD_SIZE 8
+   #else
+      #define EA_PLATFORM_WORD_SIZE EA_PLATFORM_PTR_SIZE
+   #endif
 #endif
 
 
@@ -333,7 +395,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // we follow a variation of the standard LP64 conventions defined at:
 //    http://www.opengroup.org/public/tech/aspen/lp64_wp.htm 
 //
-// #if defined(EA_PLATFORM_SUN) || defined(EA_PLATFORM_SGI)
+// #if defined(EA_PLATFORM_LINUX) || defined(EA_PLATFORM_OSX) || defined(EA_PLATFORM_XBOX) || defined(EA_PLATFORM_XENON)
+//    #define EA_PLATFORM_ILP32_LL64         // int, long, ptr = 32 bits; long long = 64 bits.
+// 
+// #elif defined(EA_PLATFORM_SUN) || defined(EA_PLATFORM_SGI)
 //    #if (EA_PLATFORM_WORD_SIZE == 32)
 //       #define ILP32_LL64                  // int, long, ptr = 32 bits; long long = 64 bits.
 //    #else // 64 bit platform
