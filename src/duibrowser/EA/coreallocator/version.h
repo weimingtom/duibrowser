@@ -47,7 +47,7 @@ Define the major, minor and patch versions.
 #define COREALLOCATOR_VERSION_MINOR   3
 
 //! This define indicates the patch version number for the coreallocator package.
-#define COREALLOCATOR_VERSION_PATCH   3
+#define COREALLOCATOR_VERSION_PATCH   5
 
 /*!
  * This is a utility macro that users may use to create a single version number

@@ -61,7 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="DirectUI.lib PPMallocEAWebKit.lib libjpegEAWebKit.lib libpngEAWebKit.lib"
+				AdditionalDependencies="DirectUI.lib"
 				OutputFile="$(OutDir)\obj\$(ProjectName)\$(ProjectName).exe"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="$(SolutionDir)Bin\$(ConfigurationName)\$(PlatformName)"
@@ -139,7 +139,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="DirectUI.lib PPMallocEAWebKit.lib libjpegEAWebKit.lib libpngEAWebKit.lib"
+				AdditionalDependencies="DirectUI.lib"
 				OutputFile="$(OutDir)\obj\$(ProjectName)\$(ProjectName).exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="$(SolutionDir)Bin\$(ConfigurationName)\$(PlatformName)"

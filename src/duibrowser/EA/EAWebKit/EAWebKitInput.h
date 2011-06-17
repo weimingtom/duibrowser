@@ -46,37 +46,7 @@ namespace EA
     namespace WebKit
     {
         class  View;
-        struct KeyboardEvent;
-        struct MouseButtonEvent;
-        struct MouseMoveEvent;
-        struct MouseWheelEvent;
-
-
-        // This class created by EA in order to provide a generic means to have some GUI entity
-        // own the keyboard and mouse focus in a modal way. This was initially created due to a
-        // need for this by the PopupMenu class. WebKit ports such as the Windows, Macintosh, 
-        // and Gtk ports implement popup menus by directly using operating system windowing 
-        // services, whereas we don't have such a thing on our platforms. So we emulate that 
-        // functionality with things like ModalInputClient and private Raster surfaces like
-        // that used by PopupMenu.
-        // A class can get modal control of input by inheriting from this class, implementing
-        // the event functions, and using View::SetModalInput.
-        class ModalInputClient
-        {
-        public:
-            virtual     ~ModalInputClient() { }
-            virtual void ModalBegin() = 0;
-            virtual void ModalEnd() = 0;
-            virtual void OnKeyboardEvent(const KeyboardEvent& keyboardEvent) = 0;
-            virtual void OnMouseMoveEvent(const MouseMoveEvent& mouseMoveEvent) = 0;
-            virtual void OnMouseButtonEvent(const MouseButtonEvent& mouseButtonEvent) = 0;
-            virtual void OnMouseWheelEvent(const MouseWheelEvent& mouseWheelEvent) = 0;
-            virtual void OnFocusChangeEvent(bool bHasFocus) = 0;
-            virtual void OnScrollViewEvent() = 0;
-        };
-
-
-
+      
         // EAWebKit support keyboard and mouse input, but doesn't explicitly support
         // controller or joystick input. The reason for this is that controller input
         // is translatable in a straightforward way by the application into virtual 
@@ -131,6 +101,47 @@ namespace EA
             bool        mbAlt;          /// 
             bool        mbOS;           ///
         };
+
+		// We can extend following structs with more information as needed.
+		struct ButtonEvent
+		{
+			uint32_t	mID;			/// Button id, such as kButton3
+			uint16_t	mRepeatCount;	/// Repeat count. Will be in the range of [(uint16_t)-1, UINT16_MAX - 2].
+			const char* mTag;			/// Custom user defined Button tag, such as "dpad_left_button". If not provided, default tag(defined in cpp file) would be used.
+
+			//Need a Ctor because I want to clear the "mTag" in case no tag is specified and a default needs to be used.
+			ButtonEvent(uint32_t id = 0, uint16_t repeatCount = 1, const char8_t* tag = 0)
+				: mID(id)
+				, mRepeatCount(repeatCount)
+				, mTag(tag)
+			{
+
+			}
+		};
+
+		// Note that the following is a diversion from InputMan. InputMan has a problem that it only deals with 1 axis at a time and associates the id with the stick axis.
+		// We associate the mID with stick ID(kStick0,...,kStick3).
+		struct StickEvent
+		{
+			uint32_t	mID;			/// Stick or axis id, such as kStick0.
+			float		mXAxis;			/// Float   (-1.0 - +1.0)
+			float		mYAxis;			/// Float   (-1.0 - +1.0)
+			uint16_t	mRepeatCount;	/// Repeat count. Will be in the range of [(uint16_t)-1, UINT16_MAX - 2]. This can be used to accelerate scroll/cursor movement.
+			const char*	mTag;			/// Custom user defined Button tag, such as "analog_left_stick". If not provided, default tag(defined in cpp file) would be used.
+
+			//Need a Ctor because I want to clear the "mTag" in case no tag is specified and a default needs to be used.
+			StickEvent(uint32_t id = 0, float xAxis = 0.0f, float yAxis = 0.0f, uint16_t repeatCount = 1, const char8_t* tag = 0)
+				: mID(id)
+				, mXAxis(xAxis)
+				, mYAxis(yAxis)
+				, mRepeatCount(repeatCount)
+				, mTag(tag)
+			{
+
+			}
+		};
+
+
 
 
         // Mouse button identifiers
@@ -386,6 +397,84 @@ namespace EA
         const uint32_t kIMENonConvert   =  29;  // 0x1D     IME nonconvert           // Generally appears on Asian keyboards only.
         const uint32_t kIMEAccept       =  30;  // 0x1E     IME accept               // Generally appears on Asian keyboards only.
         const uint32_t kIMEModeChange   =  31;  // 0x1F     IME mode change request  // Generally appears on Asian keyboards only.
+
+		// Stick (platform-independent)
+		// Note that some input devices have the concept of what they call a z axis
+		// to supplement the x and y axes. This is found on joysticks for flight simulation
+		// titles where the stick itself provides x and y input and there is a slider or
+		// trigger which supplies the z axis. We don't define an explicit z axis here but
+		// instead use the "second" stick x axis to provide z axis functionality. This makes
+		// some sense if you consider that usually these z axis devices are usually a slider
+		// that is independent from the physical stick.
+		//
+		const uint32_t kStick0X     = 2000;   // X axis of first stick.
+		const uint32_t kStick0Y     = 2001;   // Y axis of first stick.
+		const uint32_t kStick1X     = 2002;   // X axis of second stick.
+		const uint32_t kStick1Y     = 2003;   // Y axis of second stick.
+		const uint32_t kStick2X     = 2004;   // X axis of third stick.
+		const uint32_t kStick2Y     = 2005;   // Y axis of third stick.
+		const uint32_t kStick3X     = 2006;   // X axis of third stick.
+		const uint32_t kStick3Y     = 2007;   // Y axis of third stick.
+		const uint32_t kStickCount  = 8;      // We can expand this if necessary.
+
+		// Stick identifiers (platform-independent)
+		const uint32_t kStick0      = 2050;
+		const uint32_t kStick1      = 2051;
+		const uint32_t kStick2      = 2052;
+		const uint32_t kStick3      = 2053;
+
+		// Buttons (platform-independent)
+		const uint32_t kButton0     = 2008;
+		const uint32_t kButton1     = 2009;
+		const uint32_t kButton2     = 2010;
+		const uint32_t kButton3     = 2011;
+		const uint32_t kButton4     = 2012;
+		const uint32_t kButton5     = 2013;
+		const uint32_t kButton6     = 2014;
+		const uint32_t kButton7     = 2015;
+		const uint32_t kButton8     = 2016;
+		const uint32_t kButton9     = 2017;
+		const uint32_t kButton10    = 2018;
+		const uint32_t kButton11    = 2019;
+		const uint32_t kButton12    = 2020;
+		const uint32_t kButton13    = 2021;
+		const uint32_t kButton14    = 2022;
+		const uint32_t kButton15    = 2023;
+		const uint32_t kButton16    = 2024;
+
+#ifdef EA_PLATFORM_XENON
+		const uint32_t kButtonCount = 17;
+#else
+		const uint32_t kButtonCount = 16;
+#endif
+
+		// This class created by EA in order to provide a generic means to have some GUI entity
+		// own the keyboard and mouse focus in a modal way. This was initially created due to a
+		// need for this by the PopupMenu class. WebKit ports such as the Windows, Macintosh, 
+		// and Gtk ports implement popup menus by directly using operating system windowing 
+		// services, whereas we don't have such a thing on our platforms. So we emulate that 
+		// functionality with things like ModalInputClient and private Raster surfaces like
+		// that used by PopupMenu.
+		// A class can get modal control of input by inheriting from this class, implementing
+		// the event functions, and using View::SetModalInput.
+		class ModalInputClient
+		{
+			//abaldeva: We should probably have all the APIs return a bool. Currently, only OnButtonEvent returns a boolean as it indicates
+			// whether the cursor jumped or not.
+		public:
+			virtual     ~ModalInputClient() { }
+			virtual void ModalBegin() = 0;
+			virtual void ModalEnd() = 0;
+			virtual void OnKeyboardEvent(const KeyboardEvent& keyboardEvent) = 0;
+			virtual void OnMouseMoveEvent(const MouseMoveEvent& mouseMoveEvent) = 0;
+			virtual void OnMouseButtonEvent(const MouseButtonEvent& mouseButtonEvent) = 0;
+			virtual void OnMouseWheelEvent(const MouseWheelEvent& mouseWheelEvent) = 0;
+			virtual bool OnButtonEvent(const ButtonEvent& buttonEvent) = 0;
+			virtual void OnFocusChangeEvent(bool bHasFocus) = 0;
+			//abaldeva: Following should not exist. The EA::WebKit::View::Scroll API from which it is used is wrong itself as it scrolls main frame only.
+			virtual void OnScrollViewEvent() = 0;
+		};
+
 
 
     } // namespace WebKit

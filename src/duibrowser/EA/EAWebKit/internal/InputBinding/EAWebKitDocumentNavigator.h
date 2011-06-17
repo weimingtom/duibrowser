@@ -45,17 +45,24 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
-namespace WebCore { class Node; }
+
+namespace WebCore 
+{ 
+	class Node; 
+	class Document;
+}
 
 namespace EA
 {
 	namespace WebKit
 	{
 		class NodeListContainer;
+		class View;
+
 		class DocumentNavigator
 		{
 		public:
-			DocumentNavigator(EA::WebKit::JumpDirection direction, WebCore::IntPoint startingPosition, int previousNodeX, int previousNodeY, int previousNodeWidth, int previousNodeHeight, float theta);
+			DocumentNavigator(EA::WebKit::View* view, WebCore::Document* document, EA::WebKit::JumpDirection direction, WebCore::IntPoint startingPosition, int previousNodeX, int previousNodeY, int previousNodeWidth, int previousNodeHeight, float theta, bool strictAxesCheck, float maxRadialDistance);
 			~DocumentNavigator();
 			void FindBestNode(WebCore::Node* rootNode);
 
@@ -65,23 +72,28 @@ namespace EA
 				return mBestNode; 
 			}
 
+			float GetBestNodeRadialDistance() const
+			{
+				return mMinR;
+			}
 
 		private:
+			EA::WebKit::View* mView;
 			EA::WebKit::JumpDirection mDirection;
 			WebCore::IntPoint mStartingPosition;
 			WebCore::IntRect mPreviousNodeRect;
 
 			WebCore::Node* mBestNode;
+			WebCore::Document* mDocument;
 
 			float mMinR;
 			float mMinThetaRange;
 			float mMaxThetaRange;
+			bool mStrictAxesCheck;
 
 			bool doAxisCheck(WebCore::IntRect rect);
 			bool areAnglesInRange(float minTheta, float maxTheta);
 
-			//////////////////////////////////////////////////////////////////////////
-			// TODO REMOVE!
 		public:
 			NodeListContainer*					mNodeListContainer;
 

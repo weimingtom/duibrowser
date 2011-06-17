@@ -169,8 +169,15 @@ namespace EA
                 const char* const       mName;
                 const char* const       mFileName;
                 const int               mLineNum;
-                DebugParams(const char* const allocationName, const char* const fileName, const int lineNum) : mName(allocationName), mFileName(fileName), mLineNum(lineNum) {};
-                DebugParams(const DebugParams& obj) : mName(obj.mName), mFileName(obj.mFileName), mLineNum(obj.mLineNum) {};
+                const int               mPad;
+
+                DebugParams(const char* const allocationName, const char* const fileName, const int lineNum) 
+                    : mName(allocationName), mFileName(fileName), mLineNum(lineNum), mPad(0) 
+                {}
+
+                DebugParams(const DebugParams& obj) 
+                    : mName(obj.mName), mFileName(obj.mFileName), mLineNum(obj.mLineNum), mPad(0) 
+                {}
 
                 private:
                 //private and undefined (members are all const so assignment isn't possible) ... this is here so the compiler doesn't try to generate it.

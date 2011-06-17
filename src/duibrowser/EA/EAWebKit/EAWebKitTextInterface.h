@@ -41,7 +41,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace EA
 {
-    namespace Internal
+    namespace WebKit
     {
         ///--- Exposed constants and Enums from EAText ---
         typedef char16_t Char;
@@ -269,6 +269,26 @@ namespace EA
             kEffectUser = 256
         };
 
+        // For storing text effect attributes
+        struct TextEffectData
+        {
+            Effect  type;
+            int   x;            // Multi use. Can bue used as an x offset param
+            int   y;            // Multi use.  Can be used for a y offset param
+            int   blur;         // Passed but not used
+            Color c;            // Effect color
+            Color cBase;        // Pen color
+            
+            TextEffectData() : type(kEffectNone), x(0), y(0), blur(0), c(0), cBase(0) {}
+
+            bool operator==(const TextEffectData& other) const
+            {
+               return type == other.type && x == other.x && y == other.y
+                  && blur == other.blur && c == other.c && cBase == other.cBase;
+            }
+        };
+        
+        
         enum RenderFlags
         {
             kRFNone       = 0,     /// No flag in particular.
@@ -286,7 +306,7 @@ namespace EA
         };
 
          ///--- Exposed structures from EAText ---
-        struct FontDescription
+        struct IFontDescription
         {
             Char      mFamily[kFamilyNameCapacity]; /// Family name to which the font belongs. For example, Arial.
             float     mfSize;                       /// Font size. If size is not applicable, the value is 0.
@@ -303,12 +323,12 @@ namespace EA
             Color     mEffectColor;                 /// If mEffect is outline, this is outline color, if effect is shadow, this shadow color
             Color     mHighLightColor;              /// used for shadow, rasied and depressed effect
 
-            FontDescription()
+            IFontDescription()
               : mfSize(0.f), mStyle(kStyleNormal), mfWeight(kWeightNormal), mfStretch(1.f), 
                 mPitch(kPitchVariable), mVariant(kVariantNormal), mSmooth(kSmoothNone), mEffect(kEffectNone),
                 mfEffectX(1.f), mfEffectY(1.f), mEffectBaseColor(0xffffffff), mEffectColor(0xff000000), mHighLightColor(0xffffffff) { mFamily[0] = 0; }
 
-            bool operator==(const FontDescription& fd) const;
+            bool operator==(const IFontDescription& fd) const;
         };
 
         struct GlyphBitmap
@@ -338,17 +358,19 @@ namespace EA
         public:
             virtual ~IFontServer() {}
  
-            virtual IFont* CreateNewFont(int fontType) = 0;
+            virtual IFont* CreateNewFont(EA::WebKit::FontType fontType) = 0;
 
             virtual IFont* GetFont(IFontStyle* pTextStyle, IFont* pFontArray[] = NULL, uint32_t nFontArrayCapacity = 0, 
-                    Char c = kCharInvalid, Script script = kScriptUnknown, bool bManaged = true) = 0;
+                    const TextEffectData* pEffect = 0, Char c = kCharInvalid, Script script = kScriptUnknown, bool bManaged = true) = 0;
 
-            virtual uint32_t EnumerateFonts(FontDescription* pFontDescriptionArray, uint32_t nCount) = 0;
+            virtual uint32_t EnumerateFonts(IFontDescription* pFontDescriptionArray, uint32_t nCount) = 0;
 			virtual uint32_t AddDirectory(const char16_t* pFaceDirectory, const char16_t* pFilter = NULL) = 0;
 			virtual bool AddSubstitution(const char16_t* pFamily, const char16_t* pFamilySubstitution) = 0;
             virtual uint32_t AddFace(IO::IStream* pStream, FontType fontType) = 0;
 
-            // Various font related interfaces
+            
+            // We also use the font server pointer as a way to access other Text functions.
+            // Heare are various font related interfaces
             virtual int32_t GetCombiningClass(Char c) = 0;
             virtual Char GetMirrorChar(Char c) = 0;
             virtual CharCategory GetCharCategory(Char c) = 0;
@@ -374,12 +396,14 @@ namespace EA
         }; 
         
         /// Font abstract base class
+        class IGlyphCache;
+        struct IGlyphTextureInfo;
         class IFont
         {
         public:
             virtual ~IFont() {}
 
-            virtual void SetAllocator(Allocator::ICoreAllocator* pCoreAllocator) = 0;
+            virtual void SetAllocator(EA::Allocator::ICoreAllocator* pCoreAllocator) = 0;
 
             virtual int AddRef() = 0;
 
@@ -396,18 +420,17 @@ namespace EA
 
             virtual float GetSize() const = 0;
 
-            virtual bool RenderGlyphBitmap(const GlyphBitmap** pGlyphBitmap, GlyphId g, uint32_t renderFlags = kRFDefault, float fXFraction = 0, float fYFraction = 0) = 0;
-
             virtual bool GetKerning(GlyphId g1, GlyphId g2, Kerning& kerning, int direction, bool bHorizontalLayout = true) = 0;
 
-            virtual void DoneGlyphBitmap(const GlyphBitmap* pGlyphBitmap) = 0;
-
-            virtual void *GetFontPointer() =0;
+            virtual void* GetFontPointer() =0;
 
             virtual void DestroyWrapper() = 0;
 
             // Special for outline font to avoid extra wrapper class
             virtual bool OpenOutline(const void* pSourceData, uint32_t nSourceSize, int nFaceIndex = 0) = 0;
+
+            // Extracted part of the BCFontEA.cpp draw 
+            virtual bool DrawGlyphBitmap(IGlyphCache* pGlyphCache, GlyphId g, IGlyphTextureInfo& glyphTextureInfo) = 0;
 
         }; // Font
 
@@ -418,9 +441,9 @@ namespace EA
             virtual void SetSize(float value) = 0;
             virtual void SetStyle(Style value) = 0;
             virtual void SetWeight(float value) = 0;
-            virtual void SetVariant(Variant value) =0;
-            virtual void SetSmooth(Smooth value) =0;
-            virtual void Destroy() =0;
+            virtual void SetVariant(Variant value) = 0;
+            virtual void SetSmooth(Smooth value) = 0;
+            virtual void Destroy() = 0;
             virtual void* GetFontStylePointer() = 0;
         };
         
@@ -432,7 +455,9 @@ namespace EA
             virtual uint32_t GetSize() = 0;
             virtual intptr_t GetStride() = 0;
             virtual uint8_t* GetData() = 0;
+            virtual uint32_t GetFormat() =0;            // Get the bitmap format (32 or 8)
             virtual void* GetTextureInfoPointer() = 0;
+            virtual void SetTextureInfoPointer(void* p) = 0;
             virtual void DestroyWrapper() = 0;
         };
 
@@ -443,6 +468,8 @@ namespace EA
             float        mY1;           /// Position of glyph on texture.
             float        mX2;           /// Position of glyph on texture.
             float        mY2;           /// Position of glyph on texture.
+        
+            IGlyphTextureInfo() {mpTextureInfo = 0; mX1=mY1=mX2=mY2=0.0f;}
         };	
 
         /// Glyph base class       
@@ -460,8 +487,9 @@ namespace EA
                                          IGlyphTextureInfo& glyphTextureInfo) = 0;
 
 		    virtual bool EndUpdate(ITextureInfo* pTextureInfo) = 0;
-        };
 
+            virtual void* GetGlyphCachePointer() =0;
+        };
     } // Namespace Internal
 } // Namespace EA
 #endif // Header include guard

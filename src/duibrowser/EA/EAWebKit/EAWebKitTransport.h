@@ -58,7 +58,7 @@ namespace EA
         // The TransportServer calls the TransportHandler to do the transport. The TransportHandler may in
         // some cases need to call back the TransportServer, as in the case of newly received data.
         //
-        // EAWebKit supplies automatically registered built-in support for http and file schemes, 
+        // EAWebKit supplies automatically registered built-in support for http, https and file schemes, 
         // though you can override them.
 
         class TransportInfo;
@@ -74,6 +74,18 @@ namespace EA
         EAWEBKIT_API void              RemoveTransportHandler(TransportHandler* pTH, const char16_t* pScheme);
         EAWEBKIT_API TransportHandler* GetTransportHandler(const char16_t* pScheme);
 
+		//HTTP request type enums
+		enum HttpRequestType
+		{
+			kHttpRequestTypeHEAD = 0,
+			kHttpRequestTypeGET,
+			kHttpRequestTypePOST,
+			kHttpRequestTypePUT,
+			kHttpRequestTypeDELETE,
+			kHttpRequestTypeOPTIONS,
+			kHttpRequestTypeCount
+		};
+
 		// This is used to describe the high level resource request information.
         class TransportInfo
         {
@@ -85,10 +97,10 @@ namespace EA
             EASTLFixedString8Wrapper        mPath;                      // File path to use for file URLs in UTF8 encoding. Equivalent to UTF8-decoded path from mURI.
             EASTLHeaderMapWrapper           mHeaderMapOut;              // Outgoing headers
             EASTLHeaderMapWrapper           mHeaderMapIn;               // Incoming headers
-            EASTLFixedString8Wrapper        mCookieFilePath;            // File path to use to store cookies in a persistent way.
+            //EASTLFixedString8Wrapper        mCookieFilePath;            // File path to use to store cookies in a persistent way.
             int32_t							mResultCode;                // Conventional HTTP result code.
             int64_t							mPostSize;                  // If mMethod is PUT or POST, this is the size of the body data (e.g. form data size in the case of POST). -1 if not used.
-            char							mMethod[8];                 // GET, PUT, HEAD, POST.
+            HttpRequestType					mHttpRequestType;			// HEAD, GET etc. represented as an enum
             char16_t						mAuthorizationType[16];     // Typically one of "Basic" "Digest" or "NTLM".
             EASTLFixedString16Wrapper       mAuthorizationRealm;        // This is a string defined by the server.
             double							mTimeout;                   // Absolute (as opposed to relative) timeout time in seconds. See EA::WebKit::GetTime().
@@ -97,13 +109,14 @@ namespace EA
             bool							mbEffectiveURISet;          // True if TransportServer::SetEffectiveURI has been called.
             bool							mbProcessed;                // Used by Authorization system only at this time.
 
-            void*							mpTransportServerJobInfo;   // Private to TransportServer. Allows connecting a TransportInfo back to the server job that manageds the TransportInfo.
+            void*							mpTransportServerJobInfo;   // Private to TransportServer. Allows connecting a TransportInfo back to the server job that manages the TransportInfo.
             void*							mpRH;                       // WebCore::ResourceHandle, used internally.
             EA::WebKit::View*				mpView;                     // 
             TransportServer*				mpTransportServer;          // 
             TransportHandler*				mpTransportHandler;         // 
             uintptr_t						mTransportHandlerData;      // The TransportHandler can use this internally.
             CookieManager*					mpCookieManager;            // The CookieManager.
+			bool							mbAsync;
 
         public:
             TransportInfo();

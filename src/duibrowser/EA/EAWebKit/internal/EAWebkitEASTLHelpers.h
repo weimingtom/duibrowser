@@ -45,7 +45,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <EASTL/list.h>
 #include <EASTL/fixed_string.h>
 #include <EASTL/fixed_map.h>
+#include <EASTL/vector.h>
+#include <EASTL/hash_map.h>
 #include <EAWebKit/EAWebkitAllocator.h> //For EASTLAllocator
+#include <EAWebKit/EAWebKitJavascriptValue.h>
 
 #if EAWEBKIT_THROW_BUILD_ERROR
 #error This file should be included only in a dll build
@@ -58,7 +61,9 @@ namespace EA
 		class EASTLFixedString8Wrapper;
 		class EASTLFixedString16Wrapper;
 		class EASTLHeaderMapWrapper;
-
+        class EASTLVectorJavaScriptValueWrapper;
+        class EASTLJavascriptValueHashMapWrapper;
+        class EASTLJavascriptValueHashMapIteratorWrapper;
 			
 		///////////////////////////////////////////////////////////////////////
 		// EAWebKit strings
@@ -75,8 +80,9 @@ namespace EA
 
 		typedef eastl::fixed_string<char16_t, 32, true, EASTLAllocator> FixedString16_32;
 		typedef eastl::fixed_string<char8_t,  32, true, EASTLAllocator> FixedString8_32;
-		
-		
+
+        typedef eastl::vector<JavascriptValue, EASTLAllocator> VectorJavaScriptValue;
+        typedef eastl::hash_map<FixedString16_32, JavascriptValue, eastl::string_hash<FixedString16_32>, eastl::equal_to<FixedString16_32>, EASTLAllocator> HashMapJavaScriptValue;
 
 		void ConvertToString8 (const FixedString16_256& s16, FixedString8_256&  s8);
 		void ConvertToString8 (const FixedString16_128& s16, FixedString8_128&  s8);
@@ -120,10 +126,13 @@ namespace EA
 		};
 
 		typedef eastl::fixed_multimap<FixedString16_64, FixedString16_64, 8, true, fstr_iless, EASTLAllocator> HeaderMap;
-		
+        		
 		FixedString8_128*	GetFixedString(const EASTLFixedString8Wrapper& wrapper);
 		FixedString16_128*	GetFixedString(const EASTLFixedString16Wrapper& wrapper);
 		HeaderMap*			GetHeaderMap(const EASTLHeaderMapWrapper& wrapper);
+        VectorJavaScriptValue* GetVectorJavaScriptValue(const EASTLVectorJavaScriptValueWrapper& wrapper);
+        HashMapJavaScriptValue* GetHashMap(const EASTLJavascriptValueHashMapWrapper& wrapper);
+        HashMapJavaScriptValue::iterator* GetHashMapIterator(const EASTLJavascriptValueHashMapIteratorWrapper& wrapper);
 
 		//#define GetFixedString(wrapper) (reinterpret_cast<EA::WebKit::FixedString8_256*>((wrapper).GetImpl()))
 		//#define GetFixedString(wrapper) (reinterpret_cast<EA::WebKit::FixedString16_256*>((wrapper).GetImpl()))

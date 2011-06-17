@@ -58,8 +58,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
 #ifndef EAWEBKIT_VERSION
-    #define EAWEBKIT_VERSION   "1.14.01"
-    #define EAWEBKIT_VERSION_N  11401
+    #define EAWEBKIT_VERSION   "1.21.00"
+    #define EAWEBKIT_VERSION_N 12100
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
@@ -68,15 +68,14 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 /////////////////////////////////////////////////////////////////////////////
 #if defined (EA_PLATFORM_PS3)
-//    const char gEAWebKitBuildVersion[]="EAWebKit: 1.14.00 PS3_SDK: 270.001-1 VS: 2008 ID: 0001"; 
-    const char gEAWebKitBuildVersion[]="EAWebKit: 1.14.01 PS3_SDK: 330.001 VS: 2008 ID: 0001"; 
+    const char gEAWebKitBuildVersion[]="EAWebKit: 1.21.00 PS3_SDK: 330.001 VS: 2008 ID: 0001"; 
 #elif defined (EA_PLATFORM_XENON)
-    const char gEAWebKitBuildVersion[]="EAWebKit: 1.14.01 XENON_SDK: 2.0.11164.3-proxy VS: 2008 ID: 0001"; 
+    const char gEAWebKitBuildVersion[]="EAWebKit: 1.21.00 XENON_SDK: 2.0.11164.3-proxy VS: 2008 ID: 0001"; 
 #else // EA_PLATFORM_WINDOWS
     #if (_MSC_VER < 1500) // this is Visual C++ 2005 or lower since 2008 is 1500
-         const char gEAWebKitBuildVersion[]="EAWebKit: 1.14.01 VS: 2005_SP1 ID: 0001"; 
+         const char gEAWebKitBuildVersion[]="EAWebKit: 1.21.00 VS: 2005_SP1 ID: 0001"; 
     #else
-         const char gEAWebKitBuildVersion[]="EAWebKit: 1.14.01 VS: 2008_SP1 ID: 0001"; 
+         const char gEAWebKitBuildVersion[]="EAWebKit: 1.21.00 VS: 2008_SP1 ID: 0001"; 
     #endif
 #endif
 ///////////////////////////////////////////////////////////////////////////////
@@ -412,6 +411,15 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 #ifndef EAWEBKIT_USE_YCOCGDXT5_COMPRESSION
     #define EAWEBKIT_USE_YCOCGDXT5_COMPRESSION 1
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+// EAWEBKIT_ENABLE_JUMP_NAVIGATION_DEBUGGING
+//
+// If defined as 1, then the debug functionality in the Jump Navigation system is exposed. These calls/variables have run time penalty, so wrapping it behind a pre-processor.
+//
+#ifndef EAWEBKIT_ENABLE_JUMP_NAVIGATION_DEBUGGING
+	#define EAWEBKIT_ENABLE_JUMP_NAVIGATION_DEBUGGING 0
 #endif
 
 

@@ -228,7 +228,7 @@ void CWebkitUI::DoPaint(void* ctx, const RECT& rcPaint)
 
 	if (did_first_layout_ && bitmap_bits_ != NULL)
 	{
-		memcpy_s(bitmap_bits_, bitmap_header_info_.biSizeImage, view_->GetSurface()->mpData, bitmap_header_info_.biSizeImage);
+		memcpy_s(bitmap_bits_, bitmap_header_info_.biSizeImage, view_->GetSurface()->GetData(), bitmap_header_info_.biSizeImage);
 	}
 	else if (bitmap_bits_ != NULL)
 	{

@@ -61,18 +61,31 @@ namespace EA
 {
     namespace WebKit
     {
+		struct FoundNodeInfo
+		{
+			WebCore::Node*	mFoundNode;
+			float			mRadialDistance; //Distance from the search point
+		};
+
 		typedef eastl::list<WebCore::Node*,EASTLAllocator> WebCoreNodeList;
 		typedef eastl::list<WebCore::Node*,EASTLAllocator>::iterator WebCoreNodeListIterator;
+		typedef eastl::list<WebCore::Node*,EASTLAllocator>::reverse_iterator WebCoreNodeListReverseIterator;
+
+		typedef eastl::list<FoundNodeInfo,EASTLAllocator> WebCoreFoundNodeInfoList;
+		typedef eastl::list<FoundNodeInfo,EASTLAllocator>::iterator WebCoreFoundNodeInfoListIterator;
+		typedef eastl::list<FoundNodeInfo,EASTLAllocator>::reverse_iterator WebCoreFoundNodeInfoListReverseIterator;
+
 
 		class NodeListContainer
 		{
 			friend class View;
 			friend class DocumentNavigator;
 		private:
-			WebCoreNodeList			mFoundNodes;
-			WebCoreNodeList			mRejectedByAngleNodes;
-			WebCoreNodeList			mRejectedByRadiusNodes;
-			WebCoreNodeList 		mRejectedWouldBeTrappedNodes;
+			WebCoreFoundNodeInfoList	mFoundNodes;
+			WebCoreNodeList				mRejectedByHitTestNodes;
+			WebCoreNodeList				mRejectedByAngleNodes;
+			WebCoreNodeList				mRejectedByRadiusNodes;
+			WebCoreNodeList 			mRejectedWouldBeTrappedNodes;
 		};
     }
 }

@@ -56,35 +56,11 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PPMALLOC_EASTACKALLOCATOR_H
 
 
-#include <EABase/eabase.h>
-#include <stddef.h>  // size_t, NULL, etc.
-#include <string.h>  // memcpy
-#include <assert.h>  // assert
+#include <PPMalloc/internal/config.h>
 #include <PPMalloc/internal/dllinfo.h>
-
-
-///////////////////////////////////////////////////////////////////////////////
-// PPM_INCREMENTAL_OBJECTS_ENABLED (defined as 0 or 1; default is 1)
-//
-// Defines whether the building of incremental (or streamed) objects is enabled.
-// When incremental objects are enabled, you can build an allocation incrementally
-// instead of all at once. Building an object incrementally via multiple calls 
-// to AppendToCurrentObject is not the same as making multiple calls to Malloc,
-// as the latter aligns allocations whereas the former doesn't. Also, the former
-// is a little faster as it has less to do. Incremental objects are useful for
-// building streams of data on the fly and is also useful for building static 
-// string tables or similar tables on the fly.
-//
-// Given that this class is entirely inlined, it makes little or no performance
-// difference whether PPM_INCREMENTAL_OBJECTS_ENABLED is enabled or not. It is 
-// provided here as a conveniece and as a mechanism for preventing its usage in 
-// the case where you want to minimize code usage on tiny platforms.
-//
-#ifndef PPM_INCREMENTAL_OBJECTS_ENABLED
-    #define PPM_INCREMENTAL_OBJECTS_ENABLED 1
-#endif
-///////////////////////////////////////////////////////////////////////////////
-
+#include <stddef.h>
+#include <string.h>
+#include <assert.h> 
 
 
 /// namespace EA
@@ -110,6 +86,8 @@ namespace EA
         /// memory you allocate from it. You can only free backwards from your
         /// most recent allocations. This allocator is nevertheless useful for 
         /// a number of situations.
+        ///
+        /// This kind of allocator is sometimes referred to as a LinearAllocator.
         ///
         /// Note that you can swap two StackAllocators via the std::swap function 
         /// or like so:
@@ -336,7 +314,7 @@ namespace EA
                 kMinAlignment            = 8, /// Eight because that's the size of uint64_t and usually the size of double and long long.
                 kMinAlignmentMask        = kMinAlignment - 1,
                 kMinAlignmentMaskInverse = ~kMinAlignmentMask,
-                kDefaultBlockSize        = 8192,
+                kDefaultBlockSize        = 8192 
             };
 
             struct Block{
@@ -404,16 +382,16 @@ namespace EA
     namespace Allocator
     {
 
-        inline StackAllocator::StackAllocator(const StackAllocator& stackAllocator)
-        {
-            operator=(stackAllocator);
-        }
-
         inline StackAllocator& StackAllocator::operator=(const StackAllocator& stackAllocator)
         {
             if(this != &stackAllocator)
                 memcpy(this, &stackAllocator, sizeof(stackAllocator)); // A simple memcpy is all that's needed.
             return *this;
+        }
+
+        inline StackAllocator::StackAllocator(const StackAllocator& stackAllocator)
+        {
+            operator=(stackAllocator);
         }
 
         inline void* StackAllocator::Malloc(size_t nSize, bool bBoundsCheck)
@@ -494,6 +472,18 @@ namespace EA
         inline void StackAllocator::SetDefaultBlockSize(size_t nDefaultBlockSize)
         {
             mnDefaultBlockSize = nDefaultBlockSize;
+        }
+
+
+        inline void* StackAllocator::FinishCurrentObject()
+        {
+            void* const pReturnValue = mpCurrentObjectBegin;
+
+            mpCurrentObjectEnd = (char*)(((size_t)mpCurrentObjectEnd + kMinAlignmentMask) & kMinAlignmentMaskInverse);
+            if(mpCurrentObjectEnd > (char*)mpCurrentBlockEnd)
+                mpCurrentObjectEnd = mpCurrentBlockEnd;
+            mpCurrentObjectBegin = mpCurrentObjectEnd;
+            return pReturnValue;
         }
 
 
@@ -646,17 +636,6 @@ namespace EA
             return true;
         }
 
-
-        inline void* StackAllocator::FinishCurrentObject()
-        {
-            void* const pReturnValue = mpCurrentObjectBegin;
-
-            mpCurrentObjectEnd = (char*)(((size_t)mpCurrentObjectEnd + kMinAlignmentMask) & kMinAlignmentMaskInverse);
-            if(mpCurrentObjectEnd > (char*)mpCurrentBlockEnd)
-                mpCurrentObjectEnd = mpCurrentBlockEnd;
-            mpCurrentObjectBegin = mpCurrentObjectEnd;
-            return pReturnValue;
-        }
 
         #endif // PPM_INCREMENTAL_OBJECTS_ENABLED
 

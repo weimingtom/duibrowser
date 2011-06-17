@@ -34,15 +34,14 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 /////////////////////////////////////////////////////////////////////////////
 
+
 #ifndef EAIO_EAFILESTREAM_UNIX_H
 #define EAIO_EAFILESTREAM_UNIX_H
 
-#ifndef EAIO_EAFILESTREAM_H
-    #include <EAIO/EAFileStream.h>
-#endif
-#ifndef EAIO_EAFILEBASE_H
-    #include <EAIO/EAFileBase.h>
-#endif
+
+#include <EAIO/EAFileStream.h>
+#include <EAIO/EAFileBase.h>
+#include <EAIO/PathString.h>
 #include <stddef.h>
 
 
@@ -90,8 +89,8 @@ namespace EA
 
             virtual void      SetPath(const char8_t* pPath8);
             virtual void      SetPath(const char16_t* pPath16);
-            virtual size_t    GetPath(char8_t* pPath8, size_t nPathLength);
-            virtual size_t    GetPath(char16_t* pPath16, size_t nPathLength);
+            virtual size_t    GetPath(char8_t* pPath8, size_t nPathCapacity);
+            virtual size_t    GetPath(char16_t* pPath16, size_t nPathCapacity);
 
             virtual bool      Open(int nAccessFlags = kAccessFlagRead, int nCreationDisposition = kCDDefault, int nSharing = kShareRead, int nUsageHints = kUsageHintNone); 
             virtual bool      Close();
@@ -112,8 +111,10 @@ namespace EA
             virtual bool      Flush();
 
         protected:
+            typedef EA::IO::Path::PathString8 PathString8;
+
             int         mnFileHandle;
-            char8_t*    mpPath8;                    /// Path for the file.
+            PathString8 mPath8;                     /// Path for the file.
             int         mnRefCount;                 /// Reference count, which may or may not be in use.
             int         mnAccessFlags;              /// See enum AccessFlags.
             int         mnCD;                       /// See enum CD (creation disposition).

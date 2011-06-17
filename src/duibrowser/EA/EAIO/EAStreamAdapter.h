@@ -80,7 +80,126 @@ namespace EA
         /// of the stream. In some cases, a given source and/or destination stream might be 
         /// specialized to outperform this function. 
         ///
-        size_type EAIO_API CopyStream(IStream* pSource, IStream* pDestination, size_type nSize = kLengthNull);
+        EAIO_API size_type CopyStream(IStream* pSource, IStream* pDestination, size_type nSize = kLengthNull);
+
+
+        /// StreamAdapter
+        ///
+        /// This class usually makes endian reading/writing easier than using the standalone functions.
+        ///
+        class EAIO_API StreamAdapter
+        {
+        public:
+            StreamAdapter();
+            StreamAdapter(EA::IO::IStream* pStream, EA::IO::Endian endianType);
+
+            void SetValid(bool success);
+            bool IsValid() const;
+            operator bool() const;
+            bool operator !() const;
+
+            EA::IO::IStream* GetStream() const;
+            void SetStream(EA::IO::IStream* pStream);
+
+            EA::IO::Endian GetEndianType() const;
+            void SetEndianType(EA::IO::Endian endianType);
+
+    		void VerifyIO(bool success);
+
+            /// Check if an array size read from a stream is sane, based on whether
+            /// enough data remains in the stream. If it's not, then we set the
+            /// error code and return false. Generally the reason you'd want to
+            /// do this instead of relying on I/O errors alone is so that you don't
+            /// try to allocate a 15GB array before entering the read loop.
+            bool VerifyArraySize(uint32_t elementCount, uint32_t elementSize);
+
+            // basic types
+            inline void ReadUint8(uint8_t& v);
+            inline void WriteUint8(uint8_t v);
+            inline void ReadUint16(uint16_t& v);
+            inline void WriteUint16(uint16_t v);
+            inline void ReadUint32(uint32_t& v);
+            inline void WriteUint32(uint32_t v);
+            inline void ReadUint64(uint64_t& v);
+            inline void WriteUint64(uint64_t v);
+
+            inline void ReadInt8(int8_t& v);
+            inline void WriteInt8(int8_t v);
+            inline void ReadInt16(int16_t& v);
+            inline void WriteInt16(int16_t v);
+            inline void ReadInt32(int32_t& v);
+            inline void WriteInt32(int32_t v);
+            inline void ReadInt64(int64_t& v);
+            inline void WriteInt64(int64_t v);
+
+            inline void ReadBool8(bool& v);
+            inline void WriteBool8(bool v);
+
+            inline void ReadFloat(float& v);
+            inline void WriteFloat(float v);
+            inline void ReadDouble(double& v);
+            inline void WriteDouble(double v);
+
+            // basic type array (unstrided)
+            inline void ReadUint8(uint8_t* v, uint32_t count);
+            inline void WriteUint8(const uint8_t* v, uint32_t count);
+            inline void ReadUint16(uint16_t* v, uint32_t count);
+            inline void WriteUint16(const uint16_t* v, uint32_t count);
+            inline void ReadUint32(uint32_t* v, uint32_t count);
+            inline void WriteUint32(const uint32_t* v, uint32_t count);
+            inline void ReadUint64(uint64_t* v, uint32_t count);
+            inline void WriteUint64(const uint64_t* v, uint32_t count);
+
+            inline void ReadBool8(bool* v, uint32_t count);
+            inline void WriteBool8(const bool* v, uint32_t count);
+
+            inline void ReadInt8(int8_t* v, uint32_t count);
+            inline void WriteInt8(const int8_t* v, uint32_t count);
+            inline void ReadInt16(int16_t* v, uint32_t count);
+            inline void WriteInt16(const int16_t* v, uint32_t count);
+            inline void ReadInt32(int32_t* v, uint32_t count);
+            inline void WriteInt32(const int32_t* v, uint32_t count);
+            inline void ReadInt64(int64_t* v, uint32_t count);
+            inline void WriteInt64(const int64_t* v, uint32_t count);
+
+            inline void ReadFloat(float* v, uint32_t count);
+            inline void WriteFloat(const float* v, uint32_t count);
+            inline void ReadDouble(double* v, uint32_t count);
+            inline void WriteDouble(const double* v, uint32_t count);
+
+            // Strings
+
+            // The capacity is the space of the input string buffer, and includes space for terminating 0 that is written.
+            // Returns the required strlen of the string to read.
+            size_t ReadString8(char8_t* string, uint32_t capacity);
+
+            template <typename String8>
+            void ReadString8(String8& string);
+
+            void WriteString8(const char8_t* string, uint32_t length);
+
+            template <typename String8>
+            void WriteString8(const String8& string);
+
+            // The capacity is the space of the input string buffer, and includes space for terminating 0 that is written.
+            // Returns the required strlen of the string to read.
+            size_t ReadString16(char16_t* string, uint32_t capacity);
+
+            template <typename String16>
+            void ReadString16(String16& string);
+
+            void WriteString16(const char16_t* string, uint32_t length);
+
+            template <typename String16>
+            void WriteString16(const String16& string);
+
+        protected:
+            EA::IO::IStream*  mpStream;
+            EA::IO::size_type mCachedSize;
+            EA::IO::Endian    mEndianType; 
+            bool              mSuccess;
+            bool              mCachedSizeValid;
+        };
 
 
 
@@ -109,7 +228,8 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadBool8(IStream* pIS, bool& value);
+        EAIO_API bool ReadBool8(IStream* pIS, bool& value);
+        EAIO_API bool ReadBool8(IStream* pIS, bool* value, size_type count);
 
         /// ReadInt8
         ///
@@ -117,7 +237,7 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadInt8(IStream* pIS, int8_t& value);
+        EAIO_API bool ReadInt8(IStream* pIS, int8_t& value);
 
         /// ReadInt8
         ///
@@ -125,7 +245,7 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadInt8(IStream* pIS, int8_t* value, size_type count);
+        EAIO_API bool ReadInt8(IStream* pIS, int8_t* value, size_type count);
 
         /// ReadUint8
         ///
@@ -133,7 +253,7 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadUint8(IStream* pIS, uint8_t& value);
+        EAIO_API bool ReadUint8(IStream* pIS, uint8_t& value);
 
         /// ReadUint8
         ///
@@ -141,7 +261,7 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadUint8(IStream* pIS, uint8_t* value, size_type count);
+        EAIO_API bool ReadUint8(IStream* pIS, uint8_t* value, size_type count);
 
         /// ReadUint16
         ///
@@ -151,7 +271,7 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadUint16(IStream* pIS, uint16_t& value, Endian endianSource = kEndianBig);
+        EAIO_API bool ReadUint16(IStream* pIS, uint16_t& value, Endian endianSource = kEndianBig);
 
         /// ReadUint16
         ///
@@ -161,7 +281,7 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadUint16(IStream* pIS, uint16_t* value, size_type count, Endian endianSource = kEndianBig);
+        EAIO_API bool ReadUint16(IStream* pIS, uint16_t* value, size_type count, Endian endianSource = kEndianBig);
 
         /// ReadInt16
         ///
@@ -171,7 +291,7 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadInt16(IStream* pIS, int16_t& value, Endian endianSource = kEndianBig);
+        EAIO_API bool ReadInt16(IStream* pIS, int16_t& value, Endian endianSource = kEndianBig);
 
         /// ReadInt16
         ///
@@ -181,7 +301,7 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadInt16(IStream* pIS, int16_t* value, size_type count, Endian endianSource = kEndianBig);
+        EAIO_API bool ReadInt16(IStream* pIS, int16_t* value, size_type count, Endian endianSource = kEndianBig);
 
         /// ReadUint32
         ///
@@ -191,7 +311,7 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadUint32(IStream* pIS, uint32_t& value, Endian endianSource = kEndianBig);
+        EAIO_API bool ReadUint32(IStream* pIS, uint32_t& value, Endian endianSource = kEndianBig);
 
         /// ReadUint32
         ///
@@ -201,7 +321,7 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadUint32(IStream* pIS, uint32_t* value, size_type count, Endian endianSource = kEndianBig);
+        EAIO_API bool ReadUint32(IStream* pIS, uint32_t* value, size_type count, Endian endianSource = kEndianBig);
 
         /// ReadInt32
         ///
@@ -211,7 +331,7 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadInt32(IStream* pIS, int32_t& value, Endian endianSource = kEndianBig);
+        EAIO_API bool ReadInt32(IStream* pIS, int32_t& value, Endian endianSource = kEndianBig);
 
         /// ReadInt32
         ///
@@ -221,7 +341,7 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadInt32(IStream* pIS, int32_t* value, size_type count, Endian endianSource = kEndianBig);
+        EAIO_API bool ReadInt32(IStream* pIS, int32_t* value, size_type count, Endian endianSource = kEndianBig);
 
         /// ReadUint64
         ///
@@ -231,7 +351,7 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadUint64(IStream* pIS, uint64_t& value, Endian endianSource = kEndianBig);
+        EAIO_API bool ReadUint64(IStream* pIS, uint64_t& value, Endian endianSource = kEndianBig);
 
         /// ReadUint64
         ///
@@ -241,7 +361,7 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadUint64(IStream* pIS, uint64_t* value, size_type count, Endian endianSource = kEndianBig);
+        EAIO_API bool ReadUint64(IStream* pIS, uint64_t* value, size_type count, Endian endianSource = kEndianBig);
 
         /// ReadInt64
         ///
@@ -251,7 +371,7 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadInt64(IStream* pIS, int64_t& value, Endian endianSource = kEndianBig);
+        EAIO_API bool ReadInt64(IStream* pIS, int64_t& value, Endian endianSource = kEndianBig);
 
         /// ReadInt64
         ///
@@ -261,7 +381,7 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadInt64(IStream* pIS, int64_t* value, size_type count, Endian endianSource = kEndianBig);
+        EAIO_API bool ReadInt64(IStream* pIS, int64_t* value, size_type count, Endian endianSource = kEndianBig);
 
         // ReadUint128
         // Reads a uint128_t from the stream, converting to local endian-ness as directed by input endianSource.
@@ -269,7 +389,7 @@ namespace EA
         // Upon return the output value will be in local (a.k.a. native) endian-ness.
         // The return value is true if the value could be entirely read. 
         // If false, you can use IStream::GetState to determine the error.
-        // bool EAIO_API ReadUint128(IStream* pIS, uint128_t& value, Endian endianSource = kEndianBig);
+        // EAIO_API bool ReadUint128(IStream* pIS, uint128_t& value, Endian endianSource = kEndianBig);
 
         // ReadUint128
         // Reads an array of uint128_t from the stream.
@@ -277,7 +397,7 @@ namespace EA
         // Upon return the output value will be in local (a.k.a. native) endian-ness.
         // The return value is true if the value could be entirely read. 
         // If false, you can use IStream::GetState to determine the error.
-        // bool EAIO_API ReadUint128(IStream* pIS, uint128_t* value, size_type count, Endian endianSource = kEndianBig);
+        // EAIO_API bool ReadUint128(IStream* pIS, uint128_t* value, size_type count, Endian endianSource = kEndianBig);
 
         // ReadInt128
         // Reads an int128_t from the stream.
@@ -285,7 +405,7 @@ namespace EA
         // Upon return the output value will be in local (a.k.a. native) endian-ness.
         // The return value is true if the value could be entirely read. 
         // If false, you can use IStream::GetState to determine the error.
-        // bool EAIO_API ReadInt128(IStream* pIS, int128_t& value, Endian endianSource = kEndianBig);
+        // EAIO_API bool ReadInt128(IStream* pIS, int128_t& value, Endian endianSource = kEndianBig);
 
         // ReadInt128
         // Reads an array of int128_t from the stream.
@@ -293,7 +413,7 @@ namespace EA
         // Upon return the output value will be in local (a.k.a. native) endian-ness.
         // The return value is true if the value could be entirely read. 
         // If false, you can use IStream::GetState to determine the error.
-        // bool EAIO_API ReadInt128(IStream* pIS, int128_t* value, size_type count, Endian endianSource = kEndianBig);
+        // EAIO_API bool ReadInt128(IStream* pIS, int128_t* value, size_type count, Endian endianSource = kEndianBig);
 
         /// ReadFloat
         ///
@@ -303,7 +423,7 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadFloat(IStream* pIS, float& value, Endian endianSource = kEndianBig);
+        EAIO_API bool ReadFloat(IStream* pIS, float& value, Endian endianSource = kEndianBig);
 
         /// ReadFloat
         ///
@@ -313,7 +433,7 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadFloat(IStream* pIS, float* value, size_type count, Endian endianSource = kEndianBig);
+        EAIO_API bool ReadFloat(IStream* pIS, float* value, size_type count, Endian endianSource = kEndianBig);
 
         /// ReadDouble
         ///
@@ -323,17 +443,17 @@ namespace EA
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadDouble(IStream* pIS, double& value, Endian endianSource = kEndianBig);
+        EAIO_API bool ReadDouble(IStream* pIS, double& value, Endian endianSource = kEndianBig);
 
         /// ReadDouble
         ///
-        /// Reads an array of double_t from the stream.
+        /// Reads an array of double from the stream.
         /// Input 'endianSource' refers to the endian-ness of the values in the stream.
         /// Upon return the output value will be in local (a.k.a. native) endian-ness.
         /// The return value is true if the value could be entirely read. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API ReadDouble(IStream* pIS, double* value, size_type count, Endian endianSource = kEndianBig);
+        EAIO_API bool ReadDouble(IStream* pIS, double* value, size_type count, Endian endianSource = kEndianBig);
 
         /// ReadString
         ///
@@ -353,7 +473,7 @@ namespace EA
         /// Upon return, the stream will be positioned after the end of the string, 
         /// even if nStringCapacity was not enough to hold the entire string.
         ///
-        size_type EAIO_API ReadString(IStream* pIS, char8_t* pString, size_type nStringCapacity, Endian endianSource = kEndianBig);
+        EAIO_API size_type ReadString(IStream* pIS, char8_t* pString, size_type nStringCapacity, Endian endianSource = kEndianBig);
 
         /// ReadString
         ///
@@ -361,7 +481,7 @@ namespace EA
         /// It behaves the same as with the char8_t version with the exception that
         /// the destination output is written as UTF16-encoded char16_t.
         ///
-        size_type EAIO_API ReadString(IStream* pIS, char16_t* pString, size_type nStringCapacity, Endian endianSource = kEndianBig);
+        EAIO_API size_type ReadString(IStream* pIS, char16_t* pString, size_type nStringCapacity, Endian endianSource = kEndianBig);
 
         /// ReadLine
         ///
@@ -393,7 +513,7 @@ namespace EA
         ///     while((size = EA::IO::ReadLine(&fileStream, buffer, 256)) < kSizeTypeDone) // While there there were more lines...
         ///         ; // do something
         ///
-        size_type EAIO_API ReadLine(IStream* pIS, char8_t* pLine, size_type nLineCapacity);
+        EAIO_API size_type ReadLine(IStream* pIS, char8_t* pLine, size_type nLineCapacity);
 
         /// ReadLine
         ///
@@ -401,7 +521,17 @@ namespace EA
         /// It behaves the same as with the char8_t version with the exception that
         /// the destination output is written as UTF16-encoded char16_t.
         ///
-        size_type EAIO_API ReadLine(IStream* pIS, char16_t* pLine, size_type nLineCapacity, Endian endianSource = kEndianBig);
+        EAIO_API size_type ReadLine(IStream* pIS, char16_t* pLine, size_type nLineCapacity, Endian endianSource = kEndianBig);
+
+        /// ReadString
+        ///
+        /// Reads from an STL or EASTL string or equivalent.
+        ///
+        template <typename String8>
+        bool ReadString8(EA::IO::IStream* pIS, String8& s, Endian endianDestination = kEndianBig);
+
+        template <typename String16>
+        bool ReadString16(EA::IO::IStream* pIS, String16& s, Endian endianDestination = kEndianBig);
 
 
 
@@ -414,7 +544,8 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteBool8(IStream* pOS, bool value);
+        EAIO_API bool WriteBool8(IStream* pOS, bool value);
+        EAIO_API bool WriteBool8(IStream* pOS, const bool* value, size_type count);
 
         /// WriteInt8
         ///
@@ -422,7 +553,7 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteInt8(IStream* pOS, int8_t value);
+        EAIO_API bool WriteInt8(IStream* pOS, int8_t value);
 
         /// WriteInt8
         ///
@@ -430,7 +561,7 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteInt8(IStream* pOS, const int8_t *value, size_type count);
+        EAIO_API bool WriteInt8(IStream* pOS, const int8_t* value, size_type count);
 
         /// WriteUint8
         ///
@@ -438,7 +569,7 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteUint8(IStream* pOS, uint8_t value);
+        EAIO_API bool WriteUint8(IStream* pOS, uint8_t value);
 
         /// WriteUint8
         ///
@@ -446,7 +577,7 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteUint8(IStream* pOS, const uint8_t *value, size_type count);
+        EAIO_API bool WriteUint8(IStream* pOS, const uint8_t* value, size_type count);
 
         /// WriteUint16
         ///
@@ -454,7 +585,7 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteUint16(IStream* pOS, uint16_t value, Endian endianDestination = kEndianBig);
+        EAIO_API bool WriteUint16(IStream* pOS, uint16_t value, Endian endianDestination = kEndianBig);
 
         /// WriteUint16
         ///
@@ -462,7 +593,7 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteUint16(IStream* pOS, const uint16_t *value, size_type count, Endian endianDestination = kEndianBig);
+        EAIO_API bool WriteUint16(IStream* pOS, const uint16_t* value, size_type count, Endian endianDestination = kEndianBig);
 
         /// WriteInt16
         ///
@@ -470,7 +601,7 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteInt16(IStream* pOS, int16_t value, Endian endianDestination = kEndianBig);
+        EAIO_API bool WriteInt16(IStream* pOS, int16_t value, Endian endianDestination = kEndianBig);
 
         /// WriteInt16
         ///
@@ -478,7 +609,7 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteInt16(IStream* pOS, const int16_t *value, size_type count, Endian endianDestination = kEndianBig);
+        EAIO_API bool WriteInt16(IStream* pOS, const int16_t* value, size_type count, Endian endianDestination = kEndianBig);
 
         /// WriteUint32
         ///
@@ -486,7 +617,7 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteUint32(IStream* pOS, uint32_t value, Endian endianDestination = kEndianBig);
+        EAIO_API bool WriteUint32(IStream* pOS, uint32_t value, Endian endianDestination = kEndianBig);
 
         /// WriteUint32
         ///
@@ -494,7 +625,7 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteUint32(IStream* pOS, const uint32_t *value, size_type count, Endian endianDestination = kEndianBig);
+        EAIO_API bool WriteUint32(IStream* pOS, const uint32_t* value, size_type count, Endian endianDestination = kEndianBig);
 
         /// WriteInt32
         ///
@@ -502,7 +633,7 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteInt32(IStream* pOS, int32_t value, Endian endianDestination = kEndianBig);
+        EAIO_API bool WriteInt32(IStream* pOS, int32_t value, Endian endianDestination = kEndianBig);
 
         /// WriteInt32
         ///
@@ -510,7 +641,7 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteInt32(IStream* pOS, const int32_t *value, size_type count, Endian endianDestination = kEndianBig);
+        EAIO_API bool WriteInt32(IStream* pOS, const int32_t* value, size_type count, Endian endianDestination = kEndianBig);
 
         /// WriteUint64
         ///
@@ -518,7 +649,7 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteUint64(IStream* pOS, uint64_t value, Endian endianDestination = kEndianBig);
+        EAIO_API bool WriteUint64(IStream* pOS, uint64_t value, Endian endianDestination = kEndianBig);
 
         /// WriteUint64
         ///
@@ -526,7 +657,7 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteUint64(IStream* pOS, const uint64_t *value, size_type count, Endian endianDestination = kEndianBig);
+        EAIO_API bool WriteUint64(IStream* pOS, const uint64_t* value, size_type count, Endian endianDestination = kEndianBig);
 
         /// WriteInt64
         ///
@@ -534,7 +665,7 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteInt64(IStream* pOS, int64_t value, Endian endianDestination = kEndianBig);
+        EAIO_API bool WriteInt64(IStream* pOS, int64_t value, Endian endianDestination = kEndianBig);
 
         /// WriteInt64
         ///
@@ -542,7 +673,7 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteInt64(IStream* pOS, const int64_t *value, size_type count, Endian endianDestination = kEndianBig);
+        EAIO_API bool WriteInt64(IStream* pOS, const int64_t* value, size_type count, Endian endianDestination = kEndianBig);
 
         // WriteUint128
         //
@@ -550,13 +681,13 @@ namespace EA
         // The return value is true if the value could be successfully completely written. 
         // If false, you can use IStream::GetState to determine the error.
         //
-        // bool EAIO_API WriteUint128(IStream* pOS, uint128_t value, Endian endianDestination = kEndianBig);
+        // EAIO_API bool WriteUint128(IStream* pOS, uint128_t value, Endian endianDestination = kEndianBig);
 
         // WriteUint128
         // Writes an array of uint128_t numerical values to the output stream with the given destination endian-ness.
         // The return value is true if the value could be successfully completely written. 
         // If false, you can use IStream::GetState to determine the error.
-        // bool WriteUint128(IStream* pOS, const uint128_t *value, size_type count, Endian endianDestination = kEndianBig);
+        // bool WriteUint128(IStream* pOS, const uint128_t* value, size_type count, Endian endianDestination = kEndianBig);
 
         // WriteInt128
         //
@@ -564,7 +695,7 @@ namespace EA
         // The return value is true if the value could be successfully completely written. 
         // If false, you can use IStream::GetState to determine the error.
         //
-        // bool EAIO_API WriteInt128(IStream* pOS, int128_t value, Endian endianDestination = kEndianBig);
+        // EAIO_API bool WriteInt128(IStream* pOS, int128_t value, Endian endianDestination = kEndianBig);
 
         // WriteInt128
         //
@@ -572,7 +703,7 @@ namespace EA
         // The return value is true if the value could be successfully completely written. 
         // If false, you can use IStream::GetState to determine the error.
         //
-        // bool EAIO_API WriteInt128(IStream* pOS, const int128_t *value, size_type count, Endian endianDestination = kEndianBig);
+        // EAIO_API bool WriteInt128(IStream* pOS, const int128_t* value, size_type count, Endian endianDestination = kEndianBig);
 
         /// WriteFloat
         ///
@@ -580,7 +711,7 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteFloat(IStream* pOS, float value, Endian endianDestination = kEndianBig);
+        EAIO_API bool WriteFloat(IStream* pOS, float value, Endian endianDestination = kEndianBig);
 
         /// WriteFloat
         ///
@@ -588,7 +719,7 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteFloat(IStream* pOS, const float *value, size_type count, Endian endianDestination = kEndianBig);
+        EAIO_API bool WriteFloat(IStream* pOS, const float* value, size_type count, Endian endianDestination = kEndianBig);
 
         /// WriteDouble
         ///
@@ -596,15 +727,15 @@ namespace EA
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteDouble(IStream* pOS, double_t value, Endian endianDestination = kEndianBig);
+        EAIO_API bool WriteDouble(IStream* pOS, double value, Endian endianDestination = kEndianBig);
 
         /// WriteDouble
         ///
-        /// Writes an array of double_t numerical values to the output stream with the given destination endian-ness.
+        /// Writes an array of double numerical values to the output stream with the given destination endian-ness.
         /// The return value is true if the value could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteDouble(IStream* pOS, const double_t *value, size_type count, Endian endianDestination = kEndianBig);
+        EAIO_API bool WriteDouble(IStream* pOS, const double* value, size_type count, Endian endianDestination = kEndianBig);
 
         /// WriteString
         ///
@@ -619,7 +750,7 @@ namespace EA
         /// The return value is true if the string could be successfully completely written. 
         /// If false, you can use IStream::GetState to determine the error.
         ///
-        bool EAIO_API WriteString(IStream* pOS, const char8_t* pString, size_t nStringLength, Endian endianDestination = kEndianBig);
+        EAIO_API bool WriteString(IStream* pOS, const char8_t* pString, size_t nStringLength, Endian endianDestination = kEndianBig);
 
         /// WriteString
         ///
@@ -627,7 +758,7 @@ namespace EA
         /// It behaves the same as with the char8_t version with the exception that
         /// the source is written as UTF16-encoded char16_t.
         ///
-        bool EAIO_API WriteString(IStream* pOS, const char16_t* pString, size_t nStringLength, Endian endianDestination = kEndianBig);
+        EAIO_API bool WriteString(IStream* pOS, const char16_t* pString, size_t nStringLength, Endian endianDestination = kEndianBig);
 
         /// WriteLine
         ///
@@ -647,7 +778,7 @@ namespace EA
         /// If false, you can use IStream::GetState to determine the error, as this function
         /// generates no errors beyond those related to IStream errors.
         ///
-        bool EAIO_API WriteLine(IStream* pOS, const char8_t* pLineSource, size_type nLineLength, LineEnd lineEndToUse = kLineEndAuto);
+        EAIO_API bool WriteLine(IStream* pOS, const char8_t* pLineSource, size_type nLineLength, LineEnd lineEndToUse = kLineEndAuto);
 
         /// WriteLine
         ///
@@ -655,13 +786,29 @@ namespace EA
         /// It behaves the same as with the char8_t version with the exception that
         /// the source is written as UTF16-encoded char16_t.
         ///
-        bool EAIO_API WriteLine(IStream* pOS, const char16_t* pLineSource, size_type nLineLength, LineEnd lineEndToUse = kLineEndAuto, Endian endianDestination = kEndianBig);
+        EAIO_API bool WriteLine(IStream* pOS, const char16_t* pLineSource, size_type nLineLength, LineEnd lineEndToUse = kLineEndAuto, Endian endianDestination = kEndianBig);
+
+        /// WriteString
+        ///
+        /// Writes to an STL or EASTL string or equivalent.
+        ///
+        template <typename String8>
+        bool WriteString8(EA::IO::IStream* pIS, const String8& s, Endian endianDestination = kEndianBig);
+
+        template <typename String16>
+        bool WriteString16(EA::IO::IStream* pIS, const String16& s, Endian endianDestination = kEndianBig);
+
 
     } // namespace IO
 
 } // namespace EA
 
 
+
+namespace EA
+{
+namespace IO
+{
 
 /// \name C++-style stream wrappers.
 /// \note Only intended for print output.
@@ -691,15 +838,300 @@ inline EA::IO::IStream& operator>>(EA::IO::IStream& s, uint8_t&  val)       { EA
 inline EA::IO::IStream& operator>>(EA::IO::IStream& s, bool&      val)      { EA::IO::ReadBool8 (&s, val); return s; }
 inline EA::IO::IStream& operator>>(EA::IO::IStream& s, float&  val)         { EA::IO::ReadFloat (&s, val); return s; }
 inline EA::IO::IStream& operator>>(EA::IO::IStream& s, double& val)         { EA::IO::ReadDouble(&s, val); return s; }
+
+#ifdef __APPLE__
+    inline EA::IO::IStream& operator>>(EA::IO::IStream& s, uintptr_t& val)       { EA::IO::ReadUint32(&s, reinterpret_cast<uint32_t&>(val)); return s; }
+    inline EA::IO::IStream& operator<<(EA::IO::IStream& s, const uintptr_t& val)       { EA::IO::WriteUint32(&s, static_cast<uint32_t>(val)); return s; }
+#endif
 //@}
 
 
 
+inline StreamAdapter::StreamAdapter()
+  : mpStream(NULL),
+    mEndianType(EA::IO::kEndianBig), 
+    mSuccess(true)
+{
+}
+
+
+inline StreamAdapter::StreamAdapter(EA::IO::IStream* pStream, EA::IO::Endian endianType)
+  : mpStream(pStream),
+    mEndianType(endianType), 
+    mSuccess(true)
+{
+}
+
+
+inline void StreamAdapter::SetValid(bool success)
+{
+    VerifyIO(success);  // Right now, the only use for calling this is so the user could catch a breakpoint set in SetValid if success == false.
+    mSuccess = success; 
+}
+
+
+inline bool StreamAdapter::IsValid() const
+{
+    return mSuccess;
+}
+
+
+inline StreamAdapter::operator bool() const
+{
+    return mSuccess;
+}
+
+
+inline bool StreamAdapter::operator!() const
+{
+    return !mSuccess;
+}
+
+
+inline EA::IO::IStream* StreamAdapter::GetStream() const
+{
+    return mpStream;
+}
+
+
+inline void StreamAdapter::SetStream(EA::IO::IStream* pStream)
+{
+    mpStream = pStream;
+}
+
+
+inline EA::IO::Endian StreamAdapter::GetEndianType() const
+{
+    return mEndianType;
+}
+
+
+inline void StreamAdapter::SetEndianType(EA::IO::Endian endianType)
+{
+    mEndianType = endianType;
+}
+
+
+inline void StreamAdapter::VerifyIO(bool success)
+{
+    #if defined(EA_DEBUG)
+        if(!success)
+        {
+            if(mSuccess)
+            {
+		        // You can set a breakpoint here to catch problems on the first occurrence.
+		        mSuccess = false;
+            }
+
+            mSuccess = false;
+        }
+    #else
+        mSuccess &= success;
+    #endif
+}
+
+
+inline void StreamAdapter::ReadUint8(uint8_t& v)   { VerifyIO(EA::IO::ReadUint8(mpStream, v));  }
+inline void StreamAdapter::WriteUint8(uint8_t v)   { VerifyIO(EA::IO::WriteUint8(mpStream, v)); }
+inline void StreamAdapter::ReadUint16(uint16_t& v) { VerifyIO(EA::IO::ReadUint16(mpStream, v, mEndianType)); }
+inline void StreamAdapter::WriteUint16(uint16_t v) { VerifyIO(EA::IO::WriteUint16(mpStream, v, mEndianType)); }
+inline void StreamAdapter::ReadUint32(uint32_t& v) { VerifyIO(EA::IO::ReadUint32(mpStream, v, mEndianType)); }
+inline void StreamAdapter::WriteUint32(uint32_t v) { VerifyIO(EA::IO::WriteUint32(mpStream, v, mEndianType)); }
+inline void StreamAdapter::ReadUint64(uint64_t& v) { VerifyIO(EA::IO::ReadUint64(mpStream, v, mEndianType)); }
+inline void StreamAdapter::WriteUint64(uint64_t v) { VerifyIO(EA::IO::WriteUint64(mpStream, v, mEndianType)); }
+
+inline void StreamAdapter::ReadInt8(int8_t& v)    { VerifyIO(EA::IO::ReadInt8(mpStream, v));  }
+inline void StreamAdapter::WriteInt8(int8_t v)    { VerifyIO(EA::IO::WriteInt8(mpStream, v)); }
+inline void StreamAdapter::ReadInt16(int16_t& v)  { VerifyIO(EA::IO::ReadInt16(mpStream, v, mEndianType)); }
+inline void StreamAdapter::WriteInt16(int16_t v)  { VerifyIO(EA::IO::WriteInt16(mpStream, v, mEndianType)); }
+inline void StreamAdapter::ReadInt32(int32_t& v)  { VerifyIO(EA::IO::ReadInt32(mpStream, v, mEndianType)); }
+inline void StreamAdapter::WriteInt32(int32_t v)  { VerifyIO(EA::IO::WriteInt32(mpStream, v, mEndianType)); }
+inline void StreamAdapter::ReadInt64(int64_t& v)  { VerifyIO(EA::IO::ReadInt64(mpStream, v, mEndianType)); }
+inline void StreamAdapter::WriteInt64(int64_t v)  { VerifyIO(EA::IO::WriteInt64(mpStream, v, mEndianType)); }
+
+inline void StreamAdapter::ReadBool8(bool& v)     { VerifyIO(EA::IO::ReadBool8(mpStream, v)); }
+inline void StreamAdapter::WriteBool8(bool v)     { VerifyIO(EA::IO::WriteBool8(mpStream, v)); }
+
+inline void StreamAdapter::ReadFloat(float& v)    { VerifyIO(EA::IO::ReadFloat(mpStream, v, mEndianType)); }
+inline void StreamAdapter::WriteFloat(float v)    { VerifyIO(EA::IO::WriteFloat(mpStream, v, mEndianType)); }
+inline void StreamAdapter::ReadDouble(double& v)  { VerifyIO(EA::IO::ReadDouble(mpStream, v, mEndianType)); }
+inline void StreamAdapter::WriteDouble(double v)  { VerifyIO(EA::IO::WriteDouble(mpStream, v, mEndianType)); }
+
+// basic type array (unstrided)
+inline void StreamAdapter::ReadUint8(uint8_t* v, uint32_t count)          { VerifyIO(EA::IO::ReadUint8(mpStream, v, count));  }
+inline void StreamAdapter::WriteUint8(const uint8_t* v, uint32_t count)   { VerifyIO(EA::IO::WriteUint8(mpStream, v, count)); }
+inline void StreamAdapter::ReadUint16(uint16_t* v, uint32_t count)        { VerifyIO(EA::IO::ReadUint16(mpStream, v, count, mEndianType)); }
+inline void StreamAdapter::WriteUint16(const uint16_t* v, uint32_t count) { VerifyIO(EA::IO::WriteUint16(mpStream, v, count, mEndianType)); }
+inline void StreamAdapter::ReadUint32(uint32_t* v, uint32_t count)        { VerifyIO(EA::IO::ReadUint32(mpStream, v, count, mEndianType)); }
+inline void StreamAdapter::WriteUint32(const uint32_t* v, uint32_t count) { VerifyIO(EA::IO::WriteUint32(mpStream, v, count, mEndianType)); }
+inline void StreamAdapter::ReadUint64(uint64_t* v, uint32_t count)        { VerifyIO(EA::IO::ReadUint64(mpStream, v, count, mEndianType)); }
+inline void StreamAdapter::WriteUint64(const uint64_t* v, uint32_t count) { VerifyIO(EA::IO::WriteUint64(mpStream, v, count, mEndianType)); }
+
+inline void StreamAdapter::ReadInt8(int8_t* v, uint32_t count)           { VerifyIO(EA::IO::ReadInt8(mpStream, v, count));  }
+inline void StreamAdapter::WriteInt8(const int8_t* v, uint32_t count)    { VerifyIO(EA::IO::WriteInt8(mpStream, v, count)); }
+inline void StreamAdapter::ReadInt16(int16_t* v, uint32_t count)         { VerifyIO(EA::IO::ReadInt16(mpStream, v, count, mEndianType)); }
+inline void StreamAdapter::WriteInt16(const int16_t* v, uint32_t count)  { VerifyIO(EA::IO::WriteInt16(mpStream, v, count, mEndianType)); }
+inline void StreamAdapter::ReadInt32(int32_t* v, uint32_t count)         { VerifyIO(EA::IO::ReadInt32(mpStream, v, count, mEndianType)); }
+inline void StreamAdapter::WriteInt32(const int32_t* v, uint32_t count)  { VerifyIO(EA::IO::WriteInt32(mpStream, v, count, mEndianType)); }
+inline void StreamAdapter::ReadInt64(int64_t* v, uint32_t count)         { VerifyIO(EA::IO::ReadInt64(mpStream, v, count, mEndianType)); }
+inline void StreamAdapter::WriteInt64(const int64_t* v, uint32_t count)  { VerifyIO(EA::IO::WriteInt64(mpStream, v, count, mEndianType)); }
+
+inline void StreamAdapter::ReadBool8(bool* v, uint32_t count)            { VerifyIO(EA::IO::ReadBool8(mpStream, v, count)); }
+inline void StreamAdapter::WriteBool8(const bool* v, uint32_t count)     { VerifyIO(EA::IO::WriteBool8(mpStream, v, count)); }
+
+inline void StreamAdapter::ReadFloat(float* v, uint32_t count)           { VerifyIO(EA::IO::ReadFloat(mpStream, v, count, mEndianType)); }
+inline void StreamAdapter::WriteFloat(const float* v, uint32_t count)    { VerifyIO(EA::IO::WriteFloat(mpStream, v, count, mEndianType)); }
+inline void StreamAdapter::ReadDouble(double* v, uint32_t count)         { VerifyIO(EA::IO::ReadDouble(mpStream, v, count, mEndianType)); }
+inline void StreamAdapter::WriteDouble(const double* v, uint32_t count)  { VerifyIO(EA::IO::WriteDouble(mpStream, v, count, mEndianType)); }
+
+
+inline size_t StreamAdapter::ReadString8(char8_t* string, uint32_t capacity)
+{
+    uint32_t length;
+    ReadUint32(length);
+
+    if(mSuccess && (capacity > length)) // Test for (capacity > length) because we need a trailing 0 char.
+    {
+        if(VerifyArraySize(length, sizeof(char8_t)))
+        {
+            ReadUint8((uint8_t*)string, length);
+            string[length] = 0;
+        }
+    }
+
+    return length; // Returns the required strlen of the string to read.
+}
+
+
+template <typename String8>
+inline void StreamAdapter::ReadString8(String8& string)
+{
+    uint32_t length;
+    ReadUint32(length);
+
+    if(mSuccess)
+    {
+        string.resize(length);
+        ReadUint8((uint8_t*)string.data(), length);
+    }
+}
+
+
+inline void StreamAdapter::WriteString8(const char8_t* pString, uint32_t length)
+{
+    WriteUint32(length);
+    WriteUint8((uint8_t*)pString, length);
+}
+
+
+template <typename String8>
+inline void StreamAdapter::WriteString8(const String8& string)
+{
+    WriteUint32((uint32_t)string.length());
+    WriteUint8((uint8_t*)string.data(), string.length());
+}
+
+
+inline size_t StreamAdapter::ReadString16(char16_t* string, uint32_t capacity)
+{
+    uint32_t length;
+    ReadUint32(length);
+
+    if(mSuccess && (capacity > length)) // Test for (capacity > length) because we need a trailing 0 char.
+    {
+        if(VerifyArraySize(length, sizeof(char16_t)))
+        {
+            ReadUint16((uint16_t*)string, length);
+            string[length] = 0;
+        }
+    }
+
+    return length; // Returns the required strlen of the string to read.
+}
+
+
+template <typename String16>
+inline void StreamAdapter::ReadString16(String16& string)
+{
+    uint32_t length;
+    ReadUint32(length);
+
+    if(mSuccess)
+    {
+        string.resize(length);
+        ReadUint16((uint16_t*)string.data(), length);
+    }
+}
+
+
+inline void StreamAdapter::WriteString16(const char16_t* pString, uint32_t length)
+{
+    WriteUint32(length);
+    WriteUint16((uint16_t*)pString, length);
+}
+
+
+template <typename String16>
+inline void StreamAdapter::WriteString16(const String16& string)
+{
+    WriteUint32((uint32_t)string.length());
+    WriteUint16((uint16_t*)string.data(), string.length());
+}
+
+
+
+
+template <typename String8>
+inline bool ReadString8(EA::IO::IStream* pIS, String8& string, Endian endianDestination)
+{
+    uint32_t length;
+
+    if(EA::IO::ReadUint32(pIS, length, endianDestination))
+    {
+        string.resize(length);
+        return EA::IO::ReadUint8(pIS, (uint8_t*)string.data(), length);
+    }
+
+    return false;
+}
+
+
+template <typename String16>
+inline bool ReadString16(EA::IO::IStream* pIS, String16& string, Endian endianDestination)
+{
+    uint32_t length;
+
+    if(EA::IO::ReadUint32(pIS, length, endianDestination))
+    {
+        string.resize(length);
+        return ReadUint16(pIS, (uint16_t*)string.data(), length, endianDestination);
+    }
+
+    return false;
+}
+
+
+template <typename String8>
+inline bool WriteString8(EA::IO::IStream* pIS, const String8& string, Endian endianDestination)
+{
+    return WriteUint32(pIS, string.length(), endianDestination)
+        && WriteUint8 (pIS, (const uint8_t*)string.data(), string.length());
+}
+
+
+template <typename String16>
+inline bool WriteString16(EA::IO::IStream* pIS, const String16& string, Endian endianDestination)
+{
+    return WriteUint32(pIS, string.length(), endianDestination)
+        && WriteUint16(pIS, (const uint16_t*)string.data(), string.length(), endianDestination);
+}
+
+
+
+} // namespace IO
+} // namespace EA
+
+
 #endif // Header include guard
-
-
-
-
-
 
 
