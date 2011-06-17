@@ -32,7 +32,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef EventTarget_h
@@ -57,7 +57,7 @@ namespace WebCore {
     template<typename T> class DeprecatedValueList;
     typedef DeprecatedValueList<RefPtr<RegisteredEventListener> > RegisteredEventListenerList;
 
-    class EventTarget: public WTF::FastAllocBase {
+    class EventTarget/*: public WTF::FastAllocBase*/ {
     public:
         virtual EventTargetNode* toNode();
         virtual XMLHttpRequest* toXMLHttpRequest();

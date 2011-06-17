@@ -17,7 +17,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ExceptionCode_h
@@ -73,7 +73,7 @@ namespace WebCore {
     };        
     
 
-    struct ExceptionCodeDescription: public WTF::FastAllocBase {
+    struct ExceptionCodeDescription/*: public WTF::FastAllocBase*/ {
         const char* typeName; // has spaces and is suitable for use in exception description strings; maximum length is 10 characters
         const char* name; // exception name, also intended for use in exception description strings; 0 if name not known; maximum length is 27 characters
         int code; // numeric value of the exception within a particular type

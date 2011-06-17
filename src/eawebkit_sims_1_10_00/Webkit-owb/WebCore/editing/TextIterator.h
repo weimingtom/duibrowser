@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef TextIterator_h
@@ -58,7 +58,7 @@ PassRefPtr<Range> findPlainText(const Range*, const String&, bool forward, bool 
 // at points where replaced elements break up the text flow.  The text comes back in
 // chunks so as to optimize for performance of the iteration.
 
-class TextIterator: public WTF::FastAllocBase {
+class TextIterator/*: public WTF::FastAllocBase*/ {
 public:
     TextIterator();
     explicit TextIterator(const Range*, bool emitCharactersBetweenAllVisiblePositions = false, bool enterTextControls = false);
@@ -141,7 +141,7 @@ private:
 // Iterates through the DOM range, returning all the text, and 0-length boundaries
 // at points where replaced elements break up the text flow.  The text comes back in
 // chunks so as to optimize for performance of the iteration.
-class SimplifiedBackwardsTextIterator: public WTF::FastAllocBase {
+class SimplifiedBackwardsTextIterator/*: public WTF::FastAllocBase*/ {
 public:
     SimplifiedBackwardsTextIterator();
     explicit SimplifiedBackwardsTextIterator(const Range *);
@@ -195,7 +195,7 @@ private:
 
 // Builds on the text iterator, adding a character position so we can walk one
 // character at a time, or faster, as needed. Useful for searching.
-class CharacterIterator: public WTF::FastAllocBase {
+class CharacterIterator/*: public WTF::FastAllocBase*/ {
 public:
     CharacterIterator();
     explicit CharacterIterator(const Range* r, bool emitCharactersBetweenAllVisiblePositions = false, bool enterTextControls = false);
@@ -222,7 +222,7 @@ private:
     
 // Very similar to the TextIterator, except that the chunks of text returned are "well behaved",
 // meaning they never end split up a word.  This is useful for spellcheck or (perhaps one day) searching.
-class WordAwareIterator: public WTF::FastAllocBase {
+class WordAwareIterator/*: public WTF::FastAllocBase*/ {
 public:
     WordAwareIterator();
     explicit WordAwareIterator(const Range *r);

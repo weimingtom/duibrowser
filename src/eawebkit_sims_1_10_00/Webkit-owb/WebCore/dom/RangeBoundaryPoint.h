@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef RangeBoundaryPoint_h
@@ -36,7 +36,7 @@
 
 namespace WebCore {
 
-class RangeBoundaryPoint: public WTF::FastAllocBase {
+class RangeBoundaryPoint/*: public WTF::FastAllocBase*/ {
 public:
     RangeBoundaryPoint();
     explicit RangeBoundaryPoint(PassRefPtr<Node> container);

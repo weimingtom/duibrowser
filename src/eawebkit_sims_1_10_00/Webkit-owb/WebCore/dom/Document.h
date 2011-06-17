@@ -23,7 +23,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Document_h
@@ -130,7 +130,7 @@ namespace WebCore {
 
     typedef int ExceptionCode;
 
-class FormElementKey: public WTF::FastAllocBase {
+class FormElementKey/*: public WTF::FastAllocBase*/ {
 public:
     FormElementKey(AtomicStringImpl* = 0, AtomicStringImpl* = 0);
     ~FormElementKey();
@@ -159,7 +159,7 @@ inline bool operator==(const FormElementKey& a, const FormElementKey& b)
     return a.name() == b.name() && a.type() == b.type();
 }
 
-struct FormElementKeyHash: public WTF::FastAllocBase {
+struct FormElementKeyHash/*: public WTF::FastAllocBase*/ {
     static unsigned hash(const FormElementKey&);
     static bool equal(const FormElementKey& a, const FormElementKey& b) { return a == b; }
     static const bool safeToCompareToEmptyOrDeleted = true;

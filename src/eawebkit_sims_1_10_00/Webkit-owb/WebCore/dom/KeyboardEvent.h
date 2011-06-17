@@ -22,7 +22,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef KeyboardEvent_h
@@ -37,7 +37,7 @@ namespace WebCore {
     class PlatformKeyboardEvent;
 
 #if PLATFORM(MAC)
-    struct KeypressCommand: public WTF::FastAllocBase {
+    struct KeypressCommand/*: public WTF::FastAllocBase*/ {
         KeypressCommand(const String& commandName) : commandName(commandName) {}
         KeypressCommand(const String& commandName, const String& text) : commandName(commandName), text(text) { ASSERT(commandName == "insertText:"); }
 

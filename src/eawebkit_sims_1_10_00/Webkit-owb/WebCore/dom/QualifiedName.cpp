@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -81,7 +81,7 @@ static inline unsigned hashComponents(const QualifiedNameComponents& buf)
     return hash;
 }
 
-struct QNameHash: public WTF::FastAllocBase {
+struct QNameHash/*: public WTF::FastAllocBase*/ {
     static unsigned hash(const QualifiedName::QualifiedNameImpl* name) {    
         QualifiedNameComponents c = { name->m_prefix.impl(), name->m_localName.impl(), name->m_namespace.impl() };
         return hashComponents(c);
@@ -94,7 +94,7 @@ struct QNameHash: public WTF::FastAllocBase {
 
 typedef HashSet<QualifiedName::QualifiedNameImpl*, QNameHash> QNameSet;
 
-struct QNameComponentsTranslator: public WTF::FastAllocBase {
+struct QNameComponentsTranslator/*: public WTF::FastAllocBase*/ {
     static unsigned hash(const QualifiedNameComponents& components) { 
         return hashComponents(components); 
     }

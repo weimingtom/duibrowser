@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef CachedPagePlatformData_h
@@ -40,7 +40,7 @@ namespace WebCore {
 // goes into the Back/Forward page cache, and perform some action with that data when the page comes out.  
 // Each platform should subclass this class as neccessary
 
-class CachedPagePlatformData: public WTF::FastAllocBase {
+class CachedPagePlatformData/*: public WTF::FastAllocBase*/ {
 public:
     virtual ~CachedPagePlatformData() { }
     virtual void clear() { }

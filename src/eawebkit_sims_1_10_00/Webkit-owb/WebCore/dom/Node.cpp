@@ -22,7 +22,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -63,7 +63,7 @@ namespace WebCore {
 
 using namespace HTMLNames;
 
-struct NodeListsNodeData: public WTF::FastAllocBase {
+struct NodeListsNodeData/*: public WTF::FastAllocBase*/ {
     typedef HashSet<DynamicNodeList*> NodeListSet;
     NodeListSet m_listsWithCaches;
 
@@ -94,7 +94,7 @@ bool Node::isSupported(const String& feature, const String& version)
 #ifndef NDEBUG
 WTFLogChannel LogWebCoreNodeLeaks =  { 0x00000000, "", WTFLogChannelOn };
 
-struct NodeCounter: public WTF::FastAllocBase {
+struct NodeCounter/*: public WTF::FastAllocBase*/ {
     static unsigned count; 
 
     ~NodeCounter() 

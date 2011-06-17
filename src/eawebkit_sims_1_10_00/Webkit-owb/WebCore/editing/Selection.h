@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Selection_h
@@ -40,7 +40,7 @@ class Position;
 
 const EAffinity SEL_DEFAULT_AFFINITY = DOWNSTREAM;
 
-class Selection: public WTF::FastAllocBase {
+class Selection/*: public WTF::FastAllocBase*/ {
 public:
     enum EState { NONE, CARET, RANGE };
     enum EDirection { FORWARD, BACKWARD, RIGHT, LEFT };

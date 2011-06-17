@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef QualifiedName_h
@@ -31,7 +31,7 @@
 
 namespace WebCore {
 
-class QualifiedName: public WTF::FastAllocBase {
+class QualifiedName/*: public WTF::FastAllocBase*/ {
 public:
     class QualifiedNameImpl : public RefCounted<QualifiedNameImpl> {
     public:

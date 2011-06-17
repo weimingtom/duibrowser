@@ -114,6 +114,7 @@
 #include "JSDOMBinding.h"
 #include "ScriptController.h"
 #include "StaticConstructors.h"
+#include <EAWebKit/internal/EAWebKitViewHelper.h> // For multiview support
 
 #if ENABLE(DATABASE)
 #include "Database.h"
@@ -2793,6 +2794,9 @@ void Document::dispatchImageLoadEventsNow()
 
 void Document::imageLoadEventTimerFired(Timer<Document>*)
 {
+    EA::WebKit::View* pView = EA::WebKit::GetView(view());
+    SET_AUTO_ACTIVE_VIEW(pView);   // For mutliple view support for could be fired inside another view currently
+    
     dispatchImageLoadEventsNow();
 }
 
@@ -4011,6 +4015,9 @@ void Document::cancelFocusAppearanceUpdate()
 
 void Document::updateFocusAppearanceTimerFired(Timer<Document>*)
 {
+    EA::WebKit::View* pView = EA::WebKit::GetView(view());
+    SET_AUTO_ACTIVE_VIEW(pView);   // For mutliple view support for could be fired inside another view currently
+    
     Node* node = focusedNode();
     if (!node)
         return;

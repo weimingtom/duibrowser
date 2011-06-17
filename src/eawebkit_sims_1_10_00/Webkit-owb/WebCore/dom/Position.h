@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Position_h
@@ -51,7 +51,7 @@ enum EUsingComposedCharacters { NotUsingComposedCharacters = false, UsingCompose
 // This should be more like a humble struct, without so many different
 // member functions. We should find better homes for these functions.
 
-class Position: public WTF::FastAllocBase {
+class Position/*: public WTF::FastAllocBase*/ {
 public:
     RefPtr<Node> container;
     int posOffset; // to be renamed to offset when we get rid of offset()

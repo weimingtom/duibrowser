@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -63,7 +63,7 @@ namespace WebCore {
 WTFLogChannel LogWebCoreCachedPageLeaks =  { 0x00000000, "", WTFLogChannelOn };
 
 #include <wtf/FastAllocBase.h>
-struct CachedPageCounter: public WTF::FastAllocBase {
+struct CachedPageCounter/*: public WTF::FastAllocBase*/ {
     static int count; 
     ~CachedPageCounter() 
     { 

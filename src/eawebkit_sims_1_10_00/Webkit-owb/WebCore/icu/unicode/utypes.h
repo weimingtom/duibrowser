@@ -30,7 +30,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef UTYPES_H
@@ -269,12 +269,12 @@ typedef double UDate;
  * a pure virtual.  Each concrete subclass implements it in the same way:
  *
  * \code
- *      class Base: public WTF::FastAllocBase {
+ *      class Base/*: public WTF::FastAllocBase*/ {
  *      public:
  *          virtual UClassID getDynamicClassID() const = 0;
  *      }
  *
- *      class Derived: public WTF::FastAllocBase {
+ *      class Derived/*: public WTF::FastAllocBase*/ {
  *      public:
  *          virtual UClassID getDynamicClassID() const
  *            { return Derived::getStaticClassID(); }
@@ -285,7 +285,7 @@ typedef double UDate;
  * clients to test for a specific type.
  *
  * \code
- *      class Derived: public WTF::FastAllocBase {
+ *      class Derived/*: public WTF::FastAllocBase*/ {
  *      public:
  *          static UClassID U_EXPORT2 getStaticClassID();
  *      private:

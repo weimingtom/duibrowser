@@ -22,7 +22,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -51,7 +51,7 @@ using namespace HTMLNames;
 
 #ifndef NDEBUG
 #include <wtf/FastAllocBase.h>
-class RangeCounter: public WTF::FastAllocBase {
+class RangeCounter/*: public WTF::FastAllocBase*/ {
 public:
     static unsigned count;
     ~RangeCounter()

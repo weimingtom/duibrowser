@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef PositionIterator_h
@@ -39,7 +39,7 @@ namespace WebCore {
 // A Position iterator with constant-time
 // increment, decrement, and several predicates on the Position it is at.
 // Conversion to/from Position is O(n) in the offset.
-class PositionIterator: public WTF::FastAllocBase {
+class PositionIterator/*: public WTF::FastAllocBase*/ {
 public:
     PositionIterator()
         : m_parent(0)

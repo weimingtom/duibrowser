@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -55,7 +55,7 @@ namespace WebCore {
 using namespace HTMLNames;
 
 #include <wtf/FastAllocBase.h>
-class ElementRareData: public WTF::FastAllocBase {
+class ElementRareData/*: public WTF::FastAllocBase*/ {
 public:
     ElementRareData(Element*);
     void resetComputedStyle(Element*);

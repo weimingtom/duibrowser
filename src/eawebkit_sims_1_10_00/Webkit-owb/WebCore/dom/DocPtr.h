@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef DocPtr_h
@@ -30,7 +30,7 @@
 #include <wtf/FastAllocBase.h>
 namespace WebCore {
 
-template <class T> class DocPtr: public WTF::FastAllocBase {
+template <class T> class DocPtr/*: public WTF::FastAllocBase*/ {
 public:
     DocPtr() : m_ptr(0) {}
     DocPtr(T *ptr) : m_ptr(ptr) { if (ptr) ptr->selfOnlyRef(); }

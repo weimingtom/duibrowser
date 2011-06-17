@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef NodeWithIndex_h
@@ -37,7 +37,7 @@ namespace WebCore {
 
 // For use when you want to get the index for a node repeatedly and
 // only want to walk the child list to figure out the index once.
-class NodeWithIndex: public WTF::FastAllocBase {
+class NodeWithIndex/*: public WTF::FastAllocBase*/ {
 public:
     NodeWithIndex(Node* node)
         : m_node(node)

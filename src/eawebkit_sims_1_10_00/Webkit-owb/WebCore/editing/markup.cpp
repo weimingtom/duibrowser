@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -70,7 +70,7 @@ using namespace HTMLNames;
 static inline bool shouldSelfClose(const Node *node);
 #include <wtf/FastAllocBase.h>
 
-class AttributeChange: public WTF::FastAllocBase {
+class AttributeChange/*: public WTF::FastAllocBase*/ {
 public:
     AttributeChange()
         : m_name(nullAtom, nullAtom, nullAtom)

@@ -23,7 +23,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Tokenizer_h
@@ -34,7 +34,7 @@ namespace WebCore {
 
     class SegmentedString;
 
-    class Tokenizer: public WTF::FastAllocBase {
+    class Tokenizer/*: public WTF::FastAllocBase*/ {
     public:
         Tokenizer(bool viewSourceMode = false) 
             : m_parserStopped(false)
