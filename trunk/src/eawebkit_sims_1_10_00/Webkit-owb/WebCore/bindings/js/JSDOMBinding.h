@@ -19,7 +19,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef JSDOMBinding_h
@@ -108,7 +108,8 @@ namespace WebCore {
     // Helper class to call setDOMException on exit without adding lots of separate calls to that function.
     class DOMExceptionTranslator : Noncopyable {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -137,7 +138,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    public:
+#endif //NO_MACRO_NEW
+	public:
         explicit DOMExceptionTranslator(KJS::ExecState* exec) : m_exec(exec), m_code(0) { }
         ~DOMExceptionTranslator() { setDOMException(m_exec, m_code); }
         operator ExceptionCode&() { return m_code; }

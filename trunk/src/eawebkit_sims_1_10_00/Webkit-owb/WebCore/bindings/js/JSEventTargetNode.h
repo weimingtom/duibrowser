@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef JSEventTargetNode_h
@@ -79,7 +79,7 @@ namespace WebCore {
     }
 
 
-    struct JSEventTargetPrototypeInformation: public WTF::FastAllocBase {
+    struct JSEventTargetPrototypeInformation/*: public WTF::FastAllocBase*/ {
         static const char* prototypeClassName()
         {
             return "EventTargetNodePrototype";

@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef CSSParser_h
@@ -52,7 +52,7 @@ namespace WebCore {
     class StyleBase;
     class StyleList;
 
-    class CSSParser: public WTF::FastAllocBase {
+    class CSSParser/*: public WTF::FastAllocBase*/ {
     public:
         CSSParser(bool strictParsing = true);
         ~CSSParser();
@@ -268,7 +268,7 @@ namespace WebCore {
     int cssPropertyID(const String&);
     int cssValueKeywordID(const CSSParserString&);
 
-    class ShorthandScope: public WTF::FastAllocBase {
+    class ShorthandScope/*: public WTF::FastAllocBase*/ {
     public:
         ShorthandScope(CSSParser* parser, int propId) : m_parser(parser)
         {

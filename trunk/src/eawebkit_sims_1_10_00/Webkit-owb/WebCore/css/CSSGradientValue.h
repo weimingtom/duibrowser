@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef CSSGradientValue_h
@@ -43,7 +43,7 @@ class Gradient;
 
 enum CSSGradientType { CSSLinearGradient, CSSRadialGradient };
 
-struct CSSGradientColorStop: public WTF::FastAllocBase {
+struct CSSGradientColorStop/*: public WTF::FastAllocBase*/ {
     CSSGradientColorStop()
         : m_stop(0)
     {

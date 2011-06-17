@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef DOMImplementationFront_h
@@ -46,7 +46,7 @@ class String;
 
 typedef int ExceptionCode;
 
-class DOMImplementationFront: public WTF::FastAllocBase {
+class DOMImplementationFront/*: public WTF::FastAllocBase*/ {
 public:
     void ref();
     void deref();

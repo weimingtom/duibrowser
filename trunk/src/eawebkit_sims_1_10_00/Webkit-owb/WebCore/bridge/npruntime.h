@@ -67,7 +67,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef _NP_RUNTIME_H_
@@ -296,7 +296,7 @@ struct NPClass
 #define NP_CLASS_STRUCT_VERSION_HAS_ENUM(npclass)   \
     ((npclass)->structVersion >= NP_CLASS_STRUCT_VERSION_ENUM)
 
-struct NPObject: public WTF::FastAllocBase {
+struct NPObject/*: public WTF::FastAllocBase*/ {
     NPClass *_class;
     uint32_t referenceCount;
     // Additional space may be allocated here by types of NPObjects

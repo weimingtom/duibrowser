@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef NP_JSOBJECT_H
@@ -45,7 +45,7 @@ namespace KJS {
 
 extern NPClass* NPScriptObjectClass;
 
-struct JavaScriptObject: public WTF::FastAllocBase
+struct JavaScriptObject/*: public WTF::FastAllocBase*/
 {
     NPObject object;
     KJS::JSObject* imp;

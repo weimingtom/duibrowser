@@ -26,7 +26,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef MediaQueryEvaluator_h
@@ -54,7 +54,7 @@ class MediaQueryExp;
  * the device characteristics are not known. This can be used to prune the loading
  * of stylesheets to only those which are probable to match.
  */
-class MediaQueryEvaluator: public WTF::FastAllocBase
+class MediaQueryEvaluator/*: public WTF::FastAllocBase*/
 {
 public:
     /** Creates evaluator which evaluates only simple media queries

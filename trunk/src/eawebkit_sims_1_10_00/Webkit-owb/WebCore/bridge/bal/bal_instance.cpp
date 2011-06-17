@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -170,7 +170,7 @@ JSValue* BalInstance::invokeMethod(ExecState* exec, const MethodList& methodList
         cArgs[i] = new BalValue(priv);
     }
 
-    BalValue *val = m_object->invoke(ident, cArgs);
+    BalValue *val = m_object->invoke(ident, cArgs, exec); // // 3/25/10 CSidhall -Added passing exec
 
 	for (i = 0; i < count; i++) {
 		delete cArgs[i];
@@ -180,7 +180,11 @@ JSValue* BalInstance::invokeMethod(ExecState* exec, const MethodList& methodList
 
     cArgs.clear();
 
-    return val->d->getValue();
+    // 3/25/10 CSidhall - Safety.  For the default invoke returns NULL.
+    if(val)
+        return val->d->getValue();
+    else
+        return 0;
 }
 
 

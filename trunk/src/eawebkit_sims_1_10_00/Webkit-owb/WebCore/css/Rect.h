@@ -19,7 +19,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Rect_h
@@ -31,7 +31,7 @@
 
 namespace WebCore {
 
-    class RectBase: public WTF::FastAllocBase {
+    class RectBase/*: public WTF::FastAllocBase*/ {
     public:
         CSSPrimitiveValue* top() const { return m_top.get(); }
         CSSPrimitiveValue* right() const { return m_right.get(); }

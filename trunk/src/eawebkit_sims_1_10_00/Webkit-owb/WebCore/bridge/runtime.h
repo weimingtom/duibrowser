@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef JAVASCRIPTCORE_BINDINGS_RUNTIME_H
@@ -51,7 +51,7 @@ class RootObject;
 
 typedef Vector<Method*> MethodList;
 
-class Field: public WTF::FastAllocBase {
+class Field/*: public WTF::FastAllocBase*/ {
 public:
     virtual const char* name() const = 0;
     virtual JSValue* valueFromInstance(ExecState*, const Instance*) const = 0;
@@ -62,7 +62,8 @@ public:
 
 class Method : Noncopyable {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -91,6 +92,7 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
+#endif //NO_MACRO_NEW
 public:
     virtual const char *name() const = 0;
     virtual int numParameters() const = 0;
@@ -100,7 +102,8 @@ public:
 
 class Class : Noncopyable {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -129,6 +132,7 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
+#endif //NO_MACRO_NEW
 public:
     virtual const char* name() const = 0;
     virtual MethodList methodsNamed(const Identifier&, Instance*) const = 0;
@@ -206,7 +210,8 @@ protected:
 
 class Array : Noncopyable {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -235,6 +240,7 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
+#endif //NO_MACRO_NEW
 public:
     Array(PassRefPtr<RootObject>);
     virtual ~Array();

@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef CSSProperty_h
@@ -34,7 +34,7 @@
 
 namespace WebCore {
 
-class CSSProperty: public WTF::FastAllocBase {
+class CSSProperty/*: public WTF::FastAllocBase*/ {
 public:
     CSSProperty(int propID, PassRefPtr<CSSValue> value, bool important = false, int shorthandID = 0, bool implicit = false)
         : m_id(propID)
