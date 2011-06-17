@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef PluginPackage_H
@@ -106,7 +106,7 @@ namespace WebCore {
         PluginQuirkSet m_quirks;
     };
 
-    struct PluginPackageHash: public WTF::FastAllocBase {
+    struct PluginPackageHash/*: public WTF::FastAllocBase*/ {
         static unsigned hash(const uintptr_t key) { return reinterpret_cast<PluginPackage*>(key)->hash(); }
         static unsigned hash(const RefPtr<PluginPackage>& key) { return key->hash(); }
 

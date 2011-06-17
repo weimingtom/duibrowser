@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -50,7 +50,7 @@ static const double cInterpolationCutoff = 800. * 800.;
 static const double cLowQualityTimeThreshold = 0.050; // 50 ms
 #include <wtf/FastAllocBase.h>
 
-class RenderImageScaleData: public WTF::FastAllocBase {
+class RenderImageScaleData/*: public WTF::FastAllocBase*/ {
 public:
     RenderImageScaleData(RenderImage* image, const IntSize& size, double time, bool lowQualityScale)
         : m_size(size)
@@ -87,7 +87,7 @@ private:
     Timer<RenderImage> m_highQualityRepaintTimer;
 };
 
-class RenderImageScaleObserver: public WTF::FastAllocBase
+class RenderImageScaleObserver/*: public WTF::FastAllocBase*/
 {
 public:
     static bool shouldImagePaintAtLowQuality(RenderImage*, const IntSize&);

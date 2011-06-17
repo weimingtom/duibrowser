@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SVGCharacterLayoutInfo_h
@@ -80,7 +80,7 @@ private:
 class PositionedFloatVector : public PositionedVector<float> { };
 struct SVGChar;
 
-struct SVGCharacterLayoutInfo: public WTF::FastAllocBase {
+struct SVGCharacterLayoutInfo/*: public WTF::FastAllocBase*/ {
     SVGCharacterLayoutInfo(Vector<SVGChar>&);
 
     enum StackType { XStack, YStack, DxStack, DyStack, AngleStack, BaselineShiftStack };
@@ -205,7 +205,7 @@ private:
     }
 };
 
-struct SVGChar: public WTF::FastAllocBase {
+struct SVGChar/*: public WTF::FastAllocBase*/ {
     SVGChar()
         : x(0.0f)
         , y(0.0f)
@@ -242,7 +242,7 @@ struct SVGChar: public WTF::FastAllocBase {
     AffineTransform characterTransform() const;
 };
 
-struct SVGInlineBoxCharacterRange: public WTF::FastAllocBase {
+struct SVGInlineBoxCharacterRange/*: public WTF::FastAllocBase*/ {
     SVGInlineBoxCharacterRange()
         : startOffset(INT_MIN)
         , endOffset(INT_MIN)
@@ -262,7 +262,7 @@ struct SVGInlineBoxCharacterRange: public WTF::FastAllocBase {
 // Convenience typedef
 typedef SVGTextContentElement::SVGLengthAdjustType ELengthAdjust;
 
-struct SVGTextChunk: public WTF::FastAllocBase {
+struct SVGTextChunk/*: public WTF::FastAllocBase*/ {
     SVGTextChunk()
         : anchor(TA_START)
         , textLength(0.0f)
@@ -293,7 +293,7 @@ struct SVGTextChunk: public WTF::FastAllocBase {
     Vector<SVGInlineBoxCharacterRange> boxes;
 };
 
-struct SVGTextChunkWalkerBase: public WTF::FastAllocBase {
+struct SVGTextChunkWalkerBase/*: public WTF::FastAllocBase*/ {
     virtual ~SVGTextChunkWalkerBase() { }
 
     virtual void operator()(SVGInlineTextBox* textBox, int startOffset, const AffineTransform& chunkCtm,
@@ -390,7 +390,7 @@ private:
     SVGTextChunkSetupStrokeCallback m_setupStrokeCallback;
 };
 
-struct SVGTextChunkLayoutInfo: public WTF::FastAllocBase {
+struct SVGTextChunkLayoutInfo/*: public WTF::FastAllocBase*/ {
     SVGTextChunkLayoutInfo(Vector<SVGTextChunk>& textChunks)
         : assignChunkProperties(true)
         , handlingTextPath(false)
@@ -408,7 +408,7 @@ struct SVGTextChunkLayoutInfo: public WTF::FastAllocBase {
     SVGTextChunk chunk;
 };
 
-struct SVGTextDecorationInfo: public WTF::FastAllocBase {
+struct SVGTextDecorationInfo/*: public WTF::FastAllocBase*/ {
     // ETextDecoration is meant to be used here
     HashMap<int, RenderObject*> fillServerMap;
     HashMap<int, RenderObject*> strokeServerMap;

@@ -20,7 +20,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef PointerEventsHitRules_h
@@ -32,7 +32,7 @@
 
 namespace WebCore {
 
-class PointerEventsHitRules: public WTF::FastAllocBase {
+class PointerEventsHitRules/*: public WTF::FastAllocBase*/ {
 public:
     enum ESVGHitTesting {
         SVG_IMAGE_HITTESTING,

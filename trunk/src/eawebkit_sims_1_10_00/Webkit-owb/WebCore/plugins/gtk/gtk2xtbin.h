@@ -38,7 +38,7 @@
  * ***** END LICENSE BLOCK ***** */   
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef __GTK_XTBIN_H__
@@ -78,7 +78,7 @@ typedef struct _GtkXtBinClass GtkXtBinClass;
                                          GTK_TYPE_XTBIN))
 typedef struct _XtClient XtClient;
 
-struct _XtClient: public WTF::FastAllocBase {
+struct _XtClient/*: public WTF::FastAllocBase*/ {
   Display	*xtdisplay;
   Widget	top_widget;    /* The toplevel widget */
   Widget	child_widget;  /* The embedded widget */
@@ -88,7 +88,7 @@ struct _XtClient: public WTF::FastAllocBase {
   Window	oldwindow;
 };
 
-struct _GtkXtBin: public WTF::FastAllocBase
+struct _GtkXtBin/*: public WTF::FastAllocBase*/
 {
   GtkSocket      gsocket;
   GdkWindow     *parent_window;
@@ -100,7 +100,7 @@ struct _GtkXtBin: public WTF::FastAllocBase
   XtClient	 xtclient;         /* Xt Client for XEmbed */
 };
   
-struct _GtkXtBinClass: public WTF::FastAllocBase
+struct _GtkXtBinClass/*: public WTF::FastAllocBase*/
 {
   GtkSocketClass widget_class;
 };

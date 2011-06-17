@@ -19,8 +19,17 @@
  *
  */
 
+/*
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
+*/
+
 #ifndef RenderCounter_h
 #define RenderCounter_h
+
+#if defined(_MSC_VER)
+//#pragma warning(push)
+#pragma warning(disable: 4503)
+#endif //_MSC_VER
 
 #include "RenderText.h"
 
@@ -47,5 +56,11 @@ private:
 };
 
 } // namespace WebCore
+
+
+#if defined(_MSC_VER)
+//#pragma warning(pop)
+#endif //_MSC_VER
+
 
 #endif // RenderCounter_h

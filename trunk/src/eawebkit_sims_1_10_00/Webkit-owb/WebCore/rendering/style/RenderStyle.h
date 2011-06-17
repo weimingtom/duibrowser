@@ -23,7 +23,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef RenderStyle_h
@@ -90,7 +90,7 @@ enum PseudoState { PseudoUnknown, PseudoNone, PseudoAnyLink, PseudoLink, PseudoV
 //------------------------------------------------
 // Box model attributes. Not inherited.
 
-struct LengthBox: public WTF::FastAllocBase {
+struct LengthBox/*: public WTF::FastAllocBase*/ {
     LengthBox() { }
     LengthBox(LengthType t)
         : left(t), right(t), top(t), bottom(t) { }
@@ -240,7 +240,7 @@ enum EBorderStyle {
     BNONE, BHIDDEN, INSET, GROOVE, RIDGE, OUTSET, DOTTED, DASHED, SOLID, DOUBLE
 };
 
-class BorderValue: public WTF::FastAllocBase {
+class BorderValue/*: public WTF::FastAllocBase*/ {
 public:
     BorderValue() {
         width = 3; // medium is default value
@@ -300,7 +300,7 @@ public:
 
 enum EBorderPrecedence { BOFF, BTABLE, BCOLGROUP, BCOL, BROWGROUP, BROW, BCELL };
 
-struct CollapsedBorderValue: public WTF::FastAllocBase {
+struct CollapsedBorderValue/*: public WTF::FastAllocBase*/ {
     CollapsedBorderValue() : border(0), precedence(BOFF) {}
     CollapsedBorderValue(const BorderValue* b, EBorderPrecedence p) :border(b), precedence(p) {}
     
@@ -325,7 +325,7 @@ enum ENinePieceImageRule {
     StretchImageRule, RoundImageRule, RepeatImageRule
 };
 
-class NinePieceImage: public WTF::FastAllocBase {
+class NinePieceImage/*: public WTF::FastAllocBase*/ {
 public:
     NinePieceImage() :m_image(0), m_horizontalRule(StretchImageRule), m_verticalRule(StretchImageRule) {}
     NinePieceImage(StyleImage* image, LengthBox slices, ENinePieceImageRule h, ENinePieceImageRule v) 
@@ -346,7 +346,7 @@ public:
     unsigned m_verticalRule : 2; // ENinePieceImageRule
 };
 
-class BorderData: public WTF::FastAllocBase {
+class BorderData/*: public WTF::FastAllocBase*/ {
 public:
     BorderValue left;
     BorderValue right;
@@ -475,7 +475,7 @@ private:
 //------------------------------------------------
 // Dashboard region attributes. Not inherited.
 
-struct StyleDashboardRegion: public WTF::FastAllocBase {
+struct StyleDashboardRegion/*: public WTF::FastAllocBase*/ {
     String label;
     LengthBox offset;
     int type;
@@ -561,7 +561,7 @@ enum EFillRepeat {
     RepeatFill, RepeatXFill, RepeatYFill, NoRepeatFill
 };
 
-struct LengthSize: public WTF::FastAllocBase {
+struct LengthSize/*: public WTF::FastAllocBase*/ {
     Length width;
     Length height;
     
@@ -578,7 +578,7 @@ enum EFillLayerType {
     BackgroundFillLayer, MaskFillLayer
 };
 
-struct FillLayer: public WTF::FastAllocBase {
+struct FillLayer/*: public WTF::FastAllocBase*/ {
 public:
     FillLayer(EFillLayerType);
     ~FillLayer();
@@ -985,7 +985,7 @@ private:
     double m_f;
 };
 
-class TransformOperations: public WTF::FastAllocBase {
+class TransformOperations/*: public WTF::FastAllocBase*/ {
 public:
     bool operator==(const TransformOperations&) const;
     bool operator!=(const TransformOperations& o) const {
@@ -1054,7 +1054,7 @@ private:
 };
 
 // This struct holds information about shadows for the text-shadow and box-shadow properties.
-struct ShadowData: public WTF::FastAllocBase {
+struct ShadowData/*: public WTF::FastAllocBase*/ {
     ShadowData(int _x, int _y, int _blur, const Color& _color)
     :x(_x), y(_y), blur(_blur), color(_color), next(0) {}
     ShadowData(const ShadowData& o);
@@ -1074,7 +1074,7 @@ struct ShadowData: public WTF::FastAllocBase {
 };
 
 #if ENABLE(XBL)
-struct BindingURI: public WTF::FastAllocBase {
+struct BindingURI/*: public WTF::FastAllocBase*/ {
     BindingURI(StringImpl*);
     ~BindingURI();
 
@@ -1170,7 +1170,7 @@ enum EListStyleType {
      HIRAGANA, KATAKANA, HIRAGANA_IROHA, KATAKANA_IROHA, LNONE
 };
 
-struct CounterDirectives: public WTF::FastAllocBase {
+struct CounterDirectives/*: public WTF::FastAllocBase*/ {
     CounterDirectives() : m_reset(false), m_increment(false) { }
 
     bool m_reset;
@@ -1184,7 +1184,7 @@ inline bool operator!=(const CounterDirectives& a, const CounterDirectives& b) {
 
 typedef HashMap<RefPtr<AtomicStringImpl>, CounterDirectives> CounterDirectiveMap;
 
-class CounterContent: public WTF::FastAllocBase {
+class CounterContent/*: public WTF::FastAllocBase*/ {
 public:
     CounterContent(const AtomicString& identifier, EListStyleType style, const AtomicString& separator)
         : m_identifier(identifier), m_listStyle(style), m_separator(separator)
@@ -1207,7 +1207,8 @@ enum ContentType {
 
 struct ContentData : Noncopyable {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -1236,7 +1237,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    ContentData() : m_type(CONTENT_NONE), m_next(0) { }
+#endif //NO_MACRO_NEW
+ContentData() : m_type(CONTENT_NONE), m_next(0) { }
     ~ContentData() { clear(); }
 
     void clear();
@@ -1254,7 +1256,7 @@ enum EBorderFit { BorderFitBorder, BorderFitLines };
 
 enum ETimingFunctionType { LinearTimingFunction, CubicBezierTimingFunction };
 
-struct TimingFunction: public WTF::FastAllocBase
+struct TimingFunction/*: public WTF::FastAllocBase*/
 {
     TimingFunction()
     : m_type(CubicBezierTimingFunction)
@@ -1291,7 +1293,7 @@ private:
     double m_y2;
 };
 
-struct Transition: public WTF::FastAllocBase {
+struct Transition/*: public WTF::FastAllocBase*/ {
 public:
     Transition();
     ~Transition();
@@ -1569,7 +1571,7 @@ enum ECursor {
     CURSOR_COPY, CURSOR_NONE
 };
 
-struct CursorData: public WTF::FastAllocBase {
+struct CursorData/*: public WTF::FastAllocBase*/ {
     CursorData()
         : cursorImage(0)
     {}
@@ -1634,7 +1636,7 @@ protected:
 // !START SYNC!: Keep this in sync with the copy constructor in RenderStyle.cpp
 
     // inherit
-    struct InheritedFlags: public WTF::FastAllocBase {
+    struct InheritedFlags/*: public WTF::FastAllocBase*/ {
         bool operator==(const InheritedFlags& other) const
         {
             return (_empty_cells == other._empty_cells) &&
@@ -1679,7 +1681,7 @@ protected:
     } inherited_flags;
 
 // don't inherit
-    struct NonInheritedFlags: public WTF::FastAllocBase {
+    struct NonInheritedFlags/*: public WTF::FastAllocBase*/ {
         bool operator==(const NonInheritedFlags& other) const
         {
             return (_effectiveDisplay == other._effectiveDisplay) &&

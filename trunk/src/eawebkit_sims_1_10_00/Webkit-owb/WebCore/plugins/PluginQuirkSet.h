@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef PluginQuirkSet_h
@@ -52,7 +52,7 @@ namespace WebCore {
         PluginQuirkDontAllowMultipleInstances = 1 << 11,
     };
 
-    class PluginQuirkSet: public WTF::FastAllocBase {
+    class PluginQuirkSet/*: public WTF::FastAllocBase*/ {
         public:
             PluginQuirkSet() : m_quirks(0) { }
             void add(PluginQuirk quirk) { m_quirks |= quirk; }

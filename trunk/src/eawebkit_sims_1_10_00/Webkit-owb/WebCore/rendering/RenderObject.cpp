@@ -23,7 +23,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -163,7 +163,7 @@ RenderObject* RenderObject::createObject(Node* node, RenderStyle* style)
 }
 
 #ifndef NDEBUG
-struct RenderObjectCounter: public WTF::FastAllocBase {
+struct RenderObjectCounter/*: public WTF::FastAllocBase*/ {
     static int count;
     ~RenderObjectCounter() { if (count != 0) fprintf(stderr, "LEAK: %d RenderObject\n", count); }
 };
@@ -1079,8 +1079,9 @@ void RenderObject::drawBorder(GraphicsContext* graphicsContext, int x1, int y1, 
                     default:
                         break;
                 }
-                graphicsContext->restore();
             }
+            graphicsContext->restore(); 
+
             break;
         }
         case RIDGE:

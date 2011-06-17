@@ -23,7 +23,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef RenderObject_h
@@ -116,7 +116,7 @@ enum VerticalPositionHint {
 };
 
 #if ENABLE(DASHBOARD_SUPPORT)
-struct DashboardRegionValue: public WTF::FastAllocBase {
+struct DashboardRegionValue/*: public WTF::FastAllocBase*/ {
     bool operator==(const DashboardRegionValue& o) const
     {
         return type == o.type && bounds == o.bounds && clip == o.clip && label == o.label;
@@ -459,7 +459,7 @@ public:
      * Paint the object and its children, clipped by (x|y|w|h).
      * (tx|ty) is the calculated position of the parent
      */
-    struct PaintInfo: public WTF::FastAllocBase {
+    struct PaintInfo/*: public WTF::FastAllocBase*/ {
         PaintInfo(GraphicsContext* newContext, const IntRect& newRect, PaintPhase newPhase, bool newForceBlackText,
                   RenderObject* newPaintingRoot, RenderFlowSequencedSet* newOutlineObjects)
             : context(newContext)
@@ -536,7 +536,7 @@ public:
 
     // Used to signal a specific subrect within an object that must be repainted after
     // layout is complete.
-    struct RepaintInfo: public WTF::FastAllocBase {
+    struct RepaintInfo/*: public WTF::FastAllocBase*/ {
         RepaintInfo(RenderObject* object = 0, const IntRect& repaintRect = IntRect())
             : m_object(object)
             , m_repaintRect(repaintRect)
@@ -817,7 +817,7 @@ public:
     virtual bool shouldPaintSelectionGaps() const { return false; }
 
     // This struct is used when the selection changes to cache the old and new state of the selection for each RenderObject.
-    struct SelectionInfo: public WTF::FastAllocBase {
+    struct SelectionInfo/*: public WTF::FastAllocBase*/ {
         SelectionInfo()
             : m_object(0)
             , m_state(SelectionNone)

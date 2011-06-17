@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef RenderTable_h
@@ -112,7 +112,7 @@ public:
 
     virtual void calcWidth();
 
-    struct ColumnStruct: public WTF::FastAllocBase {
+    struct ColumnStruct/*: public WTF::FastAllocBase*/ {
         enum {
             WidthUndefined = 0xffff
         };

@@ -23,7 +23,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -48,6 +48,7 @@
 #include "RenderView.h"
 #include <algorithm>
 #include <math.h>
+#include <EAWebKit/EAWebKitView.h>
 
 using namespace std;
 
@@ -814,25 +815,32 @@ void RenderBox::paintFillLayerExtended(const PaintInfo& paintInfo, const Color& 
         IntRect rect(tx, clipY, w, clipH);
         // If we have an alpha and we are painting the root element, go ahead and blend with the base background color.
         if (isRoot()) {
+            // YChin 2/26/2010 Top level documents need to clear buffer, while other ones (i.e. iframes) need to blend with
+            //                 whatever is underneath it
+            bool isTopLevelDocument = (document()->ownerElement() == NULL);
+
             if((!bgColor.isValid() || bgColor.alpha() < 0xFF) && !isTransparent) {
 
                 Color baseColor = view()->frameView()->baseBackgroundColor();
                 if (baseColor.alpha() > 0) {
                     context->save();
                     context->setCompositeOperation(CompositeCopy);
-                    context->fillRect(rect, baseColor,true);
+                    context->fillRect(rect, baseColor, isTopLevelDocument);
                     context->restore();
                 } else
                     context->clearRect(rect);
             }
 
-            // CSidhall 7/23/09 Added for transparent support
-            else if(isTransparent) {
-                context->save();
-                context->setCompositeOperation(CompositeCopy);
-                Color col(0x00,0x00,0,0x00); 
-                context->fillRect(rect, col, true);
-                context->restore();
+            // CSidhall 7/23/09 Added for transparent background support. 
+            else if((isTransparent)&& (isTopLevelDocument)) {
+                EA::WebKit::View *pView= EA::WebKit::GetView(document()->frame());
+                if((pView) && (pView->GetParameters().mbTransparentBackground)) {
+                    context->save();
+                    context->setCompositeOperation(CompositeCopy);
+                    Color col(0x00,0x00,0,0x00);                        
+                    context->fillRect(rect, col, isTopLevelDocument);
+                    context->restore();
+                }
            }
         }
 

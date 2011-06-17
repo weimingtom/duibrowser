@@ -19,7 +19,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef InlineBox_h
@@ -38,7 +38,7 @@ struct HitTestRequest;
 
 // InlineBox represents a rectangle that occurs on a line.  It corresponds to
 // some RenderObject (i.e., it represents a portion of that RenderObject).
-class InlineBox: public WTF::FastAllocBase {
+class InlineBox/*: public WTF::FastAllocBase*/ {
 public:
     InlineBox(RenderObject* obj)
         : m_object(obj)

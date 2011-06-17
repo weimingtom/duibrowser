@@ -33,7 +33,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef RenderArena_h
@@ -46,7 +46,7 @@ namespace WebCore {
 
 static const size_t gMaxRecycledSize = 400;
 
-class RenderArena: public WTF::FastAllocBase {
+class RenderArena/*: public WTF::FastAllocBase*/ {
 public:
     RenderArena(unsigned arenaSize = 4096);
     ~RenderArena();

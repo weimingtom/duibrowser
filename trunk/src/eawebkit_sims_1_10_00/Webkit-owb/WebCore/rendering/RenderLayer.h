@@ -42,7 +42,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef RenderLayer_h
@@ -71,7 +71,7 @@ class Scrollbar;
 
 struct HitTestRequest;
 
-class ClipRects: public WTF::FastAllocBase {
+class ClipRects/*: public WTF::FastAllocBase*/ {
 public:
     ClipRects(const IntRect& r)
         : m_overflowClipRect(r)
@@ -122,7 +122,7 @@ private:
 
 // FIXME: move this to its own file
 // This class handles the auto-scrolling of layers with overflow: marquee.
-class Marquee: public WTF::FastAllocBase {
+class Marquee/*: public WTF::FastAllocBase*/ {
 public:
     Marquee(RenderLayer*);
 

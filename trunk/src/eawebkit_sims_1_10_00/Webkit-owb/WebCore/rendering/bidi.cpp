@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -50,7 +50,7 @@ namespace WebCore {
 const unsigned cMaxLineDepth = 200;
 
 #include <wtf/FastAllocBase.h>
-class BidiIterator: public WTF::FastAllocBase {
+class BidiIterator/*: public WTF::FastAllocBase*/ {
 public:
     BidiIterator()
         : block(0)
@@ -129,7 +129,7 @@ static int inlineWidth(RenderObject* child, bool start = true, bool end = true)
 #ifndef NDEBUG
 WTFLogChannel LogWebCoreBidiRunLeaks =  { 0x00000000, "", WTFLogChannelOn };
 
-struct BidiRunCounter: public WTF::FastAllocBase {
+struct BidiRunCounter/*: public WTF::FastAllocBase*/ {
     static int count; 
     ~BidiRunCounter() 
     { 

@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef PluginStream_H
@@ -54,7 +54,7 @@ namespace WebCore {
 
     enum PluginStreamState { StreamBeforeStarted, StreamStarted, StreamStopped };
 
-    class PluginStreamClient: public WTF::FastAllocBase {
+    class PluginStreamClient/*: public WTF::FastAllocBase*/ {
     public:
         virtual ~PluginStreamClient() {}
         virtual void streamDidFinishLoading(PluginStream*) {}
