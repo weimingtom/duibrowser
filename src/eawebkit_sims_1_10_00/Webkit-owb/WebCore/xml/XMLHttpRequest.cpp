@@ -46,6 +46,8 @@
 #include "XMLHttpRequestProgressEvent.h"
 #include "markup.h"
 
+#include <EAWebKit/EAWebKit.h>
+
 namespace WebCore {
 
 typedef HashSet<XMLHttpRequest*> RequestsSet;
@@ -573,7 +575,14 @@ void XMLHttpRequest::createRequest(ExceptionCode& ec)
     if (m_async)
         dispatchLoadStartEvent();
 
-    m_sameOriginRequest = m_doc->securityOrigin()->canRequest(m_url);
+    //m_sameOriginRequest = m_doc->securityOrigin()->canRequest(m_url);
+	//If we have decided to use the workaround...go ahead by treating it as the same origin request. We expect to use the domain filtering system to cover up
+	//any security issues.
+	EA::WebKit::Parameters& param = EA::WebKit::GetParameters();
+	if(param.mbEnableCrossDomainScripting)
+		m_sameOriginRequest = true;
+	else
+		m_sameOriginRequest = m_doc->securityOrigin()->canRequest(m_url);
 
     if (!m_sameOriginRequest) {
         makeCrossSiteAccessRequest(ec);
@@ -1014,9 +1023,10 @@ int XMLHttpRequest::status(ExceptionCode& ec) const
 
 String XMLHttpRequest::statusText(ExceptionCode& ec) const
 {
-    // FIXME: <http://bugs.webkit.org/show_bug.cgi?id=3547> XMLHttpRequest.statusText returns always "OK".
-    if (m_response.httpStatusCode())
-        return "OK";
+	// BEG_EA - Pulled from http://trac.webkit.org/browser/trunk/WebCore/xml/XMLHttpRequest.cpp on 8/20/10
+	if (!m_response.httpStatusText().isNull())
+		return m_response.httpStatusText();
+	// END_EA
 
     if (m_state == OPENED) {
         // See comments in getStatus() above.

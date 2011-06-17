@@ -375,8 +375,15 @@ void Loader::Host::didReceiveData(SubresourceLoader* loader, const char* data, i
     if (resource->errorOccurred())
         return;
     
-    if (resource->response().httpStatusCode() / 100 == 4) {
-        // Treat a 4xx response like a network error.
+	int statusCode = resource->response().httpStatusCode() / 100;
+    if (statusCode == 4 || statusCode == 5) {
+        
+		//http://www.w3.org/Protocols/HTTP/HTRESP.html 
+		//Error 4xx, 5xx
+		//The 4xx codes are intended for cases in which the client seems to have erred, and the 5xx codes for the cases in which the server is aware that the 
+		//server has erred. It is impossible to distinguish these cases in general, so the difference is only informational.
+		
+		// Treat a 4xx/5xx response like a network error.
         resource->error();
         return;
     }

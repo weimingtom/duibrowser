@@ -1227,6 +1227,20 @@ void CSSStyleSelector::adjustRenderStyle(RenderStyle* style, Element *e)
                 style->setDisplay(style->isDisplayInlineType() ? INLINE_TABLE : TABLE);
         }
 
+// BEG_EA Importing patch from https://bug-21287-attachments.webkit.org/attachment.cgi?id=23997
+		if (e && (e->hasTagName(tdTag) || e->hasTagName(thTag))) {
+			if (style->whiteSpace() == KHTML_NOWRAP) {
+				// Figure out if we are really nowrapping or if we should just
+				// use normal instead.  If the width of the cell is fixed, then
+				// we don't actually use NOWRAP.
+				if (style->width().isFixed())
+						style->setWhiteSpace(NORMAL);
+				else
+						style->setWhiteSpace(NOWRAP);
+			}
+		}
+// END_EA
+
         // Tables never support the -webkit-* values for text-align and will reset back to the default.
         if (e && e->hasTagName(tableTag) && (style->textAlign() == WEBKIT_LEFT || style->textAlign() == WEBKIT_CENTER || style->textAlign() == WEBKIT_RIGHT))
             style->setTextAlign(TAAUTO);
@@ -4169,9 +4183,25 @@ void CSSStyleSelector::applyProperty(int id, CSSValue *value)
     case CSSPropertyTextShadow:
     case CSSPropertyWebkitBoxShadow: {
         if (isInherit) {
-            if (id == CSSPropertyTextShadow)
-                return m_style->setTextShadow(m_parentStyle->textShadow() ? new ShadowData(*m_parentStyle->textShadow()) : 0);
-            return m_style->setBoxShadow(m_parentStyle->boxShadow() ? new ShadowData(*m_parentStyle->boxShadow()) : 0);
+            if (id == CSSPropertyTextShadow) {
+                // 10/16/10 CSidhall - Modifed to transfer shadow data to font description.
+                // return m_style->setTextShadow(m_parentStyle->textShadow() ? new ShadowData(*m_parentStyle->textShadow()) : 0);
+                ShadowData *pShadowData = 0;
+                if(m_parentStyle->textShadow()) {    
+                    pShadowData = new ShadowData(*m_parentStyle->textShadow());
+
+                    // Transfer the shadow info to the font description
+                    FontDescription fontDescription = m_style->fontDescription();       
+                    fontDescription.setEffect(EA::WebKit::kEffectShadow, pShadowData->x, pShadowData->y, 
+                        pShadowData->blur, pShadowData->color.rgb(), m_style->color().rgb());    
+                    if (m_style->setFontDescription(fontDescription))
+                        m_fontDirty = true;
+                }                
+
+                return m_style->setTextShadow(pShadowData);
+            }
+            else
+                return m_style->setBoxShadow(m_parentStyle->boxShadow() ? new ShadowData(*m_parentStyle->boxShadow()) : 0);
         }
         if (isInitial || primitiveValue) // initial | none
             return id == CSSPropertyTextShadow ? m_style->setTextShadow(0) : m_style->setBoxShadow(0);
@@ -4194,6 +4224,19 @@ void CSSStyleSelector::applyProperty(int id, CSSValue *value)
                 m_style->setTextShadow(shadowData, i != 0);
             else
                 m_style->setBoxShadow(shadowData, i != 0);
+        }
+
+        // 10/16/10 CSidhall - Modifed to transfer shadow data to font description.
+        if (id == CSSPropertyTextShadow) {
+            const ShadowData *pShadowData = m_style->textShadow();
+            if(pShadowData) {    
+                // Transfer the shadow info to the font description
+                FontDescription fontDescription = m_style->fontDescription();       
+                fontDescription.setEffect(EA::WebKit::kEffectShadow, pShadowData->x, pShadowData->y,
+                    pShadowData->blur, pShadowData->color.rgb(), m_style->color().rgb());    
+                if (m_style->setFontDescription(fontDescription))
+                    m_fontDirty = true;
+             }                
         }
         return;
     }

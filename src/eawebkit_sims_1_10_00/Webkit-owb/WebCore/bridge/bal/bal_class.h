@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
+*/
+
 /**
  * @file  bal_class.h
  *
