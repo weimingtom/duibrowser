@@ -1,5 +1,5 @@
 /*
-Copyright (C) 1999-2004,2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 1999-2004,2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -35,10 +35,14 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*** Include files *********************************************************************/
 
+#ifndef _XBOX
  #define WIN32_LEAN_AND_MEAN 1           // avoid extra stuff
  #include <windows.h>
  #include <winsock2.h>
  #include <ws2tcpip.h>
+#else
+ #include <comdecl.h>
+#endif
 
 #include "dirtylib.h"
 #include "dirtymem.h"
@@ -348,8 +352,9 @@ int32_t SocketCreate(int32_t iThreadPrio)
 {
     SocketStateT *pState = _Socket_pState;
     WSADATA data;
-
+#ifndef _XBOX
 	int32_t iResult;
+#endif
 	int32_t iMemGroup;
     void *pMemGroupUserData;
     
@@ -377,8 +382,10 @@ int32_t SocketCreate(int32_t iThreadPrio)
     _Socket_pState = pState;
     
     memset(&data, 0, sizeof(data));
+    #ifndef _XBOX
     // startup winsock (would like 2.0 if available)
     iResult = WSAStartup(MAKEWORD(2, 0), &data);
+    #endif
 
     pState->iVersion = (LOBYTE(data.wVersion)<<8)|(HIBYTE(data.wVersion)<<0);
    
@@ -772,7 +779,7 @@ int32_t SocketControl(SocketT *pSocket, int32_t iOption, int32_t iData1, void *p
 
 
 
-
+#ifndef _XBOX
 static int32_t SocketLookupDone(HostentT *host)
 {
     return(host->done);
@@ -877,3 +884,131 @@ HostentT *SocketLookup(const char *text, int32_t timeout)
 
 
 
+
+#endif // windows-specific functions
+
+
+#if defined(_XBOX) 
+/*F*************************************************************************************/
+/*!
+    \Function    SocketLookupDone
+
+    \Description
+        Callback to determine if gethostbyname is complete.
+
+    \Input *host    - pointer to host lookup record
+
+    \Output
+        int32_t         - zero=in progess, neg=done w/error, pos=done w/success
+
+    \Version 1.0 10/04/1999 (gschaefer) First Version
+*/
+/************************************************************************************F*/
+static int32_t _SocketLookupDone(HostentT *host)
+{
+	// return current status
+	return(host->done);
+	
+}
+
+/*F*************************************************************************************/
+/*!
+    \Function    SocketLookupFree
+
+    \Description
+        Release resources used by gethostbyname.
+
+    \Input *host    - pointer to host lookup record
+
+    \Output
+        None.
+
+    \Version 1.0 10/04/1999 (gschaefer) First Version
+*/
+/************************************************************************************F*/
+static void _SocketLookupFree(HostentT *host)
+{
+    
+	SocketStateT *pState = _Socket_pState;
+    
+    DirtyMemFree(host, SOCKET_MEMID, pState->iMemGroup, pState->pMemGroupUserData);
+}
+
+/*F*************************************************************************************/
+/*!
+    \Function    SocketLookup
+
+    \Description
+        Lookup a host by name and return the corresponding Internet address. Uses
+        a callback/polling system since the socket library does not allow blocking.
+
+    \Input *text    - pointer to null terminated address string
+    \Input timeout  - number of milliseconds to wait for completion
+
+    \Output
+        HostentT *  - hostent struct that includes callback vectors
+
+    \Notes
+        None.
+
+    \Version 1.0 10/04/1999 (gschaefer) First Version
+    \Version 1.1 11/30/2000 (gschaefer) Renamed from gethostbyname (since parms differ)
+*/
+/************************************************************************************F*/
+HostentT *SocketLookup(const char *text, int32_t timeout)
+{
+    SocketStateT *pState = _Socket_pState;
+    //const SocketNameMapT *pSockNameMap;
+    int32_t iAddr;
+    HostentT *pHost;
+
+    // dont allow negative timeouts
+    if (timeout < 0)
+    {
+        return(NULL);
+    }
+
+    // create new structure
+    pHost = DirtyMemAlloc(sizeof(*pHost), SOCKET_MEMID, pState->iMemGroup, pState->pMemGroupUserData);
+    memset(pHost, 0, sizeof(*pHost));
+
+    // setup callbacks
+    pHost->Done = _SocketLookupDone;
+    pHost->Free = _SocketLookupFree;
+
+    // copy name to host record
+    NetPrintf(("dirtynetwin: looking up address for '%s'\n", text));
+
+    // not in secure mode, so use real DNS
+    // check for dot notation
+    if ((iAddr = SocketInTextGetAddr(text)) != 0)
+    {
+        // save the data and return completed record
+        pHost->addr = iAddr;
+        pHost->done = 1;
+        return(pHost);
+    }
+   
+    pHost->sema = 0;
+    strnzcpy(pHost->name, text, sizeof(pHost->name));
+    
+	pHost->done = -1;
+	pHost->thread = 0;
+
+	//Do a blocking DNS Lookup using the OS calls.
+	pHost->done = gPlatformSocketAPICallbacks.dnslookup(pHost->name, NULL, (void **)&pHost->sema, &pHost->addr);
+
+	if(pHost->done == 1)
+	{
+		NetPrintf(("socketlookupdone: success\n"));
+	}
+	else if(pHost->done == -1)
+	{
+		NetPrintf(("socketlookupdone: failure\n"));
+	}
+	return pHost;
+	
+}
+
+
+#endif

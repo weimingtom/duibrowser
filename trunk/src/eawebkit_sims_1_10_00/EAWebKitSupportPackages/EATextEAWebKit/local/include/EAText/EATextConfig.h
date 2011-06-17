@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2004,2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2004,2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -572,6 +572,28 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         #define EATEXT_FAMILY_SUBSTITUTION_ENABLED 1
     #else
         #define EATEXT_FAMILY_SUBSTITUTION_ENABLED 0
+    #endif
+#endif
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// EATEXT_PS3_RGBA_COMPAT
+//
+// Defined as 0 or 1. Default is 1 for PS3, 0 otherwise.
+// Enables interpreting ARGB formats as RGBA when running on PS3. 
+// Currently we define kTextureFormatARGB and kTextureFormatRGBA, but previously
+// there was only kTextureFormat32Bpp, which referred to whatever the native 
+// platform format was (ARGB or RGBA). However, it became evident that we 
+// needed to make explicit kTextureFormatARGB and kTextureFormatRGBA types.
+// This is fine but there is existing code which depends on the default format
+// ARGB as being instead RGBA. This #define enables that backward compatibilty.
+//
+#ifndef EATEXT_PS3_RGBA_COMPAT
+    #if defined(EA_PLATFORM_PS3)
+        #define EATEXT_PS3_RGBA_COMPAT 1
+    #else
+        #define EATEXT_PS3_RGBA_COMPAT 0
     #endif
 #endif
 

@@ -38,20 +38,20 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stddef.h>     // size_t definition
 
-#if defined(EA_DLL) && defined(_MSC_VER)
+#ifndef ICOREALLOCATOR_INTERFACE_API
+	#if defined(EA_DLL) && defined(_MSC_VER)
+		// For a DLL, mark up the ICoreAllocator interface class for
+		// DLL export.  Even though there is no functionality to export,
+		// doing this allows clients to not suppress warning C4275
+		// for their ICoreAllocator implementation.
+		#define ICOREALLOCATOR_INTERFACE_API __declspec(dllexport)
+	#else
 
-// For a DLL, mark up the ICoreAllocator interface class for
-// DLL export.  Even though there is no functionality to export,
-// doing this allows clients to not suppress warning C4275
-// for their ICoreAllocator implementation.
-#define ICOREALLOCATOR_INTERFACE_API __declspec(dllexport)
+		// We are not making a DLL, so this macro
+		// should define to nothing in this case.
+		#define ICOREALLOCATOR_INTERFACE_API
 
-#else
-
-// We are not making a DLL, so this macro
-// should define to nothing in this case.
-#define ICOREALLOCATOR_INTERFACE_API
-
+	#endif
 #endif
 
 namespace EA

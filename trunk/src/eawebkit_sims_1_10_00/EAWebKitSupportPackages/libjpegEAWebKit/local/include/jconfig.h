@@ -2,7 +2,7 @@
 /* see jconfig.doc for explanations */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #define HAVE_PROTOTYPES
@@ -17,7 +17,7 @@
 #undef NEED_SYS_TYPES_H
 #undef NEED_FAR_POINTERS	/* we presume a 32-bit flat memory model */
 //#undef NEED_SHORT_EXTERNAL_NAMES
-#define NEED_SHORT_EXTERNAL_NAMES   /* Enabled by Paul Pedriana. This helps avoid collisions. */
+#define NEED_SHORT_EXTERNAL_NAMES   /* Enabled by Paul Pedriana. This helps avoid collisions with XBox 360's internal libjpeg. */
 #undef INCOMPLETE_TYPES_BROKEN
 #define NO_GETENV /* Note by Paul Pedriana: We unilaterally define this at Electronic Arts, as this leads to the library reading system information, which is bad design. */
 

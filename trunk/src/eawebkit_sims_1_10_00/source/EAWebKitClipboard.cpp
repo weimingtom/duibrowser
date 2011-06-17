@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2003,2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2003,2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -180,7 +180,7 @@ uint32_t DataBasic::Release()
 {
     if(mnRefCount > 1)
         return --mnRefCount;
-    WTF::fastDeleteArray<uint8_t> (reinterpret_cast<uint8_t*>(this)); // Todo: switch to the standard memory free function.
+    EAWEBKIT_DELETE this;//WTF::fastDeleteArray<uint8_t> (reinterpret_cast<uint8_t*>(this)); // Todo: switch to the standard memory free function.
     return 0;
 }
 
@@ -245,7 +245,7 @@ DataText16* DataText16::CreateDataText16(const char16_t* pText16, size_t nStrlen
     // To consider: Find a way to have the malloc below use some pool instead of 
     //              using the global heap.
     const size_t      nDataSize   = sizeof(DataText16) + ((nStrlen + 1) * sizeof(char16_t)) + sizeof(int); // Add sizeof int in order to account for unusual alignment issues.
-    void*       const pMemory     = WTF::fastNewArray<uint8_t> (nDataSize);
+    void*       const pMemory     = EAWEBKIT_NEW("datatext16") uint8_t[nDataSize];//WTF::fastNewArray<uint8_t> (nDataSize);
     DataText16* const pDataText16 = new(pMemory) DataText16(pText16, nStrlen);
 
     if(pDataText16)
@@ -280,7 +280,7 @@ DataText8* DataText8::CreateDataText8(const char8_t* pText8, size_t nStrlen)
     // To consider: Find a way to have the malloc below use some pool instead of 
     //              using the global heap.
     const size_t     nDataSize  = sizeof(DataText8) + ((nStrlen + 1) * sizeof(char8_t)) + sizeof(int); // Add sizeof int in order to account for unusual alignment issues.
-    void*      const pMemory    = WTF::fastNewArray<uint8_t> (nDataSize);
+    void*      const pMemory    = EAWEBKIT_NEW("datatext8") uint8_t[nDataSize];//WTF::fastNewArray<uint8_t> (nDataSize);
     DataText8* const pDataText8 = new(pMemory) DataText8(pText8, nStrlen);
 
     if(pDataText8)

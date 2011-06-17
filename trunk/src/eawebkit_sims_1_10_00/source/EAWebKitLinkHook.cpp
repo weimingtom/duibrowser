@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -58,25 +58,29 @@ bool LinkHookManager::ModifyResourceRequest(WebCore::ResourceRequest& resourceRe
         LinkNotificationInfo  lni;
         lni.mpView              = mpView;
         lni.mbURIIntercepted    = false;
-        
-		EA::WebKit::HeaderMap& originalHeaderMap = *GET_HEADERMAP(lni.mpOriginalHeaderMap);
-		EA::WebKit::HeaderMap& newHeaderMap = *GET_HEADERMAP(lni.mpModifiedHeaderMap);
+		lni.mbURIInterceptedByDomainFiltering = false;//We don't make any decision here. It is done inside the resource manager.
+
+		EA::WebKit::HeaderMap& originalHeaderMap = *GetHeaderMap(lni.mpOriginalHeaderMap);
+		EA::WebKit::HeaderMap& newHeaderMap = *GetHeaderMap(lni.mpModifiedHeaderMap);
 		
-        // Setup mOriginalURI
-        const WebCore::String& webCoreURI = resourceRequest.url().string();
-        GET_FIXEDSTRING16(lni.mOriginalURI)->assign(webCoreURI.characters(), webCoreURI.length());
+		// Setup mOriginalURI
+		const WebCore::String& webCoreURI = resourceRequest.url().string();
+		GetFixedString(lni.mOriginalURI)->assign(webCoreURI.characters(), webCoreURI.length());
 
-        // Setup originalHeaderMap
-        const WebCore::HTTPHeaderMap& webcoreHeaderMap = resourceRequest.httpHeaderFields();
-        for(WebCore::HTTPHeaderMap::const_iterator it(webcoreHeaderMap.begin()); it != webcoreHeaderMap.end(); ++it)
-        {
-            const WebCore::String& webCoreKey   = it->first;
-            const WebCore::String& webCoreValue = it->second;
+		// Setup originalHeaderMap
+		const WebCore::HTTPHeaderMap& webcoreHeaderMap = resourceRequest.httpHeaderFields();
+		for(WebCore::HTTPHeaderMap::const_iterator it(webcoreHeaderMap.begin()); it != webcoreHeaderMap.end(); ++it)
+		{
+			const WebCore::String& webCoreKey   = it->first;
+			const WebCore::String& webCoreValue = it->second;
 
-            HeaderMap::value_type entry(FixedString16(webCoreKey.characters(), webCoreKey.length()), 
-                                        FixedString16(webCoreValue.characters(), webCoreValue.length()));
-            originalHeaderMap.insert(entry);
-        }
+			HeaderMap::value_type entry(HeaderMap::key_type(webCoreKey.characters(), webCoreKey.length()), 
+				HeaderMap::mapped_type(webCoreValue.characters(), webCoreValue.length()));
+
+			originalHeaderMap.insert(entry);
+		}
+	
+	
 		//Note by Arpit Baldeva: Changed the code so that it better reflects the main app behavior and is consistent with 
 		//other ViewNotification API. This was discussed with Sims team over the email.
 		//The interception has a confusing meaning here. This is how I interpret as possible scenarios.
@@ -90,7 +94,7 @@ bool LinkHookManager::ModifyResourceRequest(WebCore::ResourceRequest& resourceRe
 		{
 			bIntercepted = false;//We too return false here so that WebKit does its own stuff with the Link.
 		}
-		else //application did something....
+		else //application did something....l
 		{
 			//Check if application wanted WebKit to not handle URL anymore. For example, download stuff.
 			//This is indicated by setting the lni.mbURIIntercepted
@@ -101,9 +105,9 @@ bool LinkHookManager::ModifyResourceRequest(WebCore::ResourceRequest& resourceRe
 			else //case 3
 			{
 				//Check if the application simply changed the link location or headers. If yes, set them and let the WebKit do its work.
-				if(!GET_FIXEDSTRING16(lni.mModifiedURI)->empty())
+				if(!GetFixedString(lni.mModifiedURI)->empty())
 				{
-					OWBAL::KURL currentURL(GET_FIXEDSTRING16(lni.mModifiedURI)->c_str());
+					OWBAL::KURL currentURL(GetFixedString(lni.mModifiedURI)->c_str());
 					resourceRequest.setURL(currentURL);
 				}
 
@@ -133,9 +137,9 @@ bool LinkHookManager::ModifyResourceRequest(WebCore::ResourceRequest& resourceRe
 
             if(!bIntercepted)
             {
-                if(!GET_FIXEDSTRING16(lni.mModifiedURI)->empty())
+                if(!GetFixedString(lni.mModifiedURI)->empty())
                 {
-                    OWBAL::KURL currentURL(GET_FIXEDSTRING16(lni.mModifiedURI)->c_str());
+                    OWBAL::KURL currentURL(GetFixedString(lni.mModifiedURI)->c_str());
                     resourceRequest.setURL(currentURL);
                 }
 

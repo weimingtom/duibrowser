@@ -255,7 +255,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
     // Microsoft VC++
-    #elif defined(_MSC_VER) 
+    #elif defined(_MSC_VER) // Microsoft compilers exist for at least the PC and XBox platforms.
         #define EA_COMPILER_MSVC
         #define EA_COMPILER_VERSION _MSC_VER
         #define EA_COMPILER_NAME "Microsoft Visual C++"
@@ -357,7 +357,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     // systems of which some enable exception handling while others
     // don't, check for EA_COMPILER_NO_EXCEPTIONS being defined. 
     //
-    #if defined(EA_COMPILER_GNUC) && defined(_NO_EX) // GCC on some platforms defines _NO_EX when exceptions are disabled.
+    #if defined(EA_COMPILER_GNUC) && defined(_NO_EX) // GCC on some platforms (e.g. PS3) defines _NO_EX when exceptions are disabled.
         #define EA_COMPILER_NO_EXCEPTIONS
 
     #elif (defined(EA_COMPILER_GNUC) || defined(EA_COMPILER_INTEL) || defined(EA_COMPILER_SN)) && !defined(__EXCEPTIONS) // GCC and most EDG-based compilers define __EXCEPTIONS when exception handling is enabled.

@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -65,7 +65,7 @@ namespace EA
         /// These represent the most common file system errors. However, there are additional errors 
         /// which may be returned by the system APIs which are different from these. You should be 
         /// prepared to receive any value for an error code. 
-        #if !defined(EA_PLATFORM_WINDOWS)
+        #if !defined(EA_PLATFORM_XENON) && !defined(EA_PLATFORM_PS3) && !defined(EA_PLATFORM_WINDOWS)
             enum IOResultCode
             {
                 kFSErrorBase              =   0, /// Error code base for this module
@@ -157,6 +157,10 @@ namespace EA
         ///         static ErrorResponse ErrorHandlingFunctionDefault(const FileErrorInfo& fileErrorInfo, void* pContext) {
         ///             SomeClass* pSomeClass = (SomeClass*)pContext; // Possibly use this.
         ///
+        ///             #ifdef EA_PLATFORM_PS3
+        ///                 if(fileErrorInfo.mDriveType == kDriveTypeDVD)
+        ///                     return kErrorResponseRetry;
+        ///             #endif
         ///     
         ///             return kErrorResponseCancel;
         ///         }
@@ -188,7 +192,7 @@ namespace EA
 } // namespace EA
 
 
-#if defined(EA_PLATFORM_WINDOWS)
+#if defined(EA_PLATFORM_WINDOWS) || defined(EA_PLATFORM_XENON)
    #include <EAIO/Win32/EAFileStreamWin32.h>
 #else
    #include <EAIO/StdC/EAFileStreamStdC.h>

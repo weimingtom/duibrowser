@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2007,2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2007,2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -483,8 +483,6 @@ namespace EA
             DriveType     mType;  /// e.g. kDriveTypeFixed, kDriveTypeDVD, etc.
             DriveInfoName mName;  /// The format is dependent on the platform. For Win32-like platforms, the drive name is of the form "c:" (lower-case, no trailing slash).
         };
-
-        // 9/25/09 CSidhall - Removed unsued drive info for LGPL platforms issues
 
         /// IsVolumeAvailable
         /// Determines if the mounted volume associated with the given path is available.

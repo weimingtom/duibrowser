@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2009-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -38,7 +38,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    #include "EABase/eabase.h"
 #endif
 
-#if defined(EA_PLATFORM_WINDOWS) 
+#if defined(EA_PLATFORM_WINDOWS) || defined(EA_PLATFORM_XENON)
    #include "Win32/EAFileStreamWin32.cpp"
 #else
    #include "StdC/EAFileStreamStdC.cpp"

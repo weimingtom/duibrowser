@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -41,7 +41,7 @@ namespace EA
 namespace WebKit
 {
 
-	static void WriteHeaderMapEntry(EA::WebKit::FixedString16& sKey, EA::WebKit::FixedString16& sValue, EA::WebKit::HeaderMap& headerMap)
+	static void WriteHeaderMapEntry(HeaderMap::key_type& sKey, HeaderMap::mapped_type& sValue, EA::WebKit::HeaderMap& headerMap)
 	{
 		while(!sKey.empty() && ((sKey.back() == ' ') || (sKey.back() == '\t')))
 			sKey.pop_back(); // Remove trailing whitespace.
@@ -129,6 +129,11 @@ TransportInfo::TransportInfo()
 /////////////////////////////////////////////////////////////////////////////
 // TransportHandlerFile
 /////////////////////////////////////////////////////////////////////////////
+const uint32_t   kFileDownloadBufferSize              = 1024 * 64;           // Shared download buffer size  
+const uint32_t   kFileDownloadBufferAlign             = 16;                  // Shared download buffer alignment  
+
+char*   TransportHandlerFile::spFileDownloadBuffer = 0;
+int32_t TransportHandlerFile::sFileOpenJobCount = 0; 
 
 TransportHandlerFile::FileInfo::FileInfo()
   : mFileObject(EA::WebKit::FileSystem::kFileObjectInvalid),
@@ -151,6 +156,29 @@ TransportHandlerFile::~TransportHandlerFile()
     #ifdef EA_DEBUG
         EAW_ASSERT(mJobCount == 0); // If this fails then the TransportServer is leaking jobs.
     #endif
+
+    RemoveFileDownloadBuffer();
+}
+
+
+// This only works if doing blocking reads.  Async reads would need individual buffers.
+char* TransportHandlerFile::GetFileDownloadBuffer()
+{
+    if(!spFileDownloadBuffer)
+    {
+        spFileDownloadBuffer = (char*) GetAllocator()->MallocAligned(kFileDownloadBufferSize,kFileDownloadBufferAlign,0,0,"File download buffer");
+        EAW_ASSERT(spFileDownloadBuffer);    
+    }
+    return spFileDownloadBuffer;
+}
+
+void TransportHandlerFile::RemoveFileDownloadBuffer()
+{
+    if(spFileDownloadBuffer)
+    {
+        GetAllocator()->Free(spFileDownloadBuffer,0);
+        spFileDownloadBuffer = 0;    
+    }
 }
 
 
@@ -173,6 +201,8 @@ bool TransportHandlerFile::InitJob(TransportInfo* pTInfo, bool& bStateComplete)
             mJobCount++;
         #endif
 
+        sFileOpenJobCount++;
+
         return true;
     }
 
@@ -193,11 +223,15 @@ bool TransportHandlerFile::ShutdownJob(TransportInfo* pTInfo, bool& bStateComple
         pAllocator->Free(pFileInfo, sizeof(FileInfo));
 
         pTInfo->mTransportHandlerData = 0;
+        sFileOpenJobCount--;
 
         #ifdef EA_DEBUG
             mJobCount--;
         #endif
+    
     }
+    if(sFileOpenJobCount <= 0)
+        RemoveFileDownloadBuffer();
 
     bStateComplete = true;
     return true;
@@ -226,7 +260,7 @@ bool TransportHandlerFile::Connect(TransportInfo* pTInfo, bool& bStateComplete)
 
             int openFlags = pFileInfo->mbRead ? FileSystem::kRead : FileSystem::kWrite;
 
-            if(pFS->OpenFile(pFileInfo->mFileObject, GET_FIXEDSTRING8(pTInfo->mPath)->c_str(), openFlags))
+            if(pFS->OpenFile(pFileInfo->mFileObject, GetFixedString(pTInfo->mPath)->c_str(), openFlags))
                 bReturnValue = true;
             else
             {
@@ -275,7 +309,9 @@ bool TransportHandlerFile::Transfer(TransportInfo* pTInfo, bool& bStateComplete)
     FileInfo* pFileInfo = (FileInfo*)pTInfo->mTransportHandlerData;
     EAW_ASSERT(pFileInfo != NULL);
 
-    if(pFileInfo->mFileObject != FileSystem::kFileObjectInvalid)
+    char* pBuffer = GetFileDownloadBuffer();
+
+    if((pFileInfo->mFileObject != FileSystem::kFileObjectInvalid) && (pBuffer))
     {
         FileSystem* pFS = GetFileSystem();
         EAW_ASSERT(pFS != NULL);
@@ -286,7 +322,7 @@ bool TransportHandlerFile::Transfer(TransportInfo* pTInfo, bool& bStateComplete)
             {
                 pFileInfo->mFileSize = pFS->GetFileSize(pFileInfo->mFileObject);
                 pTInfo->mpTransportServer->SetExpectedLength(pTInfo, pFileInfo->mFileSize);
-
+           
                 // pTInfo->mpTransportServer->SetEncoding(pTInfo, char* pEncoding);
                 // pTInfo->mpTransportServer->SetMimeType(pTInfo);
                 // pTInfo->mpTransportServer->HeadersReceived(pTInfo);
@@ -295,12 +331,12 @@ bool TransportHandlerFile::Transfer(TransportInfo* pTInfo, bool& bStateComplete)
             // To consider: Enable reading more than just one chunk at a time. However, by doing 
             // so we could block the current thread for an undesirable period of time.
 
-            const int64_t size = pFS->ReadFile(pFileInfo->mFileObject, pFileInfo->mBuffer, sizeof(pFileInfo->mBuffer));
+            const int64_t size = pFS->ReadFile(pFileInfo->mFileObject, pBuffer, kFileDownloadBufferSize);
 
             if(size >= 0) // If no error...
             {
                 if(size > 0)
-                    pTInfo->mpTransportServer->DataReceived(pTInfo, pFileInfo->mBuffer, size);
+                    pTInfo->mpTransportServer->DataReceived(pTInfo, pBuffer, size);
                 else
                 {
                     bStateComplete = true;
@@ -315,13 +351,12 @@ bool TransportHandlerFile::Transfer(TransportInfo* pTInfo, bool& bStateComplete)
         }
         else // Else we need to read a file from the TransportServer and write it to disk.
         {
-            const int64_t size = pTInfo->mpTransportServer->ReadData(pTInfo, pFileInfo->mBuffer, sizeof(pFileInfo->mBuffer));
-
+            const int64_t size = pTInfo->mpTransportServer->ReadData(pTInfo, pBuffer, kFileDownloadBufferSize);
             if(size >= 0) // If no error...
             {
                 if(size > 0)
                 {
-                    if(!pFS->WriteFile(pFileInfo->mFileObject, pFileInfo->mBuffer, size))
+                    if(!pFS->WriteFile(pFileInfo->mFileObject, pBuffer, size))
                     {
                         bStateComplete = true;
                         bResult        = false;
@@ -362,7 +397,7 @@ bool TransportHandlerFile::Transfer(TransportInfo* pTInfo, bool& bStateComplete)
 // Overwrites the entry if present, else creates it.
 EAWEBKIT_API void SetHeaderMapValue(EASTLHeaderMapWrapper& headerMapWrapper, const char16_t* pKey, const char16_t* pValue)
 {
-	EA::WebKit::HeaderMap& headerMap = *GET_HEADERMAP(headerMapWrapper);
+	EA::WebKit::HeaderMap& headerMap = *GetHeaderMap(headerMapWrapper);
 	EA::WebKit::HeaderMap::iterator itWK = headerMap.find_as(pKey, EA::WebKit::str_iless());
 
 	if(itWK != headerMap.end())  // If the key is already present...
@@ -377,7 +412,7 @@ EAWEBKIT_API void SetHeaderMapValue(EASTLHeaderMapWrapper& headerMapWrapper, con
 
 EAWEBKIT_API const char16_t* GetHeaderMapValue(const EASTLHeaderMapWrapper& headerMapWrapper, const char16_t* pKey)
 {
-	EA::WebKit::HeaderMap& headerMap = *GET_HEADERMAP(headerMapWrapper);
+	EA::WebKit::HeaderMap& headerMap = *GetHeaderMap(headerMapWrapper);
 	EA::WebKit::HeaderMap::iterator itWK = headerMap.find_as(pKey, EA::WebKit::str_iless());
 
 	if(itWK != headerMap.end())  // If the key is present...
@@ -389,7 +424,7 @@ EAWEBKIT_API const char16_t* GetHeaderMapValue(const EASTLHeaderMapWrapper& head
 
 EAWEBKIT_API void EraseHeaderMapValue(EASTLHeaderMapWrapper& headerMapWrapper, const char16_t* pKey)
 {
-	EA::WebKit::HeaderMap& headerMap = *GET_HEADERMAP(headerMapWrapper);
+	EA::WebKit::HeaderMap& headerMap = *GetHeaderMap(headerMapWrapper);
 	headerMap.erase(pKey);
 }
 
@@ -400,7 +435,7 @@ EAWEBKIT_API int32_t SetTextFromHeaderMapWrapper(const EASTLHeaderMapWrapper& he
 
 	using namespace EA::WebKit;
 
-	const EA::WebKit::HeaderMap& headerMap = *GET_HEADERMAP(headerMapWrapper);
+	const EA::WebKit::HeaderMap& headerMap = *GetHeaderMap(headerMapWrapper);
 
 	char*    p    = pHeaderMapText;
 	char*    pEnd = pHeaderMapText + textCapacity - 1; // -1 because we want to have space for a trailing 0 char.
@@ -408,8 +443,8 @@ EAWEBKIT_API int32_t SetTextFromHeaderMapWrapper(const EASTLHeaderMapWrapper& he
 
 	for(HeaderMap::const_iterator it = headerMap.begin(); it != headerMap.end(); ++it)
 	{
-		const EA::WebKit::FixedString16& sKey   = it->first;
-		const EA::WebKit::FixedString16& sValue = it->second;
+		const HeaderMap::key_type& sKey   = it->first;
+		const HeaderMap::mapped_type& sValue = it->second;
 
 		const int32_t availableSpace = (int32_t)(pEnd - p);
 		const int32_t requiredSpace  = (int32_t)sKey.length() + 2 + (int32_t)sValue.length() + 2;  // blah: blah\r\n
@@ -456,7 +491,7 @@ EAWEBKIT_API bool SetHeaderMapWrapperFromText(const char* pHeaderMapText, uint32
 	using namespace EA::WebKit;
 	bool processedWithError = false;
 
-	EA::WebKit::HeaderMap& headerMap = *GET_HEADERMAP(headerMapWrapper);
+	EA::WebKit::HeaderMap& headerMap = *GetHeaderMap(headerMapWrapper);
 
 	enum Mode
 	{
@@ -469,8 +504,8 @@ EAWEBKIT_API bool SetHeaderMapWrapperFromText(const char* pHeaderMapText, uint32
 	Mode               mode = kModeKey;
 	const char*        p    = pHeaderMapText;
 	const char*        pEnd = pHeaderMapText + textSize;
-	EA::WebKit::FixedString16      sKey;
-	EA::WebKit::FixedString16      sValue;
+	HeaderMap::key_type      sKey;
+	HeaderMap::mapped_type   sValue;
 	const eastl_size_t kMaxKeySize = 128;
 	const eastl_size_t kMaxValueSize = 2048;
 	bool               inErrorCondition = false;

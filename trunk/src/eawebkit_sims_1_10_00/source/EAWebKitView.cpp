@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -87,7 +87,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HTMLTextAreaElement.h"
 #include "xml/XMLHttpRequest.h"
 #include <EAWebKit/internal/EAWebkitJavascriptBinding.h>
+#include "BAL/WKAL/Concretizations/Widgets/EA/BCPlatformScrollBarEA.h"
+#include <EAWebKit/internal/EAWebKitViewHelper.h>
 
+#ifdef _MSC_VER
+	#define snprintf _snprintf
+#endif
 
 namespace EA
 {
@@ -142,16 +147,10 @@ EAWEBKIT_API ViewNotification* GetViewNotification()
     return gpViewNotification;
 }
 
-
-TextInputStateInfo::TextInputStateInfo()
- : mIsActivated(false),
-   mIsPasswordField(false),
-   mIsSearchField(false)
-{
-}   
 // Constructors for the metrics callback system
 ViewProcessInfo::ViewProcessInfo()
- : mProcessType(kVProcessTypeNone),
+ : mpView(0),
+   mProcessType(kVProcessTypeNone),
    mProcessStatus(kVProcessStatusNone),
    mStartTime(0.0),
    mIntermediateTime(0.0),
@@ -161,8 +160,9 @@ ViewProcessInfo::ViewProcessInfo()
 {
 }
 
-ViewProcessInfo::ViewProcessInfo(VProcessType type,VProcessStatus status)
- : mProcessType(type),
+ViewProcessInfo::ViewProcessInfo(VProcessType type,VProcessStatus status, View* pView)
+ : mpView(pView),
+   mProcessType(type),
    mProcessStatus(status),
    mStartTime(0.0),
    mIntermediateTime(0.0),
@@ -170,6 +170,9 @@ ViewProcessInfo::ViewProcessInfo(VProcessType type,VProcessStatus status)
    mSize(0),
    mJobId(0)
 {
+    // Set up a default active view if found   
+    if(!pView)
+        mpView = AutoSetActiveView::GetActiveView();
 }
 
 void ViewProcessInfo::ResetTime()
@@ -181,7 +184,7 @@ void ViewProcessInfo::ResetTime()
 //Global array for profile process.
 ViewProcessInfo gProcessInfoArray[kVProcessTypeLast];
 
-void NOTIFY_PROCESS_STATUS(VProcessType processType, VProcessStatus processStatus)
+void NOTIFY_PROCESS_STATUS(VProcessType processType, VProcessStatus processStatus, EA::WebKit::View *pView)
 {
 	const Parameters& parameters = EA::WebKit::GetParameters();
 	if(!parameters.mbEnableProfiling)
@@ -190,7 +193,12 @@ void NOTIFY_PROCESS_STATUS(VProcessType processType, VProcessStatus processStatu
 	EAW_ASSERT_MSG(processType<kVProcessTypeLast, "Size mismatch. The process enum is higher than the size of the array.");
 	if(processType<kVProcessTypeLast)
 	{
-		gProcessInfoArray[processType].mProcessType = processType; //lame but works(since we don't initialize the global array with each process type.
+        if(pView)
+            gProcessInfoArray[processType].mpView = pView;
+        else
+            gProcessInfoArray[processType].mpView = AutoSetActiveView::GetActiveView();
+
+        gProcessInfoArray[processType].mProcessType = processType; //lame but works(since we don't initialize the global array with each process type.
 		gProcessInfoArray[processType].mProcessStatus = processStatus;
 		
 		if(processStatus == kVProcessStatusStarted)
@@ -218,12 +226,26 @@ void NOTIFY_PROCESS_STATUS(ViewProcessInfo& process, VProcessStatus processStatu
 	if(pViewNotification)
 		pViewNotification->ViewProcessStatus(process);
 }
+
+
+///////////////////////////////////////////////////////////////////////
+// Javascrip value
+///////////////////////////////////////////////////////////////////////
+EAWEBKIT_API EA::WebKit::JavascriptValue* CreateJavaScriptValue() 
+{
+	return EAWEBKIT_NEW("JavaScriptValue") EA::WebKit::JavascriptValue();
+}
+
+EAWEBKIT_API void DestroyJavaScriptValue(EA::WebKit::JavascriptValue* pValue)                    
+{
+	EAWEBKIT_DELETE pValue;
+}
+
 ///////////////////////////////////////////////////////////////////////
 // View
 ///////////////////////////////////////////////////////////////////////
 
-typedef eastl::fixed_vector<View*, 8> ViewPtrArray;
-ViewPtrArray gViewPtrArray;
+ViewArray* ViewArray::mpViewArrayInstance = NULL;
 
 
 EAWEBKIT_API int GetViewCount()
@@ -233,7 +255,7 @@ EAWEBKIT_API int GetViewCount()
     EAReadBarrier();
 #endif
 
-    return (int)gViewPtrArray.size();
+    return (int)ViewArray::GetArray().size();
 }
 
 EAWEBKIT_API View* GetView(int index)
@@ -243,8 +265,8 @@ EAWEBKIT_API View* GetView(int index)
     EAReadBarrier();
 #endif
 
-    if(index < (int)gViewPtrArray.size())
-        return gViewPtrArray[(eastl_size_t)index];
+    if(index < (int)ViewArray::GetArray().size())
+        return ViewArray::GetArray()[(eastl_size_t)index];
 
     return NULL;
 }
@@ -257,9 +279,9 @@ EAWEBKIT_API bool IsViewValid(View* pView)
 #endif
 
     // This is a linear search, but the list size is usually tiny.
-    for(eastl_size_t i = 0, iEnd = gViewPtrArray.size(); i < iEnd; ++i)
+    for(eastl_size_t i = 0, iEnd = ViewArray::GetArray().size(); i < iEnd; ++i)
     {
-        if(pView == gViewPtrArray[i])
+        if(pView == ViewArray::GetArray()[i])
             return true;
     }
 
@@ -271,9 +293,9 @@ EAWEBKIT_API View* GetView(::WebView* pWebView)
 {
     // To do: Use a mutex instead of simply memory barriers.
     // Instead of doing a loop, we could possibly stuff a pointer into the given WebView directly or indirectly.
-    for(eastl_size_t i = 0, iEnd = gViewPtrArray.size(); i < iEnd; ++i)
+    for(eastl_size_t i = 0, iEnd = ViewArray::GetArray().size(); i < iEnd; ++i)
     {
-        View*    const pViewCurrent    = gViewPtrArray[i];
+        View*    const pViewCurrent    = ViewArray::GetArray()[i];
         WebView* const pWebViewCurrent = pViewCurrent->GetWebView();
 
         if(pWebViewCurrent == pWebView)
@@ -289,9 +311,9 @@ EAWEBKIT_API View* GetView(::WebFrame* pWebFrame)
     // To do: Use a mutex instead of simply memory barriers.
     // Instead of doing a loop, we could possibly stuff a pointer into the given WebFrame directly or indirectly.
     // To consider: This function isn't strictly needed, as we could get along with just the WebView version of it.
-    for(eastl_size_t i = 0, iEnd = gViewPtrArray.size(); i < iEnd; ++i)
+    for(eastl_size_t i = 0, iEnd = ViewArray::GetArray().size(); i < iEnd; ++i)
     {
-        View*     const pViewCurrent     = gViewPtrArray[i];
+        View*     const pViewCurrent     = ViewArray::GetArray()[i];
         WebFrame* const pWebFrameCurrent = pViewCurrent->GetWebFrame();
 
         if(pWebFrameCurrent == pWebFrame)
@@ -334,12 +356,12 @@ EAWEBKIT_API View* GetView(WebCore::FrameView* pFrameView)
 
 EAWEBKIT_API View* CreateView() 
 {
-	return WTF::fastNew<View>();
+	return EAWEBKIT_NEW("View") View();//WTF::fastNew<View>();
 }
 
 EAWEBKIT_API void DestroyView(View* pView)
 {
-	WTF::fastDelete<View>(pView);
+	EAWEBKIT_DELETE pView;//WTF::fastDelete<View>(pView);
 }
 
 const float PI_4 = 3.14159f / 4.0f;
@@ -369,28 +391,29 @@ View::View()
 	mJavascriptBindingObject(0),
     mJavascriptBindingObjectName(0)
 {
-    gViewPtrArray.push_back(this);
-	mNodeListContainer = WTF::fastNew<NodeListContainer> ();
-	mOverlaySurfaceArrayContainer = WTF::fastNew<OverlaySurfaceArrayContainer> ();
+    ViewArray::GetArray().push_back(this);
+	mNodeListContainer = EAWEBKIT_NEW("NodeListContainer") NodeListContainer();//WTF::fastNew<NodeListContainer> ();
+	mOverlaySurfaceArrayContainer = EAWEBKIT_NEW("OverlaySurfaceArrayContainer") OverlaySurfaceArrayContainer();//WTF::fastNew<OverlaySurfaceArrayContainer> ();
 }
 
 View::~View()
 {
-    gViewPtrArray.erase(eastl::find(gViewPtrArray.begin(), gViewPtrArray.end(), this));
+    ViewArray::GetArray().erase(eastl::find(ViewArray::GetArray().begin(), ViewArray::GetArray().end(), this));
 
 	if (mDebugger)
 	{
 		delete mDebugger;
+		mDebugger = 0;
 	}
 
 	if(mNodeListContainer)
 	{
-		WTF::fastDelete<NodeListContainer>(mNodeListContainer);
+		EAWEBKIT_DELETE mNodeListContainer;//WTF::fastDelete<NodeListContainer>(mNodeListContainer);
 		mNodeListContainer = 0;
 	}
 	if(mOverlaySurfaceArrayContainer)
 	{
-		WTF::fastDelete<OverlaySurfaceArrayContainer>(mOverlaySurfaceArrayContainer);
+		EAWEBKIT_DELETE mOverlaySurfaceArrayContainer;//WTF::fastDelete<OverlaySurfaceArrayContainer>(mOverlaySurfaceArrayContainer);
 		mOverlaySurfaceArrayContainer = 0;
 	}
 
@@ -400,7 +423,8 @@ View::~View()
 
 bool View::InitView(const ViewParameters& vp)
 {
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+	SET_AUTO_ACTIVE_VIEW(this);
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	
 	mViewParameters = vp;
 
@@ -425,12 +449,21 @@ bool View::InitView(const ViewParameters& vp)
             mpWebView->setProhibitsMainFrameScrolling(!vp.mbScrollingEnabled);
             mpWebView->setTabKeyCyclesThroughElements(vp.mbTabKeyFocusCycle);
             if(parameters.mpUserAgent)
-                mpWebView->setCustomUserAgent(WebCore::String(parameters.mpUserAgent));
+			{
+				WebCore::String userAgent(parameters.mpUserAgent);
+				
+				char eawebkitVersion[32];
+				memset(eawebkitVersion,'\0',sizeof(eawebkitVersion));
+				snprintf(eawebkitVersion,31," EAWebKit/%s",EAWEBKIT_VERSION);
+				userAgent.append(WebCore::String(eawebkitVersion));//There isn't an .append(char*)
+				
+				mpWebView->setCustomUserAgent(userAgent);
+			}
 
             if(parameters.mpApplicationName)
                 mpWebView->setApplicationNameForUserAgent(WebCore::String(parameters.mpApplicationName));
 
-            // We store a pointer to 'this' in the Surface.
+            // We store a pointer to the view 'this' in the Surface.
             mpSurface->mpUserData = static_cast<View*>(this);
             
             mpWebView->setTranparentBackground(vp.mbTransparentBackground); // 7/23/09 CSidhall - Added storing of transparent background
@@ -453,8 +486,9 @@ bool View::InitView(const ViewParameters& vp)
 
 void View::ShutdownView()
 {
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-	KJS::SetCollectorStackBase();   // 9/4/09 - CSidhall - Added to get approximate stack base
+	SET_AUTO_ACTIVE_VIEW(this);
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+	SET_AUTO_COLLECTOR_STACK_BASE();   // 9/4/09 - CSidhall - Added to get approximate stack base
 
     WebCore::XMLHttpRequest::removeStaticEventListeners();
 	delete gpEventListener;
@@ -501,7 +535,7 @@ void View::GetSize(int& w, int& h) const
 
 bool View::SetSize(int w, int h)
 {
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 
 	bool bResult = true;
 
@@ -535,7 +569,8 @@ bool View::SetURI(const char* pURI)
     // Note that by design we do not try to 'fix' the URI by doing things like prepending "http://" in front
     // of it. The reason for this is that the user may be using a custom URI scheme that we are not aware of.
     // It is the job of the higher layer to fix URIs if they want to.
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+	SET_AUTO_ACTIVE_VIEW(this);
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 
 	if(mpWebView && pURI && pURI[0])
     {
@@ -555,23 +590,21 @@ bool View::SetURI(const char* pURI)
 
 void View::Refresh()
 {
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+    SET_AUTO_ACTIVE_VIEW(this);
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	if(mpWebView)
 	{
 		::WebFrame* pWebFrame = mpWebView->topLevelFrame();
 		EAW_ASSERT(pWebFrame);
-
-		const double timeoutSeconds = (double)EA::WebKit::GetParameters().mPageTimeoutSeconds;
-		EAW_ASSERT(timeoutSeconds > 0.0);
-
-		pWebFrame->loadURL(pWebFrame->url(), timeoutSeconds);
+		pWebFrame->reload(); 
 	}
 }
 
 
 bool View::LoadResourceRequest(const WebCore::ResourceRequest& resourceRequest)
 {
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+    SET_AUTO_ACTIVE_VIEW(this);
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	if(mpWebView)
     {
 		::WebFrame* pWebFrame = mpWebView->topLevelFrame();
@@ -592,8 +625,8 @@ const char16_t* View::GetURI()
         const WebCore::KURL&   url  = pFrame->loader()->url();
         const WebCore::String& sURL = url.string();
 
-        GET_FIXEDSTRING16(mURI)->assign(sURL.characters(), sURL.length());
-		return GET_FIXEDSTRING16(mURI)->c_str();
+        GetFixedString(mURI)->assign(sURL.characters(), sURL.length());
+		return GetFixedString(mURI)->c_str();
     }
 
 	return NULL;
@@ -642,18 +675,64 @@ void View::CancelLoad()
 
 bool View::GoBack()
 {
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-	if(mpWebView)
-        return mpWebView->goBack();
-    return false;
+	SET_AUTO_ACTIVE_VIEW(this);
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+	SET_AUTO_COLLECTOR_STACK_BASE();   
+    bool returnFlag = false;
+    if(mpWebView)
+    {
+        returnFlag =mpWebView->goBack();
+
+        // Set dirty region (seems that a file protocol will not refresh correctly)
+        if(returnFlag)
+        {
+            int w = mpSurface->mWidth;
+            int h = mpSurface->mHeight;
+            const WKAL::IntRect rect(0, 0, w, h);
+            mpWebView->addToDirtyRegion(rect);
+        }
+    }
+     return returnFlag;
 }
 
 
 bool View::GoForward()
 {
+	SET_AUTO_ACTIVE_VIEW(this);
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+	SET_AUTO_COLLECTOR_STACK_BASE();   
+	bool returnFlag = false;
+    
+    if(mpWebView)
+    {
+        returnFlag = mpWebView->goForward();
+        // Set dirty region (seems that a file protocol will not refresh correctly)
+        if(returnFlag)
+        {
+            int w = mpSurface->mWidth;
+            int h = mpSurface->mHeight;
+            const WKAL::IntRect rect(0, 0, w, h);
+            mpWebView->addToDirtyRegion(rect);
+        }
+    }
+    return returnFlag;
+}
+
+
+bool View::CanGoBack(uint32_t count)
+{
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	if(mpWebView)
-        return mpWebView->goForward();
+        return mpWebView->canGoBack(count);
+    return false;
+}
+
+
+bool View::CanGoForward(uint32_t count)
+{
+	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+	if(mpWebView)
+        return mpWebView->canGoForward(count);
     return false;
 }
 
@@ -668,18 +747,20 @@ TextInputStateInfo& View::GetTextInputStateInfo()
     return mTextInputStateInfo;
 }
 
-
-EA::WebKit::JavascriptValue View::EvaluateJavaScript(const char* pScriptSource, size_t length)
+bool View::EvaluateJavaScript(const char* pScriptSource, size_t length, EA::WebKit::JavascriptValue* pReturnValue)
 {
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	// For a more general solution, which we may want to look into, see:
     //     https://lists.webkit.org/pipermail/webkit-dev/2008-November/005686.html
 
+    SET_AUTO_COLLECTOR_STACK_BASE();   // Need to store collector stack base as this call can bypass the viewTick()
+
+    bool returnFlag = false;
     WebCore::Frame*            pFrame = GetFrame();
     WebCore::ScriptController* pProxy = pFrame->script();
 
-	EA::WebKit::JavascriptValue returnValue;
-	returnValue.SetUndefined();
+    if(pReturnValue)
+    	pReturnValue->SetUndefined();
 
     if(pProxy)
     {
@@ -689,57 +770,91 @@ EA::WebKit::JavascriptValue View::EvaluateJavaScript(const char* pScriptSource, 
 
         KJS::JSValue* pValue = pProxy->evaluate(sFileName, baseLine, sScriptSource);
 
-        if(pValue)
+        if((pValue) && (pReturnValue))
         {
 			if (pValue->isBoolean())
 			{
-				returnValue.SetBooleanValue(pValue->getBoolean());
-			}
+				pReturnValue->SetBooleanValue(pValue->getBoolean());
+                returnFlag = true;	
+            }
 			else if (pValue->isUndefinedOrNull())
 			{
-				returnValue.SetUndefined();
+				pReturnValue->SetUndefined();
+                returnFlag = true;	
 			}
 			else if (pValue->isNumber())
 			{
-				returnValue.SetNumberValue(pValue->uncheckedGetNumber());
+				pReturnValue->SetNumberValue(pValue->uncheckedGetNumber());
+                returnFlag = true;	
 			}
 			else if (pValue->isString())
 			{
 				// This might not  be null-terminated
-				returnValue.SetStringValue(pValue->getString().data());
+
+                // 5/11/10 - Fix proposed by Chin Yee Cheng for the fixed string expects a null terminated string.
+                UString valueStr = pValue->getString();
+                GetFixedString(pReturnValue->GetStringValue())->assign(valueStr.data(), valueStr.size());
+                
+                pReturnValue->SetStringType();
+                returnFlag = true;	
 			}
             // Do we need to free pValue in some way?
         }
     }
+    
+    // 2/10/10 -The java script might have changed something in the layout so
+    // we need an update.
+    // 5/12/10 CSidhall - Changed this to just flag the update instead of doing a full layout update as EvaluateJavascript might be called x times in a same frame. 
+    WebCore::FrameView* const pFrameView  = GetFrameView();
+    if(pFrameView)
+       pFrameView->setNeedsLayout();
 
-
-
-    return returnValue;
+    return returnFlag;	
 }
 
 
 bool View::Tick()
 {
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-	
-	KJS::SetCollectorStackBase();   // 9/2/09 - CSidhall - Added to get approximate stack base
+    SET_AUTO_ACTIVE_VIEW(this);
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+	SET_AUTO_COLLECTOR_STACK_BASE();  
 
     // Notify tick start callback (this is already known by the user but groups it with other profile calls)
-    NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeViewTick, EA::WebKit::kVProcessStatusStarted);
+    NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeViewTick, EA::WebKit::kVProcessStatusStarted, this);
 
 	WTF::dispatchFunctionsFromMainThread();
 
-	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeTransportTick, EA::WebKit::kVProcessStatusStarted);
-	
+	//Note by Arpit Baldeva: We manually trigger the jobs to be downloaded and requested here instead of
+	//relying on the timer callback. As it turns out, this improves our page load by 2X to 3X (PC improvements are around ~3X).
+	//One thing to note here is that ideally these calls should be moved to a separate EAWebKit Tick() as following
+	//calls are not view specific. 
 	WebCore::ResourceHandleManager* pRHM = WebCore::ResourceHandleManager::sharedInstance();
 	EAW_ASSERT(pRHM);
 	if(pRHM)
+	{
+		pRHM->TickDownload();
+		NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeTransportTick, EA::WebKit::kVProcessStatusStarted, this);
 		pRHM->TickTransportHandlers();
-	
-	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeTransportTick, EA::WebKit::kVProcessStatusEnded);
+		NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeTransportTick, EA::WebKit::kVProcessStatusEnded);
+	}
 
-    WebCore::fireTimerIfNeeded();
+	WebCore::fireTimerIfNeeded();
 
+	//Note by Arpit Baldeva: We can also conditionally decide to bail out instead of doing 2nd update below
+	//if it turns out that we end up spending too much time in the Tick() in some case. Currenly, I have not
+	//seen such a scenario so keeping it till someone complaints.
+	if(pRHM)
+	{
+		pRHM->TickDownload();
+		NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeTransportTick, EA::WebKit::kVProcessStatusStarted);
+		pRHM->TickTransportHandlers();
+		NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeTransportTick, EA::WebKit::kVProcessStatusEnded, this);
+	}
+
+
+
+	// Notify Draw start Process callback
+	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeDraw, EA::WebKit::kVProcessStatusStarted, this);
     // Check for a dirty FrameView, and if so then trigger a repaint.
     // The repaint will result in any notifications being sent out.
     WebCore::FrameView*     const pFrameView  = GetFrameView();
@@ -749,18 +864,15 @@ bool View::Tick()
     {
         if(parameters.mbDrawIntermediatePages || !mpWebView->isLoading())  // If we are to draw intermediate pages (as well as completed pages) or if the view has already completed loading...
         {
-            // Notify Draw start Process callback
-            NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeDraw, EA::WebKit::kVProcessStatusStarted);
-
+            
             BalEventExpose exposeEvent;
             mpWebView->onExpose(exposeEvent);
-
-  			NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeDraw, EA::WebKit::kVProcessStatusEnded);
         }
     }
+	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeDraw, EA::WebKit::kVProcessStatusEnded, this);
 
-    // Notify tick end callback (this is already known by the user but groups it with other profile calls)
-	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeViewTick, EA::WebKit::kVProcessStatusEnded);
+	// Notify tick end callback (this is already known by the user but groups it with other profile calls)
+	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeViewTick, EA::WebKit::kVProcessStatusEnded, this);
 
 	return true;
 }
@@ -768,7 +880,8 @@ bool View::Tick()
 
 void View::RedrawArea(int x, int y, int w, int h)
 {
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+    SET_AUTO_ACTIVE_VIEW(this);
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	if(!mpWebView)
 		return;
     
@@ -786,13 +899,12 @@ void View::RedrawArea(int x, int y, int w, int h)
 
     BalEventExpose exposeEvent;
     mpWebView->onExpose(exposeEvent);
-
 }
 
 
 void View::ViewUpdated(int x, int y, int w, int h)
 {
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 
 	// Since the view surface has been updated, we will need to redraw any existing
     // overlay surfaces (e.g. overlaid popup modal menus).
@@ -812,18 +924,22 @@ void View::ViewUpdated(int x, int y, int w, int h)
 
 void View::Scroll(int x, int y)
 {
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeScrollEvent, EA::WebKit::kVProcessStatusStarted);
+    SET_AUTO_ACTIVE_VIEW(this);
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeScrollEvent, EA::WebKit::kVProcessStatusStarted, this);
 	
 	if(mpWebView)
+    {
         mpWebView->scrollBy(WebCore::IntPoint(x, y));
-
-	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeScrollEvent, EA::WebKit::kVProcessStatusEnded);
+        if(mpModalInputClient)
+            mpModalInputClient->OnScrollViewEvent();
+    }
+	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeScrollEvent, EA::WebKit::kVProcessStatusEnded, this);
 }
 
 void View::GetScrollOffset(int& x, int& y)
 {
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	if(mpWebView)
 	{
 		const WebCore::IntPoint point = mpWebView->scrollOffset();
@@ -840,8 +956,10 @@ void View::GetScrollOffset(int& x, int& y)
 
 void View::OnKeyboardEvent(const KeyboardEvent& keyboardEvent)
 {
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeKeyBoardEvent, EA::WebKit::kVProcessStatusStarted);
+    SET_AUTO_ACTIVE_VIEW(this);
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended); 
+    SET_AUTO_COLLECTOR_STACK_BASE();  // Mark stack for Javascript collector
+	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeKeyBoardEvent, EA::WebKit::kVProcessStatusStarted, this);
 	
 	if(mpModalInputClient)
         mpModalInputClient->OnKeyboardEvent(keyboardEvent);
@@ -853,31 +971,41 @@ void View::OnKeyboardEvent(const KeyboardEvent& keyboardEvent)
             mpWebView->onKeyUp(keyboardEvent);
     }
 
-	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeKeyBoardEvent, EA::WebKit::kVProcessStatusEnded);
+	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeKeyBoardEvent, EA::WebKit::kVProcessStatusEnded, this);
 }
 
 
 void View::OnMouseMoveEvent(const MouseMoveEvent& mouseMoveEvent)
 {
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-
-	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeMouseMoveEvent, EA::WebKit::kVProcessStatusStarted);
+    SET_AUTO_ACTIVE_VIEW(this);
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+    SET_AUTO_COLLECTOR_STACK_BASE();  // Mark stack for Javascript collector
+	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeMouseMoveEvent, EA::WebKit::kVProcessStatusStarted, this);
 	
 	if(mpModalInputClient)
         mpModalInputClient->OnMouseMoveEvent(mouseMoveEvent);
     else if(mpWebView)
+    {
         mpWebView->onMouseMotion(mouseMoveEvent);
-
+    
+        //+ 2/5/10 CSidhall - If this was already handled by onMouseMotion, the delta will be 0 so no action
+        // will be taken.  If not handled, this will fix the problem of the auto mode of a scroll 
+        // thumb staying active (=stuck).
+        WKAL::PlatformScrollbar::updateAutoScrollThumbWithMouseMove(mouseMoveEvent);   
+    
+    }
     mCursorPos.set(mouseMoveEvent.mX, mouseMoveEvent.mY);
 
-	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeMouseMoveEvent, EA::WebKit::kVProcessStatusEnded);
+	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeMouseMoveEvent, EA::WebKit::kVProcessStatusEnded, this);
 }
 
 
 void View::OnMouseButtonEvent(const MouseButtonEvent& mouseButtonEvent)
 {
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeMouseButtonEvent, EA::WebKit::kVProcessStatusStarted);
+    SET_AUTO_ACTIVE_VIEW(this);
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+	SET_AUTO_COLLECTOR_STACK_BASE();  // Mark stack for Javascript collector
+    NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeMouseButtonEvent, EA::WebKit::kVProcessStatusStarted, this);
 	
 	if(mpModalInputClient)
         mpModalInputClient->OnMouseButtonEvent(mouseButtonEvent);
@@ -886,25 +1014,33 @@ void View::OnMouseButtonEvent(const MouseButtonEvent& mouseButtonEvent)
         if(mouseButtonEvent.mbDepressed)
             mpWebView->onMouseButtonDown(mouseButtonEvent);
         else
+        {
             mpWebView->onMouseButtonUp(mouseButtonEvent);
+
+            //+ 2/5/10 CSidhall - If was already handled by onMouseButtonUp, should just return.  If not handled, this
+            // will exit the auto mode of a scroll thumb.
+            WKAL::PlatformScrollbar::updateAutoScrollThumbWithMouseRelease();   
+        }
     }
 
-	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeMouseButtonEvent, EA::WebKit::kVProcessStatusEnded);
+	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeMouseButtonEvent, EA::WebKit::kVProcessStatusEnded, this);
 
 }
 
 
 void View::OnMouseWheelEvent(const MouseWheelEvent& mouseWheelEvent)
 {
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
-	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeMouseWheelEvent, EA::WebKit::kVProcessStatusStarted);
+    SET_AUTO_ACTIVE_VIEW(this);
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+	SET_AUTO_COLLECTOR_STACK_BASE();  // Mark stack for Javascript collector
+    NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeMouseWheelEvent, EA::WebKit::kVProcessStatusStarted, this);
 		
 	if(mpModalInputClient)
         mpModalInputClient->OnMouseWheelEvent(mouseWheelEvent);
     else if(mpWebView)
         mpWebView->onScroll(mouseWheelEvent);
 
-	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeMouseWheelEvent, EA::WebKit::kVProcessStatusEnded);
+	NOTIFY_PROCESS_STATUS(EA::WebKit::kVProcessTypeMouseWheelEvent, EA::WebKit::kVProcessStatusEnded, this);
 }
 
 
@@ -955,7 +1091,8 @@ ModalInputClient* View::GetModalInputClient() const
 
 void View::SetOverlaySurface(EA::Raster::Surface* pSurface, const EA::Raster::Rect& viewRect)
 {
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+	SET_AUTO_ACTIVE_VIEW(this);
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	// This function is not re-entrant, as it modifies its data. You cannot safely call it while within a user callback.
 
     OverlaySurfaceArray::iterator it;
@@ -1027,7 +1164,8 @@ void View::SetOverlaySurface(EA::Raster::Surface* pSurface, const EA::Raster::Re
 
 void View::RemoveOverlaySurface(EA::Raster::Surface* pSurface)
 {
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+	SET_AUTO_ACTIVE_VIEW(this);
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	
 	// This function is not re-entrant, as it modifies its data. You cannot safely call it while within a user callback.
 
@@ -1057,7 +1195,8 @@ void View::RemoveOverlaySurface(EA::Raster::Surface* pSurface)
 // the overlay in that area.
 void View::BlitOverlaySurfaces()
 {
-	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
+	SET_AUTO_ACTIVE_VIEW(this);
+    SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	
 	for(OverlaySurfaceArray::iterator it = mOverlaySurfaceArrayContainer->mOverlaySurfaceArray.begin(); it != mOverlaySurfaceArrayContainer->mOverlaySurfaceArray.end(); ++it)
     {
@@ -1198,7 +1337,10 @@ protected:
 			{
 				WebCore::HTMLElement* htmlElement = (WebCore::HTMLElement*)element;
 
-				if (htmlElement->tagName()=="A" || htmlElement->tagName()=="INPUT" || htmlElement->tagName()=="TEXTAREA")
+				WebCore::IntRect rect = htmlElement->getRect();					
+				bool isBigEnough = rect.width()>5 && rect.height() > 5;
+
+				if (isBigEnough && (htmlElement->tagName()=="A" || htmlElement->tagName()=="INPUT" || htmlElement->tagName()=="TEXTAREA"))
 				{
 					if (htmlElement->computedStyle()->visibility()==WebCore::VISIBLE)
 					{
@@ -1554,11 +1696,11 @@ void View::UpdateCachedHints(WebCore::Node* node)
 			wcsncpy(uBuffer, upAttribute->value().string().characters(), length);
 			uBuffer[length] = L'\0';
 			sprintf(buffer,"%S",uBuffer);
-			GET_FIXEDSTRING8(mCachedNavigationUpId)->assign(buffer);
+			GetFixedString(mCachedNavigationUpId)->assign(buffer);
 		}
 		else
 		{
-			GET_FIXEDSTRING8(mCachedNavigationUpId)->assign("");
+			GetFixedString(mCachedNavigationUpId)->assign("");
 		}
 		
 		if ( downAttribute )
@@ -1567,11 +1709,11 @@ void View::UpdateCachedHints(WebCore::Node* node)
 			wcsncpy(uBuffer, downAttribute->value().string().characters(), length);
 			uBuffer[length] = L'\0';
 			sprintf(buffer,"%S",uBuffer);
-			GET_FIXEDSTRING8(mCachedNavigationDownId)->assign(buffer);;
+			GetFixedString(mCachedNavigationDownId)->assign(buffer);;
 	}
 		else
 		{
-			GET_FIXEDSTRING8(mCachedNavigationDownId)->assign("");
+			GetFixedString(mCachedNavigationDownId)->assign("");
 		}
 
 		if ( leftAttribute )
@@ -1580,11 +1722,11 @@ void View::UpdateCachedHints(WebCore::Node* node)
 			wcsncpy(uBuffer, leftAttribute->value().string().characters(), length);
 			uBuffer[length] = L'\0';
 			sprintf(buffer,"%S",uBuffer);
-			GET_FIXEDSTRING8(mCachedNavigationLeftId)->assign(buffer);;
+			GetFixedString(mCachedNavigationLeftId)->assign(buffer);;
 		}
 		else
 		{
-			GET_FIXEDSTRING8(mCachedNavigationLeftId)->assign("");
+			GetFixedString(mCachedNavigationLeftId)->assign("");
 }
 
 		if ( rightAttribute )
@@ -1593,19 +1735,19 @@ void View::UpdateCachedHints(WebCore::Node* node)
 			wcsncpy(uBuffer, rightAttribute->value().string().characters(), length);
 			uBuffer[length] = L'\0';
 			sprintf(buffer,"%S",uBuffer);
-			GET_FIXEDSTRING8(mCachedNavigationRightId)->assign(buffer);;
+			GetFixedString(mCachedNavigationRightId)->assign(buffer);
 		}
 		else
 		{
-			GET_FIXEDSTRING8(mCachedNavigationRightId)->assign("");
+			GetFixedString(mCachedNavigationRightId)->assign("");
 		}
 	}
 	else
 	{
-		GET_FIXEDSTRING8(mCachedNavigationUpId)->assign("");
-		GET_FIXEDSTRING8(mCachedNavigationDownId)->assign("");
-		GET_FIXEDSTRING8(mCachedNavigationLeftId)->assign("");
-		GET_FIXEDSTRING8(mCachedNavigationRightId)->assign("");
+		GetFixedString(mCachedNavigationUpId)->assign("");
+		GetFixedString(mCachedNavigationDownId)->assign("");
+		GetFixedString(mCachedNavigationLeftId)->assign("");
+		GetFixedString(mCachedNavigationRightId)->assign("");
 	}
 }
 
@@ -1634,14 +1776,14 @@ bool View::JumpToNearestElement(EA::WebKit::JumpDirection direction)
 	switch (direction)
 	{
 	case EA::WebKit::JumpRight:
-		if (GET_FIXEDSTRING8(mCachedNavigationRightId)->compare(""))
+		if (GetFixedString(mCachedNavigationRightId)->compare(""))
 		{
-			if (!GET_FIXEDSTRING8(mCachedNavigationRightId)->compare("ignore"))
+			if (!GetFixedString(mCachedNavigationRightId)->compare("ignore"))
 			{
 				return false;
 			}
 
-			if (JumpToId(GET_FIXEDSTRING8(mCachedNavigationRightId)->c_str()))
+			if (JumpToId(GetFixedString(mCachedNavigationRightId)->c_str()))
 			{
 				return true;
 			}
@@ -1649,14 +1791,14 @@ bool View::JumpToNearestElement(EA::WebKit::JumpDirection direction)
 		break;
 
 	case EA::WebKit::JumpDown:
-		if (GET_FIXEDSTRING8(mCachedNavigationDownId)->compare(""))
+		if (GetFixedString(mCachedNavigationDownId)->compare(""))
 		{
-			if (!GET_FIXEDSTRING8(mCachedNavigationDownId)->compare("ignore"))
+			if (!GetFixedString(mCachedNavigationDownId)->compare("ignore"))
 			{
 				return false;
 			}
 
-			if (JumpToId(GET_FIXEDSTRING8(mCachedNavigationDownId)->c_str()))
+			if (JumpToId(GetFixedString(mCachedNavigationDownId)->c_str()))
 			{
 				return true;
 			}
@@ -1664,14 +1806,14 @@ bool View::JumpToNearestElement(EA::WebKit::JumpDirection direction)
 		break;
 
 	case EA::WebKit::JumpLeft:
-		if (GET_FIXEDSTRING8(mCachedNavigationLeftId)->compare(""))
+		if (GetFixedString(mCachedNavigationLeftId)->compare(""))
 		{
-			if (!GET_FIXEDSTRING8(mCachedNavigationLeftId)->compare("ignore"))
+			if (!GetFixedString(mCachedNavigationLeftId)->compare("ignore"))
 			{
 				return false;
 			}
 
-			if (JumpToId(GET_FIXEDSTRING8(mCachedNavigationLeftId)->c_str()))
+			if (JumpToId(GetFixedString(mCachedNavigationLeftId)->c_str()))
 			{
 				return true;
 			}
@@ -1679,14 +1821,14 @@ bool View::JumpToNearestElement(EA::WebKit::JumpDirection direction)
 		break;
 
 	case EA::WebKit::JumpUp:
-		if (GET_FIXEDSTRING8(mCachedNavigationUpId)->compare(""))
+		if (GetFixedString(mCachedNavigationUpId)->compare(""))
 		{
-			if (!GET_FIXEDSTRING8(mCachedNavigationUpId)->compare("ignore"))
+			if (!GetFixedString(mCachedNavigationUpId)->compare("ignore"))
 			{
 				return false;
 			}
 
-			if (JumpToId(GET_FIXEDSTRING8(mCachedNavigationUpId)->c_str()))
+			if (JumpToId(GetFixedString(mCachedNavigationUpId)->c_str()))
 			{
 				return true;
 			}
@@ -2312,7 +2454,7 @@ void View::CreateJavascriptBindings(const char* bindingObjectName)
 	SET_AUTOFPUPRECISION(kFPUPrecisionExtended);   
 	
 	mJavascriptBindingObjectName = bindingObjectName;
-	mJavascriptBindingObject = 	new JavascriptBindingObject(gpViewNotification);
+	mJavascriptBindingObject = 	new JavascriptBindingObject(this);
 	if(mJavascriptBindingObject)
         this->mpWebView->mainFrame()->addToJSWindowObject(mJavascriptBindingObjectName, mJavascriptBindingObject);
 }
@@ -2340,8 +2482,10 @@ void View::RegisterJavascriptMethod(const char* name)
 	else
 	{
 		DebugLogInfo info;
-		info.mpLogText = "No binding object created yet";
-		gpViewNotification->DebugLog(info);
+        info.mpView = this;
+        info.mpLogText = "No binding object created yet";
+		info.mType = kDebugLogJavascript;
+        gpViewNotification->DebugLog(info);
 	}
 
 	
@@ -2384,6 +2528,5 @@ void View::UnregisterJavascriptProperty(const char* name)
 } // namespace WebKit
 
 } // namespace EA
-
 
 
