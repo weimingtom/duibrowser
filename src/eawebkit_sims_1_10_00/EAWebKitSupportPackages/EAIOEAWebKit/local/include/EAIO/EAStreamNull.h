@@ -75,8 +75,8 @@ namespace EA
             virtual bool      Close();
             virtual size_type GetSize() const;
             virtual bool      SetSize(size_type size);
-            virtual off_type  GetPosition(PositionType positionType) const;
-            virtual bool      SetPosition(off_type position, PositionType positionType);
+            virtual off_type  GetPosition(PositionType positionType = kPositionTypeBegin) const;
+            virtual bool      SetPosition(off_type position, PositionType positionType = kPositionTypeBegin);
             virtual size_type GetAvailable() const;
             virtual size_type Read(void* pData, size_type nSize);
             virtual bool      Flush();

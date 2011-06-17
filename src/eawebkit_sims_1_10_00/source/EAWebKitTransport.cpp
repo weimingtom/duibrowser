@@ -100,7 +100,6 @@ TransportInfo::TransportInfo()
     mPath(),
     mHeaderMapOut(),
     mHeaderMapIn(),
-    mCookieFilePath(),
     mResultCode(200),
     mPostSize(-1),
   //mMethod(),
@@ -118,10 +117,10 @@ TransportInfo::TransportInfo()
     mpTransportServer(NULL),
     mpTransportHandler(NULL),
     mTransportHandlerData(0),
-    mpCookieManager(NULL)
+    mpCookieManager(NULL),
+	mbAsync(true)
 {
     mScheme[0] = 0;
-    mMethod[0] = 0;
     mAuthorizationType[0] = 0;
 }
 
@@ -246,7 +245,7 @@ bool TransportHandlerFile::Connect(TransportInfo* pTInfo, bool& bStateComplete)
 
     FileInfo* pFileInfo = (FileInfo*)pTInfo->mTransportHandlerData;
     EAW_ASSERT(pFileInfo != NULL);
-
+ 
     if(pFileInfo)
     {
         FileSystem* pFS = GetFileSystem();
@@ -256,7 +255,7 @@ bool TransportHandlerFile::Connect(TransportInfo* pTInfo, bool& bStateComplete)
 
         if(pFileInfo->mFileObject != FileSystem::kFileObjectInvalid)
         {
-            pFileInfo->mbRead = strcmp(pTInfo->mMethod, "GET") == 0;
+			pFileInfo->mbRead = (pTInfo->mHttpRequestType == EA::WebKit::kHttpRequestTypeGET);
 
             int openFlags = pFileInfo->mbRead ? FileSystem::kRead : FileSystem::kWrite;
 
@@ -506,8 +505,11 @@ EAWEBKIT_API bool SetHeaderMapWrapperFromText(const char* pHeaderMapText, uint32
 	const char*        pEnd = pHeaderMapText + textSize;
 	HeaderMap::key_type      sKey;
 	HeaderMap::mapped_type   sValue;
-	const eastl_size_t kMaxKeySize = 128;
-	const eastl_size_t kMaxValueSize = 2048;
+	//Update 12/20/2010: Disabled this check because we use strings that allow overflow. So actually limiting the key/value can cause
+	// bugs silently.
+	
+	//const eastl_size_t kMaxKeySize = 128;
+	//const eastl_size_t kMaxValueSize = 2048;
 	bool               inErrorCondition = false;
 	bool               colonFound = false;
 
@@ -553,7 +555,7 @@ EAWEBKIT_API bool SetHeaderMapWrapperFromText(const char* pHeaderMapText, uint32
 			}
 			else
 			{
-				if(sKey.length() < kMaxKeySize)
+				//if(sKey.length() < kMaxKeySize)
 					sKey += (wchar_t)(c);
 			}
 			break;
@@ -579,7 +581,7 @@ EAWEBKIT_API bool SetHeaderMapWrapperFromText(const char* pHeaderMapText, uint32
 				mode = kModeNewLine;
 			else
 			{
-				if(sValue.length() < kMaxValueSize)
+				//if(sValue.length() < kMaxValueSize)
 					sValue += (uint8_t)c;
 			}
 			break;
@@ -601,7 +603,7 @@ EAWEBKIT_API bool SetHeaderMapWrapperFromText(const char* pHeaderMapText, uint32
 						// We beginning the new key/value pair. Finalize the previous one.
 						if(!inErrorCondition) //Make sure that you are not in an error condition when writing this Key-Value pair
 						{
-							if((sKey.length() < kMaxKeySize) && (sValue.length() < kMaxValueSize)) // If no overflow occurred...
+							//if((sKey.length() < kMaxKeySize) && (sValue.length() < kMaxValueSize)) // If no overflow occurred...
 								WriteHeaderMapEntry(sKey, sValue, headerMap);
 						}
 						else
@@ -621,7 +623,7 @@ EAWEBKIT_API bool SetHeaderMapWrapperFromText(const char* pHeaderMapText, uint32
 	}
 
 	// Finalize the last entry.
-	if(!inErrorCondition && (sKey.length() < kMaxKeySize) && (sValue.length() < kMaxValueSize)) // If no overflow occurred...
+	if(!inErrorCondition /*&& (sKey.length() < kMaxKeySize) && (sValue.length() < kMaxValueSize)*/) // If no overflow occurred...
 		WriteHeaderMapEntry(sKey, sValue, headerMap);
 
 	return processedWithError;

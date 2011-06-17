@@ -72,11 +72,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <UTFXml/XmlReader.h>
 #include <UTFXml/internal/core_allocator_adapter.h>
-#include <eastl/list.h>
-#include <eastl/vector.h>
-#include <eastl/string.h>
+#include <EASTL/list.h>
+#include <EASTL/vector.h>
+#include <EASTL/string.h>
 #include <new>
-#include EA_ASSERT_HEADER
 
 
 #ifdef _MSC_VER
@@ -677,58 +676,6 @@ namespace EA {
             return const_cast<tString8&>(mName).get_allocator().get_allocator();
         }
 
-        inline DomDocument* DomNode::AsDomDocument()
-        {
-            EA_ASSERT(mNodeType == EA::XML::XmlReader::Document);
-            return static_cast<DomDocument*>(this);
-        }
-
-        inline DomElement* DomNode::AsDomElement()
-        {
-            EA_ASSERT(mNodeType == EA::XML::XmlReader::Element);
-            return static_cast<DomElement*>(this);
-        }
-
-        inline DomComment* DomNode::AsDomComment()
-        {
-            EA_ASSERT(mNodeType == EA::XML::XmlReader::Comment);
-            return static_cast<DomComment*>(this);
-        }
-
-        inline DomCharacterData* DomNode::AsDomCharacterData()
-        {
-            EA_ASSERT(mNodeType == EA::XML::XmlReader::CharacterData);
-            return static_cast<DomCharacterData*>(this);
-        }
-
-        inline DomPrologue* DomNode::AsDomPrologue()
-        {
-            EA_ASSERT(mNodeType == EA::XML::XmlReader::Prologue);
-            return static_cast<DomPrologue*>(this);
-        }
-
-        inline DomProcessingInstruction* DomNode::AsDomProcessingInstruction()
-        {
-            EA_ASSERT(mNodeType == EA::XML::XmlReader::ProcessingInstruction);
-            return static_cast<DomProcessingInstruction*>(this);
-        }
-
-        inline DomEntityRef* DomNode::AsDomEntityRef()
-        {
-            EA_ASSERT(mNodeType == EA::XML::XmlReader::EntityRef);
-            return static_cast<DomEntityRef*>(this);
-        }
-
-        inline DomDeclaration* DomNode::AsDomDeclaration()
-        {
-            EA_ASSERT(mNodeType == EA::XML::XmlReader::DocTypeDecl  ||
-                      mNodeType == EA::XML::XmlReader::EntityDecl   ||
-                      mNodeType == EA::XML::XmlReader::ElementDecl  ||
-                      mNodeType == EA::XML::XmlReader::AttListDecl  ||
-                      mNodeType == EA::XML::XmlReader::NotationDecl);
-            return static_cast<DomDeclaration*>(this);
-        }
-
 
         inline DomDocument::DomDocument(const char8_t* pName, ICoreAllocator* pAllocator)
           : DomNode( XmlReader::Document, pName, kLengthNull, NULL, pAllocator)
@@ -754,7 +701,7 @@ namespace EA {
 
 
         inline DomComment::DomComment(const char8_t* pText, size_t nTextLength, DomNode* pParent, ICoreAllocator* pAllocator)
-          : DomNode( XmlReader::Comment, pText, kLengthNull, pParent, pAllocator )
+          : DomNode( XmlReader::Comment, pText, nTextLength, pParent, pAllocator )
         {
         }
 

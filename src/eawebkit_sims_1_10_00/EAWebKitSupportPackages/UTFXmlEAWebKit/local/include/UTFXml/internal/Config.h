@@ -63,8 +63,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
 #ifndef UTFXML_VERSION
-    #define UTFXML_VERSION   "3.06.06"
-    #define UTFXML_VERSION_N  30606
+    #define UTFXML_VERSION   "3.06.08"
+    #define UTFXML_VERSION_N  30608
 #endif
 
 

@@ -209,6 +209,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\..\..\..\EAWebKitSupportPackages\EAIOEAWebKit\local\include\EAIO\EAIniFile.h"
+					>
+				</File>
+				<File
 					RelativePath="..\..\..\..\EAWebKitSupportPackages\EAIOEAWebKit\local\include\EAIO\EAStream.h"
 					>
 				</File>
@@ -383,6 +387,26 @@
 			</File>
 			<File
 				RelativePath="..\..\..\..\EAWebKitSupportPackages\EAIOEAWebKit\local\source\EAFileUtil.cpp"
+				>
+				<FileConfiguration
+					Name="pc-vc-dev-debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="pc-vc-dev-debug\build\EAIOEAWebKit\vcproj\source\"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="pc-vc-dev-opt|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="pc-vc-dev-opt\build\EAIOEAWebKit\vcproj\source\"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\..\..\..\EAWebKitSupportPackages\EAIOEAWebKit\local\source\EAIniFile.cpp"
 				>
 				<FileConfiguration
 					Name="pc-vc-dev-debug|Win32"

@@ -287,6 +287,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\..\..\..\include\EAWebKit\EAWebKitJavascriptDebugListener.h"
+					>
+				</File>
+				<File
 					RelativePath="..\..\..\..\include\EAWebKit\EAWebKitJavascriptValue.h"
 					>
 				</File>
@@ -322,6 +326,10 @@
 					RelativePath="..\..\..\..\include\EAWebKit\EAWebKitView.h"
 					>
 				</File>
+				<File
+					RelativePath="..\..\..\..\include\EAWebKit\EAWebKitViewNotification.h"
+					>
+				</File>
 				<Filter
 					Name="internal"
 					>
@@ -335,6 +343,10 @@
 					</File>
 					<File
 						RelativePath="..\..\..\..\include\EAWebKit\internal\EAWebKitJavascriptBinding.h"
+						>
+					</File>
+					<File
+						RelativePath="..\..\..\..\include\EAWebKit\internal\EAWebKitJavascriptDebugger.h"
 						>
 					</File>
 					<File
@@ -945,6 +957,10 @@
 						Name="InputBinding"
 						>
 						<File
+							RelativePath="..\..\..\..\include\EAWebKit\internal\InputBinding\EAWebKitDocumentNavigationDelegates.h"
+							>
+						</File>
+						<File
 							RelativePath="..\..\..\..\include\EAWebKit\internal\InputBinding\EAWebKitDocumentNavigator.h"
 							>
 						</File>
@@ -1112,6 +1128,26 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\..\..\source\EAWebKitDocumentNavigationDelegates.cpp"
+				>
+				<FileConfiguration
+					Name="pc-vc-dev-debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\source\"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="pc-vc-dev-opt|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\source\"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\..\..\..\source\EAWebKitDocumentNavigator.cpp"
 				>
 				<FileConfiguration
@@ -1153,6 +1189,26 @@
 			</File>
 			<File
 				RelativePath="..\..\..\..\source\EAWebKitFPUPrecision.cpp"
+				>
+				<FileConfiguration
+					Name="pc-vc-dev-debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\source\"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="pc-vc-dev-opt|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\source\"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\..\..\..\source\EAWebKitJavascriptDebugListener.cpp"
 				>
 				<FileConfiguration
 					Name="pc-vc-dev-debug|Win32"
@@ -1335,6 +1391,26 @@
 					</FileConfiguration>
 				</File>
 				<File
+					RelativePath="..\..\..\..\source\internal\EAWebKitJavascriptDebugger.cpp"
+					>
+					<FileConfiguration
+						Name="pc-vc-dev-debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\source\"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="pc-vc-dev-opt|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\source\"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
 					RelativePath="..\..\..\..\source\internal\EAWebKitNewDelete.cpp"
 					>
 					<FileConfiguration
@@ -1413,6 +1489,14 @@
 							ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\source\internal\"
 						/>
 					</FileConfiguration>
+				</File>
+			</Filter>
+			<Filter
+				Name="sys"
+				>
+				<File
+					RelativePath="..\..\..\..\source\sys\DLLInterface.h"
+					>
 				</File>
 			</Filter>
 		</Filter>
@@ -6269,6 +6353,30 @@
 								</File>
 								<File
 									RelativePath="..\..\..\..\WebKit-owb\BAL\WKAL\Concretizations\Widgets\EA\BCSearchPopupMenuEA.h"
+									>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\WKAL\Concretizations\Widgets\EA\BCTextPopupEA.cpp"
+									>
+									<FileConfiguration
+										Name="pc-vc-dev-debug|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-debug\build\EAWebkit\vcproj\WebKit-owb\BAL\WKAL\Concretizations\Widgets\EA\"
+										/>
+									</FileConfiguration>
+									<FileConfiguration
+										Name="pc-vc-dev-opt|Win32"
+										>
+										<Tool
+											Name="VCCLCompilerTool"
+											ObjectFile="pc-vc-dev-opt\build\EAWebkit\vcproj\WebKit-owb\BAL\WKAL\Concretizations\Widgets\EA\"
+										/>
+									</FileConfiguration>
+								</File>
+								<File
+									RelativePath="..\..\..\..\Webkit-owb\BAL\WKAL\Concretizations\Widgets\EA\BCTextPopupEA.h"
 									>
 								</File>
 								<File

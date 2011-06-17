@@ -28,16 +28,16 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ///////////////////////////////////////////////////////////////////////////////
 // EAWebKitView.h
-// By Paul Pedriana - 2008
+// By Paul Pedriana 
 ///////////////////////////////////////////////////////////////////////////////
 
 
 #ifndef EAWEBKIT_EAWEBKITVIEW_H
 #define EAWEBKIT_EAWEBKITVIEW_H
 
-
-#include <EAWebKit/EAWebKit.h>
 #include <EAWebKit/EAWebKitConfig.h>
+#include <EAWebKit/EAWebKitViewNotification.h>
+#include <EAWebKit/EAWebKit.h>
 #include <EAWebKit/EAWebKitLinkHook.h>
 #include <EAWebKit/EAWebKitForwardDeclarations.h>
 #include <EAWebKit/EAWebkitSTLWrapper.h>
@@ -54,580 +54,84 @@ namespace WebCore
 	class Node;
 }
 
-namespace KJS { class Debugger; }
+namespace KJS 
+{ 
+	class Debugger; 
+}
 
 class BalObject;
 
 namespace EA
 {
+	namespace WebKit
+	{
+		class NodeListContainer;
+		class OverlaySurfaceArrayContainer;
+		class EAWebKitJavascriptDebugger;
+	}
+}
+
+namespace EA
+{
     namespace WebKit
     {
+		
+		///////////////////////////////////////////////////////////////////////
+		// structures and enums etc.
+		///////////////////////////////////////////////////////////////////////
+
+		// Initialization parameters for the View instance.
+		struct EAWEBKIT_API ViewParameters
+		{
+			int   mWidth;                           // Defaults to kViewWidthDefault
+			int   mHeight;                          // Defaults to kViewHeightDefault
+			bool  mbScrollingEnabled;               // Defaults to true
+			bool  mbHScrollbarEnabled;              // Defaults to true
+			bool  mbVScrollbarEnabled;              // Defaults to true
+			bool  mbHighlightingEnabled;            // Defaults to false
+			bool  mbTransparentBackground;          // Defaults to false
+			bool  mbTabKeyFocusCycle;               // Defaults to true
+			bool  mbRedrawScrollbarOnCursorHover;   // Defaults to false
+            EA::Raster::ISurface* mpViewSurface;    // Defaults to NULL (NULL makes EAWebKit create its own internal view surface)
+                                                    // If passing a custom view surface, the format must be kPixelFormatTypeARGB.
+			ViewParameters();
+		};
+		
+		inline ViewParameters::ViewParameters()
+			:	mWidth(kViewWidthDefault),
+				mHeight(kViewHeightDefault),
+				mbScrollingEnabled(true),
+				mbHScrollbarEnabled(true),
+				mbVScrollbarEnabled(true),
+				mbHighlightingEnabled(false),
+				mbTransparentBackground(false),
+				mbTabKeyFocusCycle(true),
+				mbRedrawScrollbarOnCursorHover(false),
+                mpViewSurface(NULL)
+			{
+			}
+        
+		// Defines an overlay surface (such as a popup menu) on top of our main surface. This is handled by EAWebKit internally.
+		struct OverlaySurfaceInfo
+		{
+			EA::Raster::ISurface* mpSurface;
+			EA::Raster::Rect     mViewRect;
+		};
+
+
 		//////////////////////////////////////////////////////////////////////////
-		// Callbacks
+		// Debug Callbacks
+		
+#if EAWEBKIT_ENABLE_JUMP_NAVIGATION_DEBUGGING
 		typedef void (*DrawNodeCallback)(int x, int y, int w, int h, int centreX, int centreY);
 		typedef void (*DrawAxesCallback)(int centreX, int centreY, int minX, int minY, int maxX, int maxY);
+#endif
+		/////////////////////////////////////////////////////////////
+		
+		// 09/25/2010 - Note by Arpit Baldeva - This should be deprecated.
 		typedef void (*KeyboardCallback)(WebCore::Element* element, const char16_t* initialText, const char16_t* helperText, int maxLength);
-        ///////////////////////////////////////////////////////////////////////
-        // View Notification
-        ///////////////////////////////////////////////////////////////////////
 
-        // CursorChangeInfo
-        // The user is required to respond to this message if the user wants 
-        // cursors to change appropriately within the view.
-        // The implementation of a cursor/mouse must be handled by the application
-        // and is not implemented by EAWebKit. However, the Windows platform has built-in
-        // support for cursors and so EAWebKit does have default cursor handling
-        // for Windows, though this handling may not always work in full-screen
-        // DirectX applications.
-        struct CursorChangeInfo
-        {
-            View* mpView;         // WebKit doesn't provide a WebView context for cursor management. 
-            int     mNewCursorId;   // See enum CursorId, currently located in EAWebKitGraphics.h
-        };
-
-
-        // ScrollbarDrawInfo
-        // Used to notify the user of the need to draw a scrollbar.
-        // The user can return false to allow default drawing to occur.
-        struct ScrollbarDrawInfo
-        {
-            enum ScrollbarPart { None, BackBtn, ThumbBtn, ForwardBtn };
-
-            View*                mpView;                // The associated view.
-            EA::Raster::Surface* mpSurface;             // 
-            EA::Raster::Rect     mDirtyRect;            // The View/Surface dirty rectangle that needs to be updated.
-            bool                 mIsVertical;           // Vertical vs. horizontal scroll bar.
-            ScrollbarPart        mHoverPart;            // If other than None, the cursor is over this part and it is thus typically drawn in a highlighted state.
-            EA::Raster::Rect     mRectFwdBtn;           // Rectangle that the forward/down button encompasses.
-            EA::Raster::Rect     mRectBackBtn;          // Rectangle that the back/up button encompasses.
-            EA::Raster::Rect     mRectThumb;            // Rectangle that the thumb encompasses.
-            EA::Raster::Rect     mRectTrack;            // Rectangle that the scrollbar background encompasses.
-        };
-
-        // CustomFocusRingInfo
-        // Used to notify the user of the need to draw a focus ring effect.
-        // The user can return false to allow default drawing to occur.
-        // Note that a "focus ring" is the highlight around an element (e.g. link) 
-        // which indicates that it has focus in the view.
-        struct FocusRingDrawInfo
-        {
-            View*                mpView;
-            EA::Raster::Surface* mpSurface;
-            EA::Raster::Rect     mFocusRect;
-            EA::Raster::Color    mSuggestedColor;
-        };
-
-
-        // ButtonDrawInfo
-        // Used for push buttons, checkboxes, radio buttons, dropdown arrows.
-        // Provides the means to allow the EAWebKit user to override how buttons are drawn.  
-        // The user can return false to allow default drawing to occur.
-        struct ButtonDrawInfo
-        {
-            enum ButtonType { None, Button, Checkbox, Radio, DropDown };
-
-            View*                mpView;                // The associated view.
-            EA::Raster::Surface* mpSurface;             // 
-            EA::Raster::Rect     mDirtyRect;            // The View/Surface dirty rectangle that needs to be updated.
-            EA::Raster::Rect     mButtonRect;           // Rectangle that the button encompasses.
-            ButtonType           mButtonType;           // The type of button that needs to be drawn.
-            bool                 mIsHovered;            // If the cursor is hovered over it and it is thus typically drawn in a highlighted state.
-            bool                 mIsChecked;            // Applies to radio and checkbox only.
-            bool                 mIsFocused;            // If it has the tab focus (not necessarily drawn the same as with hover). Typically you draw a dotted line around it or draw it in a highlighted state.
-        };
-
-        // TextFieldDrawInfo
-        struct TextFieldDrawInfo
-        {
-            View*                mpView;                // The associated view.
-            EA::Raster::Surface* mpSurface;             // 
-            EA::Raster::Rect     mDirtyRect;            // The View/Surface dirty rectangle that needs to be updated.
-            EA::Raster::Rect     mTextRect;             // Rectangle that the text editing area encompasses.
-        };
-
-        // PopupMenuDrawInfo
-        // Used to draw an unactivated popup menu.
-        // Typically this involves a text area on the left and a arrow-down button on the right.
-        struct PopupMenuDrawInfo
-        {
-            View*                mpView;
-            EA::Raster::Surface* mpSurface;             // 
-            EA::Raster::Rect     mDirtyRect;            // The View/Surface dirty rectangle that needs to be updated.
-            EA::Raster::Rect     mMenuRect;             // Rectangle of the top line of the popup menu, which is always visible whether it's activated or not.
-            bool                 mIsHovered;            // If the cursor is hovered over it and it is thus typically drawn in a highlighted state.
-            bool                 mIsFocused;            // If it has the tab focus (not necessarily drawn the same as with hover). Typically you draw a dotted line around it or draw it in a highlighted state.
-            bool                 mIsActivated;          // True if the menu has been clicked and a multi-line selection menu has appeared.
-            int                  mActivatedCount;       // Number of items in the popped up mutli-line menu.
-            int                  mActivatedLineHeight;  // Should be ~equal to mActivatedRect.height() / mActivatedCount.
-            int                  mSelectedIndex;        // 0-based index of the currently selected item.
-            EA::Raster::Rect     mActivatedRect;        // Rectangle of the text area if mIsActivated is true. This is the rect of the multi-line selection below mMenuRect.
-        };
-
-
-        // ViewUpdateInfo
-        // Used to notify the user that the web view image has been updated.
-        // The coordinates are x,y,w,h, with x/y referring to the upper-left corner of the view.
-        struct ViewUpdateInfo
-        {
-            View* mpView;
-            int   mX;
-            int   mY;
-            int   mW;
-            int   mH;
-        };
-
-
-        // ErrorInfo
-        // This is for user-level errors, which should be reported to the end user
-        // graphically in some way. 
-        struct ErrorInfo
-        {
-            View*           mpView;     // 
-            int             mErrorId;   // Currently this refers to the internal errors in /WebKit/OrigynWebBrowser/Api/WebError.h. This needs to be exposed.
-            const char16_t* mpURI;      // The relevant URI.
-            const char16_t* mpContext1; // Some possibly related context string. Dependent on the error.
-        };
-
-
-        // AssertionFailureInfo
-        // This is for code assertion failures, which are typically generated
-        // via EAW_ASSERT. This failure is not something to show an end-user and
-        // is typically enabled in debug builds only. See the documentation for
-        // EAW_ASSERT for more information.
-        struct AssertionFailureInfo
-        {
-            View*		mpView;   
-            const char* mpFailureText;
-        };
-
-
-        // DebugLogInfo
-        // This is for code traces, which are typically generated by EAW_TRACE or 
-        // some underlying equivalent within WebKit. This trace is not something to 
-        // show an end-user and is typically enabled in debug builds only. 
-        // See the documentation for EAW_TRACE for more information.
-
-        // Type flags for the log info so it can be filtered if needed
-        enum DebugLogType
-		{
-            kDebugLogGeneral,
-            kDebugLogJavascript,
-            kDebugLogAssertion,
-            kDebugLogNetwork,
-			kDebugLogGraphics,
-   			kDebugLogMemory
-		};
-        
-        struct DebugLogInfo
-        {
-            View*		mpView;                  
-            const char* mpLogText;
-            DebugLogType mType;     // Type of debugLog Info.  This can be used to filter or redirect certain logs.
-        };
-
-
-        // LinkNotificationInfo
-        // This allows you to intercept the execution of a hyperlink and modify it or intercede in its execution entirely.
-        struct LinkNotificationInfo
-        {
-            View*							mpView;                 // 
-            bool							mbURIIntercepted;       // If set to true then EAWebKit does nothing more and doesn't attempt to follow the link. The application is assumed to take ownership of the event.
-            bool							mbURIInterceptedByDomainFiltering;// If set to true, EAWebKit auto-intercepted this link and would not navigate. The application may want to do something with this link (For example, open in an external browser if available).
-			EASTLFixedString16Wrapper		mOriginalURI;           // 
-            EASTLFixedString16Wrapper		mModifiedURI;           // If this is set to anything but empty, then it is used instead of mOriginalURI.
-            EASTLHeaderMapWrapper			mpOriginalHeaderMap;    // This will always point to a valid non-empty header map.
-            EASTLHeaderMapWrapper			mpModifiedHeaderMap;    // This will always point to a valid but intially empty header map. If this is set to anything but empty, then it is used intead of mpOriginalHeaderMap.
-        };
-
-        // LoadInfo
-        enum LoadEventType
-        {
-            kLETNone,
-            kLETPageRequest,            // new URL request
-            kLETPageRedirect,           // new URL for the original due to a redirect. Typically you want to change the URL bar to reflect this new URL.
-            kLETResponseReceived,       // The server has responded to the request.
-            kLETContentLengthReceived,  // The page content length is now available.
-            kLETLoadCompleted,          // The page load completed successfully.
-            kLETLoadFailed,             // The page load failed.
-            kLETWillClose,              // The page is about to close.
-            kLETLoadStarted,            // 
-            kLETTitleReceived,          // The title of the page is now available.
-            kLETLoadCommitted,          // The old page will be cleared as the new page seems to be available.
-            kLETLayoutCompleted,        // 
-            kLETWillShow,               // The window is to be shown for the first time.
-            kLETLoadProgressUpdate,     // Estimated fraction [0.0 .. 1.0] of page load completion.
-        };
-
-		enum XmlHttpRequestLoadEventType
-		{
-			kXHRLETAbort,
-			kXHRLETError,
-			kXHRLETLoad,
-			kXHRLETLoadStart,
-			kXHRLETProgress
-		};
-
-        struct EAWEBKIT_API LoadInfo
-        {
-            View*						mpView;               // The associated View.
-            LoadEventType				mLET;                 // The LoadEventType that triggered this update.
-            bool						mbStarted;            // True if the load has started.
-            bool						mbCompleted;          // True if the load has completed.
-            int64_t						mContentLength;       // -1 means unknown.
-            double						mProgressEstimation;  // [0.0 .. 1.0]
-            EASTLFixedString16Wrapper   mURI;                 // The URI associated with this current load event.
-            EASTLFixedString16Wrapper   mPageTitle;           // This gets set by the documentLoader during the load.
-            uint64_t					mLastChangedTime;     // Time (in milliseconds since View creation) of last update of this struct.
-            LoadInfo();
-        };
-
-
-        // FileChooserInfo
-        // This is used to tell the application to display a file load or save dialog box.
-        struct FileChooserInfo
-        {
-            View*  mpView;              // WebKit doesn't provide a WebView context for cursor management.
-            bool     mbIsLoad;          // If true, the dialog is for loading an existing file on disk. If false it is for saving to a new or existing file on disk.
-            char16_t mFilePath[256];    // The user writes to mFilePath and sets mbSucces to true or false.
-            bool     mbSuccess;         // The user should set this to true or false, depending on the outcome.
-        };
-
-
-        // StringInfo
-        // This allows the user to provide localized strings to the view.
-        // See WebCore::LocalizedStringType for an enumeration of all string ids.
-        struct StringInfo
-        {
-            View*  mpView;            // WebKit doesn't provide a WebView context for localized strings but we can set it if the active view is known.
-            int      mStringId;         // EAWebKit sets the mStringId value, and the app fills in either the 
-            char8_t  mString8[256];     // mString8 or mString16 string with the localized version of that string.
-            char16_t mString16[256];
-        };
-
-
-        // AuthenticationInfo
-        // Used to request HTTP authentication (name/password) from a user.
-        // This is seen in web browsers when they pop up a user/password dialog 
-        // box while trying to navigate to a page. This is not the same as 
-        // a user/password HTML input form seen on some pages, as this is 
-        // at an HTTP level as opposed to an HTML level.
-        // The ViewNotification::Authenticate function is called once with
-        // mBegin = true, then it is repeatedly called with mbBegin = false
-        // until the user sets mResult to a value other than zero to indicate
-        // that the user has specified mName/mPassword or that the user 
-        // has cancelled.
-        // It is important to note that multiple authentication requests 
-        // can occur at the same time, as a page may have multiple protected
-        // elements that need to be loaded at the same time. The mId parameter 
-        // will be different for each request globally, so you can use that 
-        // to distinguish between requests. Also, each request will only have 
-        // its mbBegin parameter set to true once, the first time this message 
-        // is sent.
-        enum AIPersist
-        {
-            kAIPersistNone,         // Don't save user name, password.
-            kAIPersistSession,      // Save for this session (i.e. app exection).
-            kAIPersistIndefinitely  // Save across sessions (i.e. app executions).
-        };
-
-        enum AIResult
-        {
-            kAIResultNone,          // No result yet
-            kAIResultOK,            // OK, use mName/mPassword.
-            kAIResultCancel         // Cancel.
-        };
-
-        struct AuthenticationInfo
-        {
-            View*           mpView;             // The associated View.
-            uintptr_t       mId;                // Input. Unique id assigned by authentication manager for each unique authentication request. You can use this to distinguish between requests.
-            uintptr_t       mUserContext;       // Input. The recevier of this message can store data here for later retrieval.
-            bool            mbBegin;            // Input. True the first time Authenticate is called, false for  
-            const char16_t* mpURL;              // Input.
-            const char16_t* mpRealm;            // Input.
-            const char16_t* mpType;             // Input. Authentication type. Usually one of Basic, Digest, or NTLM.
-            char16_t        mName[64];          // Output.
-            char16_t        mPassword[64];      // Output.
-            AIPersist       mPersistLevel;      // Output.
-            AIResult        mResult;            // Output.
-        };
-
-
-        // TextInputStateInfo
-        // Used to indicate that the TextInput state has changed, such as when a 
-        // TextInput form control is gains or loses focus activation.
-        struct TextInputStateInfo
-        {
-            View*           mpView;             // The associated View.
-            bool            mIsActivated;       // If keyboard input is active = true
-            bool            mIsPasswordField;   // If a text password input field = true
-            bool            mIsSearchField;     // If is a text seach field
-           
-            TextInputStateInfo() : mpView(0), mIsActivated(false), mIsPasswordField(false), mIsSearchField(false) {}
-        };
-
-
-        // ClipboardEventInfo
-        // Used to allow an EAWebKit view to interact with the system clipboard.
-        // Return true from the ViewNotification function to indicate success.
-        struct ClipboardEventInfo
-        {
-            View*                        mpView;               // The associated View when found for there is no view context here normally.
-            bool				         mReadFromClipboard;   // If true, then this is a request to read text from the system clipboard into mText. If false then this is a request to write mText to the system clipboard. 
-            EASTLFixedString16Wrapper	 mText;                // This is to be written if mReadFromClipboard is true, and read if mReadFromClipboard is false.
-        };
-
-		// Used to allow an EAWebKit view to receive notifications of XMLHttpRequest events
-		struct XMLHttpRequestEventInfo
-		{
-			XmlHttpRequestLoadEventType		mEventType; 
-			bool							mLengthComputable;
-			unsigned						mLoaded;
-			unsigned						mTotal;
-			const char16_t*					mURI;                 // The URI associated with this current load event.
-		};
-
-
-        // VProcessType - Various types of processes/functions to profile
-		enum VProcessType
-        {
-            kVProcessTypeNone = -1,                 // 
-            kVProcessTypeUser1,						// Generic for internal EAWebkit debugging
-            kVProcessTypeUser2,						// Generic for internal EAWebkit debugging
-            kVProcessTypeUser3,						// Generic for internal EAWebkit debugging
-            
-            kVProcessTypeViewTick,						// Main view update tick
-            kVProcessTypeTransportTick,				// Tick the network update
-			kVProcessTypeKeyBoardEvent,				// Keyboard Event
-			kVProcessTypeMouseMoveEvent,			// Mouse Event
-			kVProcessTypeMouseButtonEvent,			// Mouse Button
-			kVProcessTypeMouseWheelEvent,			// Mouse Wheel
-			kVProcessTypeScrollEvent,				// Scroll Event
-			kVProcessTypeScript,                    // Main JavaScript (could include other calls like canvas draw)
-            kVProcessTypeDraw,                      // Main Draw (might not include some special canvas draw calls)
-            kVProcessTypeTHJobs,                    // Main job loop for resource handler
-            kVProcessTypeTransportJob,              // Single job loop tracking using the transport system
-            kVProcessTypeFileCacheJob,              // Single job loop tracking using the file cache system
-            kVProcessTypeDrawImage,                 // Single image draw (includes most decoding, resize, compression render)
-            kVProcessTypeDrawImagePattern,          // Tiling image draw (includes most decoding, resize, compression render)
-            kVProcessTypeDrawGlyph,                 // Font draw (includes render)
-            kVProcessTypeDrawRaster,                // Low level raster draw for font and images
-            kVProcessTypeImageDecoder,              // Image decoder (JPEG, GIF, PNG)
-            kVProcessTypeImageCompressionPack,      // Image compression packing
-            kVProcessTypeImageCompressionUnPack,    // Image compression unpacking
-            kVProcessTypeJavaScriptParser,          // JavaScript parser
-            kVProcessTypeJavaScriptExecute,         // JavaScript execute
-            kVProcessTypeCSSParseSheet,             // CSS Sheet parse
-            kVProcessTypeFontLoading,               // Font loading
-
-
-
-			
-			//****************************************************************//
-				//Add any new process types above this line//
-			//****************************************************************//
-			kVProcessTypeLast						// Keep this at the end for array size
-        };
-        
-        // VProcessStatus - Various states a process can go through. For most processes, it would be start and end.
-		// However, jobs can have more states. To keep it less complicated, we include those states here.
-		// The queued states tell exactly how long it took for the previous state to finish. However, this does not mean that all the time was spent 
-		// inside the state machine. This is because a state change can cause some other code to execute and delay the exact change of state. This actually
-		// works well because this is the type of behavior we are interested in investigating anyway (Which states are taking longer to change and why). 
-		enum VProcessStatus
-        {
-            kVProcessStatusNone,
-            kVProcessStatusStarted,					// Start of a process or function
-            kVProcessStatusEnded,					// End of a process or function
-            kVProcessStatusQueuedToInit,			// This is when the job is queued for Init state in the code.
-            kVProcessStatusQueuedToConnection,		// This is when the Init state is finished and the job is queued for the Connection state.
-            kVProcessStatusQueuedToTransfer,		// This is when the Connection state is finished and the job is queued for the Transfer state. 
-			kVProcessStatusQueuedToDisconnect,      // This is when the Transfer state is finished and the job is queued for the Disconnect state. 
-			kVProcessStatusQueuedToShutdown,		// This is when the Disconnect state is finished and the job is queued for the Shutdown state. 
-			kVProcessStatusQueuedToRemove			// This is when the Shutdown state is finished and the job is queued for the Remove state. 
-         };
-
-		// ViewProcessInfo
-		// This is mostly to give user insight of when certain key processes are started and stopped.
-		// It can be used for profiling for example by timing the start and end status.
-		// Things like URI and job information are kept in this structure to make things less complicated.
-		struct ViewProcessInfo
-		{
-            View*                               mpView;             // The associated View.
-
-            // Variables
-            VProcessType						mProcessType;
-            VProcessStatus						mProcessStatus;
-            double								mStartTime;					// This is a user controlled workspace clock for timing
-            double								mIntermediateTime;			// This is a user controlled workspace clock for timing
-            const EASTLFixedString16Wrapper*	mURI;						// The URL associated with the process, if any.
-            int									mSize;						// Various usage but mostly return size info
-			int									mJobId;						// Job Id of this process, if any.						
-			// Constructors
-            ViewProcessInfo();
-            ViewProcessInfo(VProcessType,VProcessStatus, View* pView = NULL);
-			void ResetTime();
-        };
-
-		// Note by Arpit Baldeva: Use this function to notify an event change in state of a process found in the global array that keeps track of the 
-		// predefined processes. This is what you would want to use most of the times.
-        void NOTIFY_PROCESS_STATUS(VProcessType processType, VProcessStatus processStatus, EA::WebKit::View *pView = NULL);
-		// Note by Arpit Baldeva: Use this function to notify an event change associated with jobs. Each job has a ViewProcessInfo attached with it.
-		void NOTIFY_PROCESS_STATUS(ViewProcessInfo& process,  VProcessStatus processStatus);
-
-		// Used to pass arguments and notify the game when custom registered javascript methods are called
-		struct JavascriptMethodInvokedInfo
-		{
-			static const unsigned MAX_ARGUMENTS = 10;
-            
-            View*                           mpView;    
-			const char*						mMethodName;
-			unsigned						mArgumentCount;
-			JavascriptValue					mArguments[MAX_ARGUMENTS];
-			JavascriptValue					mReturn;
-		};
-
-		// Used to carry the state of a custom javascript property
-		struct JavascriptPropertyInfo
-		{
-			View*                           mpView;    
-            const char*						mPropertyName;
-			JavascriptValue					mValue;		
-		};
-
-		//At the time of writing, we don't have a way to figure out network error other than Timeout. We'll be able to do so with future enhancement in 
-		//DirtySDK.
-		enum NetworkErrorType
-		{
-			kNetworkErrorUnknown = 0,
-			kNetworkErrorTimeOut,
-			kNetworkErrorSSLCert
-		};
-
-		struct NetworkErrorInfo
-		{
-			NetworkErrorType	mNetworkErrorType;
-			int32_t				mNetworkErrorCode;//This is the code that we get from DirtySDK. This would depend on the NetworkErrorType. We just pass it along.
-			NetworkErrorInfo(NetworkErrorType networkErrorType = kNetworkErrorUnknown)
-				: mNetworkErrorType(networkErrorType)
-				, mNetworkErrorCode(0)
-			{
-
-			}
-		};
-
-        // UriHistoryChanged notification info       
-        // To notify when an item has been added/removed to the back/forward history       
-        struct UriHistoryChangedInfo
-        {
-            View*							mpView;                 // View context
-			EASTLFixedString16Wrapper		mURI;                   // URI that is being added 
-            bool                            mIsAdded;               // true if added and false if removed
-        };
-
-        // The user can provide an instance of this interface to the View class.
-        // The user should return true if the user handled the notification, 
-        // and false if not. A return value of false means that the user wants 
-        // the caller to do default handling of the notification on its own.
-        // To consider: some of these notifications may be View-specific and it
-        // might be a good idea to make a View::SetViewNotification() for them.
-        class ViewNotification
-        {
-        public:
-                
-            
-            virtual ~ViewNotification() { }
-
-            virtual bool CursorChanged   		(CursorChangeInfo&)     	{ return false; }
-            virtual bool DrawScrollbar   		(ScrollbarDrawInfo&)    	{ return false; }
-            virtual bool DrawFocusRing   		(FocusRingDrawInfo&)    	{ return false; }  // A focus ring is a highlight around a link or input element indicating it has focus.
-            virtual bool DrawButton      		(ButtonDrawInfo&)       	{ return false; }
-            virtual bool DrawTextArea    		(TextFieldDrawInfo&)    	{ return false; }
-            virtual bool DrawPopupMenu   		(PopupMenuDrawInfo&)    	{ return false; }
-            virtual bool ViewUpdate      		(ViewUpdateInfo&)       	{ return false; }  // This should not be called directly but should be called through View::ViewUpdated().
-            virtual bool Error           		(ErrorInfo&)            	{ return false; }
-            virtual bool AssertionFailure		(AssertionFailureInfo&) 	{ return false; }
-            virtual bool DebugLog        		(DebugLogInfo&)         	{ return false; }
-            virtual bool LinkSelected    		(LinkNotificationInfo&) 	{ return false; }
-            virtual bool LoadUpdate      		(LoadInfo&)             	{ return false; }
-            virtual bool ChooseFile      		(FileChooserInfo&)      	{ return false; }
-            virtual bool GetString       		(StringInfo&)           	{ return false; }
-            virtual bool Authenticate    		(AuthenticationInfo&)   	{ return false; }  // Called when there is a page authentication challenge by the server.
-            virtual bool TextInputState  		(TextInputStateInfo&)   	{ return false; }
-            virtual bool ClipboardEvent  		(ClipboardEventInfo&)   	{ return false; }
-			virtual bool XMLHttpRequestEvent	(XMLHttpRequestEventInfo&)	{ return false; }
-            virtual bool ViewProcessStatus      (ViewProcessInfo&)          { return false; } // To notify for start and end of certain key processes
-			virtual bool NetworkError			(NetworkErrorInfo&)			{ return false; }
-			virtual bool JavascriptMethodInvoked	(JavascriptMethodInvokedInfo&)	{ return false; }
-			virtual bool GetJavascriptProperty		(JavascriptPropertyInfo&)		{ return false; }
-			virtual bool SetJavascriptProperty		(JavascriptPropertyInfo&)		{ return false; }
-   			virtual bool UriHistoryChanged 	        (UriHistoryChangedInfo&)		{ return false; } 
-        };
-
-        // This is called by the user so that the user is notified of significant
-        // events during the browsing process. There can be only a single ViewNotification
-        // in place, and if you want to support more than one then you should implement
-        // a proxy ViewNotification which handles this.
-        EAWEBKIT_API void              SetViewNotification(ViewNotification* pViewNotification);
-        EAWEBKIT_API ViewNotification* GetViewNotification();
-
-
-        ///////////////////////////////////////////////////////////////////////
-        // Javascript Value
-        ///////////////////////////////////////////////////////////////////////
-        // Use these when you want a return value from EvaluateJavaScript().  Make sure to destroy the pointer when no longer needed.
-        EAWEBKIT_API EA::WebKit::JavascriptValue* CreateJavaScriptValue(); 
-        EAWEBKIT_API void DestroyJavaScriptValue(EA::WebKit::JavascriptValue* pValue);  
-
-
-        ///////////////////////////////////////////////////////////////////////
-        // View
-        ///////////////////////////////////////////////////////////////////////
-
-        // View enumeration.
-        // These functions are not thread-safe with respect to lifetime management
-        // of View instances. You cannot be creating and destroying Views in other
-        // threads while using these functions. However, these functions will execute
-        // a memory read barrier upon reading the View maintentance data structures
-        // to handle the case whereby you may have manipulated Views from other threads
-        // but know that there is no further manipulation occurring.
-
-        EAWEBKIT_API int   GetViewCount();                           // Get the current number of EA::WebKit::Views.
-        EAWEBKIT_API View* GetView(int index);                       // Get the nth EA::WebKit::View, in range if [0, GetViewCount).
-        EAWEBKIT_API bool  IsViewValid(View* pView);                 // 
-        EAWEBKIT_API View* GetView(::WebView* pWebView);             // Get an EA::WebKit::View from a WebKit WebView.
-        EAWEBKIT_API View* GetView(::WebFrame* pWebFrame);           // Get an EA::WebKit::View from a WebKit WebFrame.
-        EAWEBKIT_API View* GetView(WebCore::Frame* pFrame);          // Get an EA::WebKit::View from a WebCore::Frame.
-        EAWEBKIT_API View* GetView(WebCore::FrameView* pFrameView);  // Get an EA::WebKit::View from a WebCore::FrameView.
-
-		EAWEBKIT_API View* CreateView();
-		EAWEBKIT_API void DestroyView(View* pView);
-
-        // View default values
-        enum ViewDefault
-        {
-            kViewWidthDefault  = 800,
-            kViewHeightDefault = 600
-        };
-
-
-        // Initialization parameters for the View class.
-        struct EAWEBKIT_API ViewParameters
-        {
-            int   mWidth;                           // Defaults to 800
-            int   mHeight;                          // Defaults to 600
-            bool  mbScrollingEnabled;               // Defaults to true
-            bool  mbHScrollbarEnabled;              // Defaults to true
-            bool  mbVScrollbarEnabled;              // Defaults to true
-            bool  mbHighlightingEnabled;            // Defaults to false
-            bool  mbTransparentBackground;          // Defaults to false
-            bool  mbTabKeyFocusCycle;               // Defaults to true
-            bool  mbRedrawScrollbarOnCursorHover;   // Defaults to false
-
-            ViewParameters();
-        };
-
-		// Directions : JumpUp, JumpDown, JumpLeft, JumpRight
+		// Jump directions enumeration when navigating through a controller
 		enum JumpDirection
 		{
 			JumpUp=0,
@@ -636,310 +140,472 @@ namespace EA
 			JumpRight
 		};
 
-		// Focus directions
+		// Optional parameters to tune Jump algorithm as per your application requirements.
+		// It is advisable to keep default and analyze the navigation behavior of your application. If that does not suite your requirements, you may want to use following to tune it some.
+		struct JumpNavigationParams
+		{
+			float mNavigationTheta;	// Angle in radians around the current node in which the new nodes should be searched. For example, if you specify 0.0f, it will mostly move horizontally or vertically.   
+			bool mStrictAxesCheck;	// If you use strict axes check, only elements with their bounding rectangle completely on the intended side of Jump are considered. Otherwise, an element whose bounding rect starts at the opposite side but extends its width/height to the jump direction is considered as well. Setting it to true is going to be more efficient as well.
+			float mNumLinesToAutoScroll; // This is used when using D-Pad to move up/down/left/right. If the player is at the edge of the screen and presses a directional button in order to navigate to a currently invisible area, the view will scroll based on this setting. 1 line is roughly 40 pixel at the time of writing and unlikely to change. This could be pretty handy if you have say a list of items(For example, music tracks listing) that the player may be interested in scrolling through.
+			JumpNavigationParams()
+				: mNavigationTheta(1.5f)// It turns out that 1.5 is a better default choice(It was the hard coded value originally before clean up) for game UI menus which usually have items with varying width in a column.
+				, mStrictAxesCheck(true)
+				, mNumLinesToAutoScroll(2.0f)
+			{
+
+			}
+		};
+		
+		// Following is equivalent of tabbing (Tab key) or back tabbing (Shift + Tab Keys) behavior found in standard browsers.
 		enum FocusDirection
 		{
 			FocusDirectionForward=0,
 			FocusDirectionBackward
 		};
 
-		// Defines an overlay surface (such as a popup menu) that covers 
-		// our main surface.
-		struct OverlaySurfaceInfo
-		{
-			EA::Raster::Surface* mpSurface;
-			EA::Raster::Rect     mViewRect;
-		};
+		// View is a simplified interface to WebKit's WebView.
+		// This class is not thread-safe, you cannot safely use it from multiple 
+		// threads simultaneously. Nor can you create multiple View instances and 
+		// use them from different threads. This is due to the design of WebKit 
+		// itself and there are no plans by the WebKit community to change this.
+		// The Qt documentation at http://doc.trolltech.com/4.4/qwebview.html describes
+		// their WebView, which is similar to ours.
+		// Note that you can create multiple instances of View class on same thread.
 		
-        // View is a simplified interface to WebKit's WebView.
-        // This class is not thread-safe, you cannot safely use it from multiple 
-        // threads simultaneously. Nor can you create multiple View instances and 
-        // use them from different threads. This is due to the design of WebKit 
-        // itself and there are no plans by the WebKit community to change this.
-        // The Qt documentation at http://doc.trolltech.com/4.4/qwebview.html describes
-        // their WebView, which is similar to ours.
-
-		class NodeListContainer;
-		class OverlaySurfaceArrayContainer;
-		class EAWebKitJavascriptDebugger;
 
 		class EAWEBKIT_API View
-        {
-        public:
-            View();
-            virtual ~View();
+		{
+		public:
+			View();
+			virtual ~View();
 
+			//
+			// APIs related to setup/tear down
+			//
+			virtual bool InitView(const ViewParameters& vp);
+			virtual void ShutdownView();
 
-            ///////////////////////////////
-            // Setup / configuration
-            ///////////////////////////////
+			//
+			// APIs related to Runtime
+			//
+			// Call this function repeatedly. Returns true if the surface was changed.
+			virtual bool Tick();
 
-            virtual bool InitView(const ViewParameters& vp);
-            virtual void ShutdownView();
-
-            // View size in pixels. Includes scrollbars if present
-            virtual void GetSize(int& w, int& h) const;
-            virtual bool SetSize(int w, int h);
-
-            // Font defaults 
-            // To set alternative font defaults, call GetWebView()->setPreferences(WebPreferences* prefs);
-
-
-            ///////////////////////////////
-            // URI navigation
-            ///////////////////////////////
-
-            virtual bool SetURI(const char* pURI);
-            virtual bool LoadResourceRequest(const WebCore::ResourceRequest& resourceRequest);
-			virtual const char16_t* GetURI();
-            virtual bool SetHTML(const char* pHTML, size_t length, const char* pBaseURL = NULL);
-            virtual bool SetContent(const void* pData, size_t length, const char* pMimeType, const char* pEncoding = NULL, const char* pBaseURL = NULL);
-            virtual void CancelLoad();
-            virtual bool GoBack();
-            virtual bool GoForward();
-            virtual void Refresh();
-            virtual bool CanGoBack(uint32_t count=1);       // Count is how many items to go back, default to 1, returns true if can go back the requested count.
-            virtual bool CanGoForward(uint32_t count=1);    // Count is how many items it can go forward, default to 1, returns true if can go forward the requested count.
-            
-            ///////////////////////////////
-            // Misc
-            ///////////////////////////////
-
-            virtual LoadInfo&						GetLoadInfo();
-            virtual bool                            EvaluateJavaScript(const char* pScriptSource, size_t length, EA::WebKit::JavascriptValue* pReturnValue = NULL ); // Returns true if it found a valid return type and stored it in the pReturnValue
-            virtual TextInputStateInfo&				GetTextInputStateInfo();            
-            virtual void							GetCursorPosition(int& x, int& y) const; // Access the current cursor position (mouse, pointer, etc)
-
-			virtual void							AttachJavascriptDebugger();
-
-
-            ///////////////////////////////
-            // Runtime
-            ///////////////////////////////
-
-            // Call this function repeatedly.
-            // Returns true if the surface was changed.
-            virtual bool Tick();
-
-            // This is called by our WebKit-level code whenever an area of the
-            // view has been redrawn. It does any internal housekeeping and then
-            // calls the user-installed ViewNotification. View updates should go
-            // through this function instead of directly calling the user-installed
-            // ViewNotification callback.
-            // Users of EAWebKit shouldn't normally need to use this function unless  
-            // manually manipulating the draw Surface.
-            virtual void ViewUpdated(int x = 0, int y = 0, int w = 0, int h = 0);
-
-            // Triggers a forced HTML-level redraw of an area of the view.
-            // Users of EAWebKit shouldn't normally need to use this function unless  
-            // manually manipulating the draw Surface.
-            virtual void RedrawArea(int x = 0, int y = 0, int w = 0, int h = 0);
-
-            // Scrolls the view by a given x/y delta in pixels.
-            virtual void Scroll(int x, int y);
-			virtual void GetScrollOffset(int& x, int& y);
-
-
-            ///////////////////////////////
-            // Input events
-            ///////////////////////////////
-
-            // These functions are called by the application to notify the View
-            // of input events that have occurred.
-            // The x and y positions are relative to View origin, which is at the 
-            // top-left corner and goes rightward and downward.
-            virtual void OnKeyboardEvent(const KeyboardEvent& keyboardEvent);
-            virtual void OnMouseMoveEvent(const MouseMoveEvent& mouseMoveEvent);
-            virtual void OnMouseButtonEvent(const MouseButtonEvent& mouseButtonEvent);
-            virtual void OnMouseWheelEvent(const MouseWheelEvent& mouseWheelEvent);
-            virtual void OnFocusChangeEvent(bool bHasFocus);
-
-            // This allows the user to implement modal view input processing, whereby 
-            // input is directed to the ModalInputClient instead of to WebKit. This is useful
-            // for implementing modal dialogs and popups within the view. Alternatively,
-            // an application can handle this entirely externally. 
-            virtual bool SetModalInput(ModalInputClient* pModalInputClient);
-            virtual ModalInputClient* GetModalInputClient() const;
-
-
-            ///////////////////////////////
-            // Overlay Surfaces
-            ///////////////////////////////
-
-            // Add or move an overlay surface.
-            // An overlay surface is a surface that is drawn on top of the WebKit View and 
-            // can be moved around. This allows for the implementation of overlay windows 
-            // on top of the main View Surface.
-            virtual void SetOverlaySurface(EA::Raster::Surface* pSurface, const EA::Raster::Rect& viewRect);
-
-            // Remove an existing overlay surface.
-            virtual void RemoveOverlaySurface(EA::Raster::Surface* pSurface);
-
-
-            ///////////////////////////////
-            // WebKit Accessors
-            ///////////////////////////////
-
-            // Get the underlying WebKit WebView object.
-            // The WebView is the highest level container for a web browser window;
-            // It is the container of the doc/view and corresponds to a single web
-            // browser view, such as a tab in FireFox. Multiple WebViews correspond
-            // to multiple tabs, each with its own URL and page history.
-            // From WebView you can get the WebView's Frame, FrameView, Page, etc.
-            virtual ::WebView* GetWebView() const;
-
-            // Get the View's WebFrame.
-            // The WebFrame is the doc portion of the doc/view model, but it seems
-            // to be a higher level wrapper for the Frame class, which itself is
-            // a doc model. It remains to be understood why there are separate
-            // WebFrame and Frame classes instead of a single class.
-            virtual ::WebFrame* GetWebFrame() const;
-
-            // Get the View's Frame.
-            // The Frame is the the lower level implementation of the doc part of 
-            // the doc/view model.
-            virtual WebCore::Frame* GetFrame() const;
-
-            // Get the View's FrameView.
-            // The FrameView is the 'view' part of the doc/view model.
-            virtual WebCore::FrameView* GetFrameView() const;
-
-            // Get the View's top level Page.
-            // The page represents a lower level of the Frame's data.
-            // It's not clear why Page is separated from Frame in the class
-            // hierarchy.
-            virtual WebCore::Page* GetPage() const;
-
-            // Get the View's top level Document.
-            // The document represents the HTML content of a web page.
-            virtual WebCore::Document* GetDocument() const;
-
-            // Get the View's surface.
-            // The surface is the actual bits of the frame view.
-            virtual EA::Raster::Surface* GetSurface() const;
-
-            // Returns estimated load progress as a value in the range of [0.0, 1.0]
-            virtual double GetEstimatedProgress() const;
-
-            // Accessor for view parameters
-            virtual const ViewParameters& GetParameters() { return mViewParameters; }
-
-            // Accessor for LinkHookManager.
-            virtual LinkHookManager& GetLinkHookManager() { return mLinkHookManager; }
-
-			// For quickly moving between tabable elements with DPAD (NESW or standard tab index navigation)
-			virtual bool JumpToNearestElement(EA::WebKit::JumpDirection direction);
-			virtual void AdvanceFocus(EA::WebKit::FocusDirection direction, const EA::WebKit::KeyboardEvent& event);
-			virtual bool JumpToFirstLink(const char* jumpToClass, bool skipJumpIfAlreadyOverElement);
-			virtual bool JumpToId(const char* jumpToId);
-			virtual void UpdateCachedHints(WebCore::Node* node);
-
-			// Enter text into box
-			virtual void EnterTextIntoSelectedInput(const char* text);
-            virtual uint32_t GetTextFromSelectedInput(char* pTextBuffer, const uint32_t bufferLenght);
 			
+			//
+			// APIs related to URI navigation
+			//
+			virtual bool			SetURI(const char* pURI);
+			virtual const char16_t* GetURI();
+			virtual bool			CanGoBack(uint32_t count=1);       // Count is how many items to go back, default to 1, returns true if can go back the requested count.
+			virtual bool			GoBack();//Don't need to call CanGoBack() in order to GoBack()
+			virtual bool			CanGoForward(uint32_t count=1);    // Count is how many items it can go forward, default to 1, returns true if can go forward the requested count.
+			virtual bool			GoForward();//Don't need to call CanGoForward() in order to GoForward()
+			virtual void			Refresh(); //Refresh/Reload.
+			virtual void			CancelLoad();
+
+			//
+			// APIs related to Input events
+			//
+			// These functions are called by the application to notify the View of input events that have occurred.
+			// The x and y positions are relative to View origin, which is at the top-left corner and goes rightward and downward.
+			virtual void OnKeyboardEvent(const KeyboardEvent& keyboardEvent);
+			virtual void OnMouseMoveEvent(const MouseMoveEvent& mouseMoveEvent);
+			virtual void OnMouseButtonEvent(const MouseButtonEvent& mouseButtonEvent);
+			virtual void OnMouseWheelEvent(const MouseWheelEvent& mouseWheelEvent);
+			virtual void OnFocusChangeEvent(bool bHasFocus);
+
+									
+			//
+			// APIs related to Javascript
+			//
+			virtual bool EvaluateJavaScript(const char* pScriptSource, size_t length, EA::WebKit::JavascriptValue* pReturnValue = NULL ); // Returns true if it found a valid return type and stored it in the pReturnValue
+			virtual bool EvaluateJavaScript(const char16_t* pScriptSource, size_t length, EA::WebKit::JavascriptValue* pReturnValue = NULL ); // Returns true if it found a valid return type and stored it in the pReturnValue
+			virtual void AttachJavascriptDebugger(); //currently not implemented.
+
+			
+			//
+			// APIs related to Javascript Binding
+            //
+			// - First register a bound object using CreateJavascriptBindings (eg. CreateJavascriptBindings("EA"))
+			// - Then register methods & listen to callbacks through the ViewNotification (eg. RegisterJavascriptMethod("Trace"))
+			// - eg. (in javascript)
+			//         EA.Trace('message');
+			//		   EA.PlaySoundEffect('bell')'
+			virtual void CreateJavascriptBindings(const char* bindingObjectName);
+			virtual void RegisterJavascriptMethod(const char* name);
+			virtual void UnregisterJavascriptMethod(const char* name);
+			virtual void RegisterJavascriptProperty(const char* name);
+			virtual void UnregisterJavascriptProperty(const char* name);
+			virtual void RebindJavascript();
+
+			
+						
+			//
+			// APIs for Navigation using a Controller.
+			//
+			//
+			// Since a typical console user won't have a keyboard/mouse, you can use following methods to navigate on a web page using the controller.
+			// There is always an "invisible to the app cursor" inside EA::WebKit::View surface which is used for dealing with WebKit internals. When a cursor is
+			// referred to in the following APIs, it is meant to be this internal cursor. Of course, an application can choose to draw the cursor
+			// by obtaining its position from the API.
+			//
+			// All the Jump* APIs below move this cursor to the element. Note that this is equivalent to the cursor "hovering" on the element(onmouseover event) 
+			// and not "focusing"(onfocus event).
+			/////////////////////////////////
+
+			
+			// This is called by the navigation scheme.
+			virtual void SetJumpNavigationParams(const JumpNavigationParams& jumpNavigationParams);
+
+			// For quickly moving between elements with DPAD (NESW or standard tab index navigation)
+			// Based on the jump direction, move the cursor to the next natural navigable element. (Natural == One found by the internal navigation algorithm)
+			// Note that while the navigation algorithm mostly works as expected, there are times when it does not. This situation may arise due to an edge case or simply just how the 
+			// application may want the Jump API to behave. You can solve such situations through your web page.
+			// You can assign a custom attribute to an element with the navigation hints. You may also want to ignore navigation in a certain direction when on a certain element.
+
+			// For example, if the cursor is currently over the element with the id "current", and you want it to jump to the element with id "next" regardless of the layout when the 
+			// user presses right on d-pad(or any other button based on your input mapping) and you also want to ignore any left direction movement, the html may look like 
+			// <input type="text"  id="current" navigationright="next" navigationleft="ignore"  />
+			// <a href="some_page.htm" id="next" />
+
+			// As of 09/20/2010, the tags are hard coded to "navigationup", "navigationdown", "navigationleft", "navigationright". Ignore is hard coded to "ignore".
+			virtual bool JumpToNearestElement(EA::WebKit::JumpDirection direction);
+			
+			// 09/17/10 - Note by Arpit Baldeva - JumpToFirstLink should be deprecated now. We have added code that can move the mouse cursor to the focus element through javascript. 
+			// So this can be handled in a page without requiring a custom tag.
+			// Even if we have to keep this API, I am ambivalent if it should probably be written in terms of id or the class.
+			
+			// jumpToClass is a tag(for example, "navigation_jumpto_onpageload" class on an element on the page)
+			// skipJumpIfAlreadyOverElement is currently not useful as it expects the caller to know if they are already over the element and then
+			// skips the navigation. But if you already know that you are, then why would you call this API anyway? You would want it to remain
+			// false. A correct implementation should call IsAlreadyOverNavigableElement() inside JumpToFirstLink.
+			// If an element with jumpToClass is not found, this API tries to jump to the first navigable element found.
+			virtual bool JumpToFirstLink(const char* jumpToClass, bool skipJumpIfAlreadyOverElement = false);
+			
+			// Use following to move the cursor to the element with the associated id on the page. This is used internally by the JumpToNearestElement if the web page provides the hint to
+			// jump to an element. An application may find following useful as well.
+			virtual bool JumpToId(const char* jumpToId);
+
+			// Following behaves similar to pressing the "tab" key on the keyboard when navigating through a page on PC. As of 09/20/2010, the KeyboardEvent is ignored and only focus 
+			// direction is used. It moves the cursor internally. However, it seems advisable that a team solely rely on the Jump* APIs for their navigation needs rather than mix and match.
+			virtual void AdvanceFocus(EA::WebKit::FocusDirection direction, const EA::WebKit::KeyboardEvent& event);
+
+			
+			// An application can bind a button to an element on the page and call following to click the element with the specified id without the need of manual navigation by the user.
+			// For example, <a href="home_page.htm" id="start_button" /> maps "start button" to the home_page.htm. The user can press start button from anywhere on the page and can navigate
+			// to the binded link.
+			// Note that you can only click <a/> or <button/> element.
+			virtual bool ClickElementById(const char* id);
+
+			// Same as above except that it takes a class as input.
+			virtual bool ClickElementsByClass(const char* className);
+
+			// Same as above except that it first searches for either a matching id and then class name.
+			virtual bool ClickElementsByIdOrClass(const char* idOrClassName);
+
+			// Simply emulate a mouse click at whatever location the cursor is.
+			virtual bool Click();
+			
+			// Use following to figure out if the cursor is already over some element that can be navigated to using the navigation API. It is probably not much useful as you may only
+			// want to know when moving from one page to another. And in that case, most likely you want to be on a specific element on the new page. 
+			virtual bool IsAlreadyOverNavigableElement();
+			
+			// 09/23/2010 - Note by Arpit Baldeva - Make private. This should not be used by the application. And it should be renamed to MoveCursorToFocusedElement. It moves the cursor to the 
+			// elements when advancing the focus using the tab style movement provided by WebKit (View::AdvanceFocus(...)).
 			virtual void MoveMouseCursorToFocusElement();
-			virtual void MoveMouseCursorToNode(WebCore::Node* node);
+			
+			// 09/23/2010 - Note by Arpit Baldeva - Make private. This should not be used by the application. And it should be renamed to MoveCursorToNode. It moves the cursor to the 
+			// node obtained by other high level APIs.
+			// We scroll inside this function if told. This is requied if the application uses other View public API (JumpToId etc. type of API) and the actual element may be out of 
+			// visible area. 
+			virtual void MoveMouseCursorToNode(WebCore::Node* node, bool scrollIfNecessary = true);
+			
+			// 09/23/2010 - Note by Arpit Baldeva - Make private. This is used internally by EA::WebKit:View and the navigation is driven through the web page. 
+			// This should be called UpdateNavigationHints(FromPage).
+			virtual void UpdateCachedHints(WebCore::Node* node);
+			
+			// Access the current cursor position. Normally, in a custom application page, you don't require this and can(should) have the CSS handle the visual aspect of the navigation.
+			// However, it can be handy to do any debugging by displaying a "mouse pointer/cursor" or in a demo application that renders any random page.
+			virtual void GetCursorPosition(int& x, int& y) const; 
+
+			// Normally, this is not required for an application. But can be handy for some debugging.
 			virtual void SetCursorPosition(int x, int y);
 
+			
+
+#if EAWEBKIT_ENABLE_JUMP_NAVIGATION_DEBUGGING
+			// Following are debug calls for navigation system. An application does not need to worry about it.
+			// BEGIN
+			//
 			virtual void DrawFoundNodes(DrawNodeCallback callback);
 			virtual void DrawBestNode(DrawNodeCallback callback);
 			virtual void DrawSearchAxes(DrawAxesCallback callback);
 			virtual void DrawRejectedByRadiusNodes(DrawNodeCallback callback);
 			virtual void DrawRejectedByAngleNodes(DrawNodeCallback callback);
 			virtual void DrawRejectedWouldBeTrappedNodes(DrawNodeCallback callback);
+			//
+			// END
+			//
+#endif
+			
+			
+			
+			//
+			//APIs related to handling input fields.
+			//
+			//Use following two APIs to enter(set) and get the text from a selected <input/> or <textarea/> element when using emulated keyboard.
+			//contentTextBuffer is expected to be null-terminated. This goes in the input field.
+			//textWasAccepted is added to indicate if the emulated keyboard went away without user accepting the text. This way we can blur the focused element even if the input was  
+			//discarded by user. It defaults to true in order to be backward compatible.One other way would be to introduce a new API to simply blur to input field.
+			virtual void		EnterTextIntoSelectedInput(const char16_t* contentTextBuffer, bool textWasAccepted = true); 
+			//Read both the contents of an input field and associated helper text(html "title" attribute).
+			virtual uint32_t	GetTextFromSelectedInput(char16_t* contentTextBuffer, const uint32_t maxcontentTextBufferLength, char16_t* titleTextBuffer = 0, const uint32_t maxTitleTextBufferLength = 0 );
 
-			virtual void AttachEventsToInputs(KeyboardCallback callback);
-			virtual void AttachEventToElementBtId(const char* id, KeyboardCallback callback);
+			//09/23/2010 - Note by Arpit Baldeva - Following two should be deprecated as the platform keyboard API deals with wide chars only.
+			virtual void		EnterTextIntoSelectedInput(const char* textBuffer, bool textWasAccepted = true);
+			virtual uint32_t	GetTextFromSelectedInput(char8_t* contentTextBuffer, const uint32_t maxcontentTextBufferLength, char8_t* titleTextBuffer = 0, const uint32_t maxTitleTextBufferLength = 0 );
+			
+			
+			
+			//
+			// APIs related to setting the web page/element content from application 
+			//
+			virtual bool LoadResourceRequest(const WebCore::ResourceRequest& resourceRequest);
+			virtual bool SetHTML(const char* pHTML, size_t length, const char* pBaseURL = NULL);
+			virtual bool SetContent(const void* pData, size_t length, const char* pMimeType, const char* pEncoding = NULL, const char* pBaseURL = NULL);
+			// 09/20/2010 - Note by Arpit Baldeva - This should be renamed to SetInnerHTMLById as it more easily understood. It remains to be seen why this should be exposed to the application.
 			virtual void SetElementTextById(const char* id, const char* text);
 			virtual void SetElementText(WebCore::HTMLElement* htmlElement, const char* text);
-			virtual void SetInputElementValue(WebCore::HTMLElement* htmlElement, char16_t* text);
-			virtual bool IsAlreadyOverNavigableElement();
 
-            virtual bool ClickElementById(const char* id);
-			virtual bool ClickElementsByClass(const char* id);
-			virtual bool ClickElementsByIdOrClass(const char* id);
-
-            virtual void ResetForNewLoad();
-            virtual void BlitOverlaySurfaces();
-     			
-			//////////////////////////////////////////////////////////////////////////
-			// Javascript Binding
+			
 			//
-			// - There is an EA javascript object globally available
-			// - To use it you must register methods & listen to callbacks through the ViewNotification
-			// - eg. (in javascript)
-			//         EA.Trace('message');
-			//		   EA.PlaySoundEffect('bell')'
-			virtual void CreateJavascriptBindings(const char* bindingObjectName);
-			virtual void RegisterJavascriptMethod(const char* name);
-			virtual void RegisterJavascriptProperty(const char* name);
-			virtual void UnregisterJavascriptMethod(const char* name);
-			virtual void UnregisterJavascriptProperty(const char* name);
-			virtual void RebindJavascript();
-     		
+			// Misc APIs
+			//
+			// Note by Arpit Baldeva: It seems to me that an application should not need it. However, this is currently in use.
+			virtual LoadInfo& GetLoadInfo();
+            //Get underlying Graphics Context of the EA::WebKit::View. The surface is the actual bits of the frame view.
+			virtual EA::Raster::ISurface* GetSurface() const;  
+			// View size in pixels. Includes scrollbars if present
+			virtual void GetSize(int& w, int& h) const;
+			virtual bool SetSize(int w, int h);
+			
+			// Accessors for setting the emulation mode on PC
+			virtual bool IsEmulatingConsoleOnPC() const;
+			virtual void SetEmulatingConsoleOnPC(bool emulatingConsoleOnPC);
 
-        private:
-            ::WebView*						    mpWebView;
-            EA::Raster::Surface*				mpSurface;
-            ViewParameters						mViewParameters;
-            LoadInfo							mLoadInfo;
-            EA::Raster::Point					mCursorPos;
-            ModalInputClient*					mpModalInputClient;    // There can only be one at a time.
-            OverlaySurfaceArrayContainer*	    mOverlaySurfaceArrayContainer;
-            LinkHookManager						mLinkHookManager;
-            TextInputStateInfo					mTextInputStateInfo;   // For tracking if text edit mode is on or off
-            KJS::Debugger*						mDebugger;
+			
+			
+			
+			//
+			// APIs related to Emulated Keyboard handling
+			// 
+			// 09/20/2010 - Note by Arpit Baldeva - Following two should be deprecated. The detection of an input field is now automatic and ViewNotification::TextInputState(...)
+			// is called for showing a keyboard. 
+			virtual void AttachEventsToInputs(KeyboardCallback callback);
+			virtual void AttachEventToElementBtId(const char* id, KeyboardCallback callback);
+			// 09/20/2010 - Note by Arpit Baldeva - Following should be deprecated as the keyboard input handling is automatic.
+			virtual void SetInputElementValue(WebCore::HTMLElement* htmlElement, char16_t* text);
+			//
+
+			
+			//
+			// APIs related to Scroll abaldeva:TODO - Deprecate?
+			//
+			// Scrolls the view by a given x/y delta in pixels. 
+			// This function will only be able to scroll on the main view. 
+			virtual void Scroll(int x, int y);
+			// This scroll works exactly like a mouse wheel - scroll lines are the number of lines to scroll down by
+			// and scroll delta is the mouse zDelta. xScrollLines and yScrollLines are the speed at which one wants to scroll.
+			virtual void Scroll(bool xAxisScroll, bool yAxisScroll, int xScrollLines, int xScrollDelta,	int yScrollLines, int yScrollDelta); 
+			virtual void GetScrollOffset(int& x, int& y);//10/11/2010 - Note by Arpit Baldeva - This should be private.
+
+					
+
+			
+
+			
+			//
+			// Add any API expected to be called by the application above this line.
+			//
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			//
+			// BEGIN - APIs normally not needed to be called by an application.
+			//
+				// Returns estimated load progress as a value in the range of [0.0, 1.0]. An application normally does not need to call it as it can read this information from the 
+				// ViewNotification::LoadUpdate.
+				virtual double					GetEstimatedProgress() const;
+				virtual const ViewParameters&	GetParameters() { return mViewParameters; }
+				virtual LinkHookManager&		GetLinkHookManager() { return mLinkHookManager; }
+				virtual TextInputStateInfo&		GetTextInputStateInfo();// 09/23/2010 - Note by Arpit Baldeva - This should be deprecated as it is not useful.             
+				virtual void					ResetForNewLoad();//09/23/2010 - Note by Arpit Baldeva - This should be deprecated as it is not useful.
+
+				//
+				// APIs related to Overlay Surfaces
+				//
+				//abaldeva:TODO - Make overlay surface related APIs private?
+				// Add or move an overlay surface.
+				// An overlay surface is a surface that is drawn on top of the WebKit View and 
+				// can be moved around. This allows for the implementation of overlay windows 
+				// on top of the main View Surface.
+				virtual void SetOverlaySurface(EA::Raster::ISurface* pSurface, const EA::Raster::Rect& viewRect);
+				// Remove an existing overlay surface.
+				virtual void RemoveOverlaySurface(EA::Raster::ISurface* pSurface);
+				//abaldeva:TODO - make private
+				virtual void BlitOverlaySurfaces();
+
+				//
+				// APIs internal to EAWebKit use. An application is not expected to call following.
+				//
+				virtual bool SetModalInput(ModalInputClient* pModalInputClient);
+				virtual ModalInputClient* GetModalInputClient() const;
+
+				// This is called by our WebKit-level code whenever an area of the view has been redrawn. It does any internal housekeeping and then
+				// calls the user-installed ViewNotification. View updates should go through this function instead of directly calling the user-installed
+				// ViewNotification callback. Users of EAWebKit shouldn't normally need to use this function unless manually manipulating the draw Surface.
+				virtual void ViewUpdated(int x = 0, int y = 0, int w = 0, int h = 0);
+
+				// Triggers a forced HTML-level redraw of an area of the view. Users of EAWebKit shouldn't normally need to use this function unless  
+				// manually manipulating the draw Surface.
+				virtual void RedrawArea(int x = 0, int y = 0, int w = 0, int h = 0);
+
+
+
+				///////////////////////////////
+				// WebKit Accessors APIs. An application is not expected to call following.
+
+				// Get the underlying WebKit WebView object.
+				// The WebView is the highest level container for a web browser window;
+				// It is the container of the doc/view and corresponds to a single web
+				// browser view, such as a tab in FireFox. Multiple WebViews correspond
+				// to multiple tabs, each with its own URL and page history.
+				// From WebView you can get the WebView's Frame, FrameView, Page, etc.
+				virtual ::WebView* GetWebView() const;
+
+				// Update 10/19/2010 - Note by Arpit Baldeva: 
+				// In APIs below, such as GetWebFrame(), main Frame of the page is returned by default.
+				// If you pass in focusFrame boolean to be true, focused frame is returned. Note that it is possible to get NULL when 
+				// looking for focused frame as a frame does not get focus unless the user clicks on it.
+
+				// Get the View's WebFrame.
+				// The WebFrame is the doc portion of the doc/view model, but it seems
+				// to be a higher level wrapper for the Frame class, which itself is
+				// a doc model. It remains to be understood why there are separate
+				// WebFrame and Frame classes instead of a single class.
+				// Update - Indeed, the WebFrame serves as a high level wrapper of lower level WebCore::Frame and WebCore::FrameView classes. Some ports of WebKit have 
+				// WebFrameView wrapper for WebCore::FrameView. Our's does not.
+				virtual ::WebFrame* GetWebFrame(bool focusFrame = false) const;
+
+				// Get the View's Frame.
+				// The Frame is the the lower level implementation of the doc part of 
+				// the doc/view model.
+				virtual WebCore::Frame* GetFrame(bool focusFrame = false) const;
+
+
+				// Get the View's FrameView.
+				// The FrameView is the 'view' part of the doc/view model.
+				virtual WebCore::FrameView* GetFrameView(bool focusFrame = false) const;
+				
+				// Get the View's top level Document.
+				// The document represents the HTML content of a web page.
+				virtual WebCore::Document* GetDocument(bool focusFrame = false) const;
+
+				// Get the View's top level Page.
+				// The page represents a lower level of the Frame's data.
+				// It's not clear why Page is separated from Frame in the class
+				// hierarchy.
+				virtual WebCore::Page* GetPage() const;
+
+				
+			
+			//
+			// END - APIs normally not needed to be called by an application.
+			//
+
+
+		private:
+			virtual void ScrollOnJump(bool vertical, float numLinesDelta);
+			// Overloaded the public API with a private implementation detail. In case the element is not found when player is on edge, we scroll once to bring
+			// newer elements in the visible area and try again. 
+			virtual bool JumpToNearestElement(EA::WebKit::JumpDirection direction, bool scrollIfElementNotFound);
+
+			virtual void QueueRegionToDrawUpdate(int x, int y, int width, int height);
+			
+			::WebView*						    mpWebView;
+			EA::Raster::ISurface*				mpSurface;
+			ViewParameters						mViewParameters;
+			LoadInfo							mLoadInfo;
+			EA::Raster::Point					mCursorPos;
+			ModalInputClient*					mpModalInputClient;    // There can only be one at a time.
+			OverlaySurfaceArrayContainer*	    mOverlaySurfaceArrayContainer;
+			LinkHookManager						mLinkHookManager;
+			TextInputStateInfo					mTextInputStateInfo;   // For tracking if text edit mode is on or off
+			KJS::Debugger*						mDebugger;
 
 			NodeListContainer*					mNodeListContainer;
-			
+
+			WebCore::Frame*						mBestNodeFrame;//Frame where the last best node was found.
+			//abaldeva: Feel like following should be a higher level struct. Unfortunately, we can't expose WebCore::IntRect.
 			int									mBestNodeX;
 			int									mBestNodeY;
 			int									mBestNodeWidth;
 			int									mBestNodeHeight;
 			int									mCentreX;
 			int									mCentreY;
+#if EAWEBKIT_ENABLE_JUMP_NAVIGATION_DEBUGGING		
 			int									mAxesX;
 			int									mAxesY;
 			int									mMinX;
 			int									mMinY;
 			int									mMaxX;
 			int									mMaxY;
-
+#endif
 			EASTLFixedString8Wrapper			mCachedNavigationUpId;
 			EASTLFixedString8Wrapper			mCachedNavigationDownId;
 			EASTLFixedString8Wrapper			mCachedNavigationLeftId;
 			EASTLFixedString8Wrapper			mCachedNavigationRightId;
 
-			float								mNavigatorTheta;
 			EASTLFixedString16Wrapper			mURI;
 			BalObject*							mJavascriptBindingObject;
-			const char*							mJavascriptBindingObjectName;
-
+			EASTLFixedString8Wrapper			mJavascriptBindingObjectName;//changed this from char* to EASTLFixedString8Wrapper. We can't rely on char* to remain valid across CreateJavascriptBindings/RebindJavascript calls.
+			JumpNavigationParams				mJumpNavigationParams;
+            bool                                mOwnsViewSurface;     // Set if the surface is created by EAWebkit.
+			bool								mEmulatingConsoleOnPC;
         };
 
+
+		// View enumeration.
+        // These functions are not thread-safe with respect to lifetime management
+        // of View instances. You cannot be creating and destroying Views in other
+        // threads while using these functions. However, these functions will execute
+        // a memory read barrier upon reading the View maintenance data structures
+        // to handle the case whereby you may have manipulated Views from other threads
+        // but know that there is no further manipulation occurring.
+
+		EAWEBKIT_API View* CreateView();
+		EAWEBKIT_API void  DestroyView(View* pView);
+
+		EAWEBKIT_API int   GetViewCount();                           // Get the current number of EA::WebKit::Views.
+        EAWEBKIT_API View* GetView(int index);                       // Get the nth EA::WebKit::View, in range if [0, GetViewCount).
+        EAWEBKIT_API bool  IsViewValid(View* pView);                 // 
+        EAWEBKIT_API View* GetView(::WebView* pWebView);             // Get an EA::WebKit::View from a WebKit WebView.
+        EAWEBKIT_API View* GetView(::WebFrame* pWebFrame);           // Get an EA::WebKit::View from a WebKit WebFrame.
+        EAWEBKIT_API View* GetView(WebCore::Frame* pFrame);          // Get an EA::WebKit::View from a WebCore::Frame.
+        EAWEBKIT_API View* GetView(WebCore::FrameView* pFrameView);  // Get an EA::WebKit::View from a WebCore::FrameView.
+        
     } // namespace WebKit
 
 } // namespace EA
-
-namespace EA
-{
-	namespace WebKit
-	{
-		inline ViewParameters::ViewParameters()
-			: mWidth(kViewWidthDefault),
-			mHeight(kViewHeightDefault),
-			mbScrollingEnabled(true),
-			mbHScrollbarEnabled(true),
-			mbVScrollbarEnabled(true),
-			mbHighlightingEnabled(false),
-			mbTransparentBackground(false),
-			mbTabKeyFocusCycle(true),
-			mbRedrawScrollbarOnCursorHover(false)
-		{
-		}
-	}
-}
-
 
 #endif // Header include guard

@@ -94,7 +94,7 @@ namespace EA
 		class XMLHttpRequestEventListener : public WebCore::EventListener
 		{
 		public:
-			explicit XMLHttpRequestEventListener(ViewNotification* viewNotification) : mViewNotification(viewNotification) {}
+			explicit XMLHttpRequestEventListener(){}
 			virtual ~XMLHttpRequestEventListener() {}
 
 			virtual void handleEvent(WebCore::Event* event, bool isWindowEvent)
@@ -132,11 +132,11 @@ namespace EA
 					info.mTotal = progressEvent->total();
 					info.mLengthComputable = progressEvent->lengthComputable();
 
-					mViewNotification->XMLHttpRequestEvent(info);
+					EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();
+					if(pViewNotification)
+						pViewNotification->XMLHttpRequestEvent(info);
 				}
 			}
-		private:
-			ViewNotification* mViewNotification;
 		};
 	} // namespace WebKit
 } // namespace EA

@@ -221,9 +221,11 @@ namespace eastl
         }
 
 
-        inline allocator& allocator::operator=(const allocator&)
+        inline allocator& allocator::operator=(const allocator& EASTL_NAME(alloc))
         {
-            // To consider: Should we copy the name as well?
+            #if EASTL_NAME_ENABLED
+                mpName = alloc.mpName;
+            #endif
             return *this;
         }
 
@@ -248,18 +250,24 @@ namespace eastl
 
         inline void* allocator::allocate(size_t n, int flags)
         {
+            #if EASTL_NAME_ENABLED
+                #define pName mpName
+            #else
+                #define pName EASTL_ALLOCATOR_DEFAULT_NAME
+            #endif
+
             #if EASTL_DLL
                 // We currently have no support for implementing flags when 
                 // using the C runtime library operator new function. The user 
                 // can use SetDefaultAllocator to override the default allocator.
                 (void)flags;
-                return new char[n];
+                return ::new char[n];
+            #elif (EASTL_DEBUGPARAMS_LEVEL <= 0)
+                return ::new((char*)0, flags, 0, (char*)0,        0) char[n];
+            #elif (EASTL_DEBUGPARAMS_LEVEL == 1)
+                return ::new(   pName, flags, 0, (char*)0,        0) char[n];
             #else
-                #if EASTL_NAME_ENABLED
-                    return new(mpName, flags, 0, __FILE__, __LINE__) char[n];
-                #else
-                    return new(EASTL_ALLOCATOR_DEFAULT_NAME, flags, 0, __FILE__, __LINE__) char[n];
-                #endif
+                return ::new(   pName, flags, 0, __FILE__, __LINE__) char[n];
             #endif
         }
 
@@ -274,13 +282,15 @@ namespace eastl
                 EASTL_ASSERT(alignment <= 8); // 8 (sizeof(double)) is the standard alignment returned by operator new.
                 (void)alignment; (void)offset; (void)flags;
                 return new char[n];
+            #elif (EASTL_DEBUGPARAMS_LEVEL <= 0)
+                return ::new(alignment, offset, (char*)0, flags, 0, (char*)0,        0) char[n];
+            #elif (EASTL_DEBUGPARAMS_LEVEL == 1)
+                return ::new(alignment, offset,    pName, flags, 0, (char*)0,        0) char[n];
             #else
-                #if EASTL_NAME_ENABLED
-                    return new(alignment, offset, mpName, flags, 0, __FILE__, __LINE__) char[n];
-                #else
-                    return new(alignment, offset, EASTL_ALLOCATOR_DEFAULT_NAME, flags, 0, __FILE__, __LINE__) char[n];
-                #endif
+                return ::new(alignment, offset,    pName, flags, 0, __FILE__, __LINE__) char[n];
             #endif
+
+            #undef pName  // See above for the definition of this.
         }
 
 

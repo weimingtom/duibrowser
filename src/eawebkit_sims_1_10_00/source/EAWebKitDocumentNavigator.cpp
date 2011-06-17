@@ -32,6 +32,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <EAWebKit/internal/InputBinding/EAWebKitDocumentNavigator.h>
+#include <EAWebKit/internal/InputBinding/EAWebKitDocumentNavigationDelegates.h>
 #include <EAWebKit/internal/InputBinding/EAWebKitPolarRegion.h>
 #include <EAWebKit/internal/InputBinding/EAWebKitUtils.h>
 #include <NodeList.h>
@@ -42,19 +43,27 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <EAWebKit/internal/EAWebKitEASTLHelpers.h>
 #include <EAWebKit/internal/EAWebkitNodeListContainer.h>
 #include "RenderStyle.h"
+#include "Document.h"
+#include "FrameView.h"
+
+#include <float.h>
 
 namespace EA
 {
 	namespace WebKit
 	{
-		DocumentNavigator::DocumentNavigator(EA::WebKit::JumpDirection direction, WebCore::IntPoint startingPosition, int previousNodeX, int previousNodeY, int previousNodeWidth, int previousNodeHeight, float theta)
-			:	mDirection(direction)
+		DocumentNavigator::DocumentNavigator(EA::WebKit::View* view, WebCore::Document* document, EA::WebKit::JumpDirection direction, 
+			WebCore::IntPoint startingPosition, int previousNodeX, int previousNodeY, int previousNodeWidth, int previousNodeHeight, float theta, 
+			bool strictAxesCheck, float maxRadialDistance)
+			:	mView(view)
+			,	mDirection(direction)
 			,	mStartingPosition(startingPosition)
 			,	mPreviousNodeRect(previousNodeX,previousNodeY,previousNodeWidth,previousNodeHeight)
 			,	mBestNode(0)
-			,	mMinR(10000000.0f)
+			,	mDocument(document)
+			,	mMinR(maxRadialDistance)
+			,   mStrictAxesCheck(strictAxesCheck)
 			,	mNodeListContainer(0)
-			
 		{
 
 			mNodeListContainer = EAWEBKIT_NEW("NodeListContainer") NodeListContainer();//WTF::fastNew<NodeListContainer> ();
@@ -232,112 +241,176 @@ namespace EA
 		//
 		void DocumentNavigator::FindBestNode(WebCore::Node* rootNode)
 		{
-			//////////////////////////////////////////////////////////////////////////
-			// WORRY ABOUT YOURSELF 
-			if (rootNode->nodeType() == WebCore::Node::ELEMENT_NODE)
+			// Note by Arpit Baldeva - Changed the recursive algorithm to an iterative algorithm. This results in 25% to 40% increase in efficiency.
+			
+			while (rootNode) 
 			{
-				WebCore::Element* element = (WebCore::HTMLElement*)rootNode;
-				if (element->isHTMLElement())
+				IsNodeNavigableDelegate nodeNavigableDelegate(mView);
+				// As it turns out, getRect on HTMLElement is pretty expensive. So we don't do it inside the delegate as we require getRect here too. We do that check here.
+				// It is at least ~15% more efficient and can be up to ~25% more efficient (depends on the page layout and current node you are at).
+				nodeNavigableDelegate(rootNode,false);
+
+				if (nodeNavigableDelegate.FoundNode())
 				{
-					WebCore::HTMLElement* htmlElement = (WebCore::HTMLElement*)element;
-
-					if (!htmlElement->hasClass() || !htmlElement->classNames().contains("navigation_ignore"))
+					WebCore::HTMLElement* htmlElement = (WebCore::HTMLElement*) rootNode;
+					WebCore::IntRect rectAbsolute = htmlElement->getRect();		
+					// Adjust the rectangle position based on the frame offset so that we have absolute geometrical position.
+					WebCore::FrameView* pFrameView = htmlElement->document()->view(); //Can be NULL
+					if(pFrameView)
 					{
-						if (htmlElement->tagName()=="A" || htmlElement->tagName()=="INPUT" || htmlElement->tagName()=="TEXTAREA")
-						{
-							if (htmlElement->computedStyle()->visibility()==WebCore::VISIBLE)
-							{
-								if (htmlElement->computedStyle()->display()!=WebCore::NONE)
-					            {
-						            WebCore::IntRect rect = htmlElement->getRect();					
-            
-						            /* printf("Looking at ELEMENT_NODE : nodeName=%S (%d,%d)->(%d,%d) ThetaRange(%f,%f)\n\n%S\n-----------------------------------\n", 
-							            htmlElement->tagName().charactersWithNullTermination(),
-							            rect.topLeft().x(),rect.topLeft().y(),
-							            rect.bottomRight().x(), rect.bottomRight().y(),
-							            mMinThetaRange,mMaxThetaRange,
-							            htmlElement->innerHTML().charactersWithNullTermination()
-							            );
-									*/
+						rectAbsolute.setX(rectAbsolute.x() + pFrameView->x());
+						rectAbsolute.setY(rectAbsolute.y() + pFrameView->y());
+					}
 
-						            if (!WouldBeTrappedInElement(rect,mStartingPosition,mDirection))
-						            {
-							            if (!TryingToDoPerpendicularJump(rect,mPreviousNodeRect,mDirection))
-							            {
-								            if(rect.width()>5 && rect.height() > 5)
-								            {
-									            if (doAxisCheck(rect))
-									            {
-										            PolarRegion pr(htmlElement->getRect(), mStartingPosition);
-            
-										            if (pr.minR < mMinR )
-										            {
-											            if (areAnglesInRange(pr.minTheta,pr.maxTheta))
-											            {
-												            mMinR = pr.minR;
-            
-												            EAW_ASSERT( *(uint32_t*)rootNode > 10000000u );
-            
-												            mBestNode = rootNode;
-												            mNodeListContainer->mFoundNodes.push_back(rootNode);
-												            /*printf("Found ELEMENT_NODE : nodeName=%s (%d,%d)->(%d,%d) polar: R(%f,%f) Theta(%f,%f) ThetaRange(%f,%f)  \n", 
-												            (char*)htmlElement->nodeName().characters(),
-												            rect.topLeft().x(),rect.topLeft().y(),
-												            rect.bottomRight().x(), rect.bottomRight().y(),
-												            pr.minR,pr.maxR,pr.minTheta,pr.maxTheta,
-												            mMinThetaRange,mMaxThetaRange
-												            );*/
-											            }
-											            else
-											            {
-												            mNodeListContainer->mRejectedByAngleNodes.push_back(rootNode);
-															/*printf("RejectedA ELEMENT_NODE : nodeName=%s (%d,%d)->(%d,%d) polar: R(%f,%f) Theta(%f,%f) ThetaRange(%f,%f)  \n", 
-												            (char*)htmlElement->nodeName().characters(),
-												            rect.topLeft().x(),rect.topLeft().y(),
-												            rect.bottomRight().x(), rect.bottomRight().y(),
-												            pr.minR,pr.maxR,pr.minTheta,pr.maxTheta,
-												            mMinThetaRange,mMaxThetaRange
-												            );*/
-											            }
-										            }
-										            else
-										            {
-											            mNodeListContainer->mRejectedByRadiusNodes.push_back(rootNode);
-											            /*printf("RejectedR ELEMENT_NODE : nodeName=%s (%d,%d)->(%d,%d) polar: R(%f,%f) Theta(%f,%f) ThetaRange(%f,%f)  \n", 
-											            (char*)htmlElement->nodeName().characters(),
-											            rect.topLeft().x(),rect.topLeft().y(),
-											            rect.bottomRight().x(), rect.bottomRight().y(),
-											            pr.minR,pr.maxR,pr.minTheta,pr.maxTheta,
-											            mMinThetaRange,mMaxThetaRange
-											            );*/
-										            }
-									            }
-												else
-												{
-													//printf(" - failed axis check\n");
-												}
-											}
-											else
-											{
-												//printf(" - too small\n");
-								            }
-										}
-										else 
+					 /* printf("Looking at ELEMENT_NODE : nodeName=%S (%d,%d)->(%d,%d) ThetaRange(%f,%f)\n\n%S\n-----------------------------------\n", 
+											htmlElement->tagName().charactersWithNullTermination(),
+											rect.topLeft().x(),rect.topLeft().y(),
+											rect.bottomRight().x(), rect.bottomRight().y(),
+											mMinThetaRange,mMaxThetaRange,
+											htmlElement->innerHTML().charactersWithNullTermination()
+											);
+										*/
+
+					if (!WouldBeTrappedInElement(rectAbsolute,mStartingPosition,mDirection))
+					{
+						if (!TryingToDoPerpendicularJump(rectAbsolute,mPreviousNodeRect,mDirection))
+						{
+							if(rectAbsolute.width()>=1 && rectAbsolute.height() >= 1) //Avoid 0 size elements
+							{
+								if (doAxisCheck(rectAbsolute))
+								{
+									PolarRegion pr(rectAbsolute, mStartingPosition);
+
+									if (pr.minR < mMinR )
+									{
+										if (areAnglesInRange(pr.minTheta,pr.maxTheta))
 										{
-											//printf(" - perpendicular\n");
-										}							
-						            }
-						            else
-						            {
-							            mNodeListContainer->mRejectedWouldBeTrappedNodes.push_back(rootNode);
-						            }
+											mMinR = pr.minR;
+
+											EAW_ASSERT( *(uint32_t*)rootNode > 10000000u );
+
+											//mBestNode = rootNode; //We don't assign it here since we do the Z-layer testing later on.
+											FoundNodeInfo foundNodeInfo = {rootNode, mMinR};
+											mNodeListContainer->mFoundNodes.push_back(foundNodeInfo);
+											/*printf("Found ELEMENT_NODE : nodeName=%s (%d,%d)->(%d,%d) polar: R(%f,%f) Theta(%f,%f) ThetaRange(%f,%f)  \n", 
+											(char*)htmlElement->nodeName().characters(),
+											rect.topLeft().x(),rect.topLeft().y(),
+											rect.bottomRight().x(), rect.bottomRight().y(),
+											pr.minR,pr.maxR,pr.minTheta,pr.maxTheta,
+											mMinThetaRange,mMaxThetaRange
+											);*/
+											
+										} 
+										else
+										{
+											
+#if EAWEBKIT_ENABLE_JUMP_NAVIGATION_DEBUGGING
+											mNodeListContainer->mRejectedByAngleNodes.push_back(rootNode);
+#endif
+											/*printf("RejectedA ELEMENT_NODE : nodeName=%s (%d,%d)->(%d,%d) polar: R(%f,%f) Theta(%f,%f) ThetaRange(%f,%f)  \n", 
+											(char*)htmlElement->nodeName().characters(),
+											rect.topLeft().x(),rect.topLeft().y(),
+											rect.bottomRight().x(), rect.bottomRight().y(),
+											pr.minR,pr.maxR,pr.minTheta,pr.maxTheta,
+											mMinThetaRange,mMaxThetaRange
+											);*/
+										}
+									} 
+									else
+									{
+#if EAWEBKIT_ENABLE_JUMP_NAVIGATION_DEBUGGING
+										mNodeListContainer->mRejectedByRadiusNodes.push_back(rootNode);
+#endif
+										/*printf("RejectedR ELEMENT_NODE : nodeName=%s (%d,%d)->(%d,%d) polar: R(%f,%f) Theta(%f,%f) ThetaRange(%f,%f)  \n", 
+										(char*)htmlElement->nodeName().characters(),
+										rect.topLeft().x(),rect.topLeft().y(),
+										rect.bottomRight().x(), rect.bottomRight().y(),
+										pr.minR,pr.maxR,pr.minTheta,pr.maxTheta,
+										mMinThetaRange,mMaxThetaRange
+										);*/
+									}
+								}
+								else
+								{
+									//printf(" - failed axis check\n");
 								}
 							}
+							else
+							{
+								//printf(" - too small\n");
+							}
 						}
+						else 
+						{
+							//printf(" - perpendicular\n");
+						}							
+					}
+					else
+					{
+#if EAWEBKIT_ENABLE_JUMP_NAVIGATION_DEBUGGING
+						mNodeListContainer->mRejectedWouldBeTrappedNodes.push_back(rootNode);
+#endif
 					}
 				}
+				
+				rootNode = rootNode->traverseNextNode();
 			}
 
+			// Make sure that this element can be jumped to by passing z-check. This makes sure that we jump only on the element
+			// at the top most layer (For example, a CSS+JavaScript pop up).
+			// We don't try and check against Z-layer in the loop above as it has significant performance penalty. On an average, it causes traversal to be 50% slower. So what we do 
+			// instead is to collect all the nodes and at the end, traverse this list from the end to begining. It is important to traverse from end as that is where the most suited element is 
+			// based on the position.
+
+			WebCore::Node* bestNode = NULL;
+			float radialDistance = FLT_MAX; // A high value so that the max distance between any two elements in the surface is under it.
+			bool matched = false;
+			for (WebCoreFoundNodeInfoListReverseIterator rIt = mNodeListContainer->mFoundNodes.rbegin(); rIt != mNodeListContainer->mFoundNodes.rend(); ++rIt)
+			{
+				bestNode = (*rIt).mFoundNode;
+				radialDistance = (*rIt).mRadialDistance;
+				WebCore::HTMLElement* element = (WebCore::HTMLElement*)bestNode;
+
+				WebCore::IntRect rect = element->getRect(); //This list is decently small so we don't worry about caching the rect size.
+				// ElementFromPoint expects the point in its own coordinate system so we don't need to adjust the rectangle to its absolute position
+				// on screen
+				WebCore::Node* hitElement = mDocument->elementFromPoint(rect.x()+rect.width()/2, rect.y()+rect.height()/2);
+				while (hitElement)
+				{
+					if(bestNode == hitElement)
+					{
+						matched = true;
+						break;
+					}
+					hitElement = hitElement->eventParentNode();//We need to find the element that responds to the events as that is what we jump to. For example, we don't jump to a "span".
+				};
+
+				if(matched)
+					break;
+			}
+
+			if(matched)
+			{
+				mBestNode = bestNode;
+				mMinR = radialDistance;
+			}
+			else
+			{
+				mBestNode = 0; //We didn't match anything based on the Z-layer testing.
+				mMinR = FLT_MAX;
+			}
+
+
+			// A way to do Post Order traversal.
+			//while (WebCore::Node* firstChild = rootNode->firstChild())
+			//	rootNode = firstChild;
+			//while(rootNode)
+			//{
+			//	rootNode = rootNode->traverseNextNodePostOrder();
+			//}
+
+
+/*
 			//////////////////////////////////////////////////////////////////////////
 			// THEN, FIND THE CHILDREN
 			if (rootNode && rootNode->childNodeCount() > 0)
@@ -355,6 +428,7 @@ namespace EA
 					}
 				}
 			}
+*/		
 		}
 
 		bool DocumentNavigator::doAxisCheck(WebCore::IntRect rect)
@@ -365,22 +439,41 @@ namespace EA
 			int top = rect.y();
 			int bottom = rect.y() + rect.height();
 
+			//abaldeva: Feel like only one check is enough?
+			//Fixes the navigation to the yahoo.com sports section link
 			switch (mDirection)
 			{
 			case EA::WebKit::JumpRight:
-				return !(left<mStartingPosition.x() && right<mStartingPosition.x());
+				
+				if(mStrictAxesCheck)
+					return left >= mStartingPosition.x();
+				else
+					return !(left<mStartingPosition.x() && right<mStartingPosition.x());
+
 				break;
 
 			case EA::WebKit::JumpDown:
-				return !(top<mStartingPosition.y() && bottom<mStartingPosition.y());
+				if(mStrictAxesCheck)
+					return top >= mStartingPosition.y();
+				else
+					return !(top<mStartingPosition.y() && bottom<mStartingPosition.y());
+				
 				break;
 
 			case EA::WebKit::JumpLeft:
-				return !(left>mStartingPosition.x() && right>mStartingPosition.x());
+				if(mStrictAxesCheck)
+					return right <= mStartingPosition.x();
+				else
+					return !(left>mStartingPosition.x() && right>mStartingPosition.x());
+				
 				break;
 
 			case EA::WebKit::JumpUp:
-				return !(top>mStartingPosition.y() && bottom>mStartingPosition.y());
+				if(mStrictAxesCheck)
+					return bottom <= mStartingPosition.y();
+				else
+					return !(top>mStartingPosition.y() && bottom>mStartingPosition.y());
+				
 				break;
 
 			default:

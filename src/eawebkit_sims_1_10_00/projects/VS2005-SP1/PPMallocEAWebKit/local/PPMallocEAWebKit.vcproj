@@ -190,6 +190,10 @@
 					Name="internal"
 					>
 					<File
+						RelativePath="..\..\..\..\EAWebKitSupportPackages\PPMallocEAWebKit\local\include\PPMalloc\internal\config.h"
+						>
+					</File>
+					<File
 						RelativePath="..\..\..\..\EAWebKitSupportPackages\PPMallocEAWebKit\local\include\PPMalloc\internal\dllinfo.h"
 						>
 					</File>

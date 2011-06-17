@@ -41,6 +41,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <EAIO/internal/Config.h>
+
+#if EAIO_CPP_STREAM_ENABLED
+
 #include <EAIO/EAStream.h>
 #include <iostream>
 
@@ -112,6 +115,9 @@ namespace EA
             bool      Flush();
             bool      Write(const void* pData, size_type nSize);
 
+            // Clear maps directly to the C++ stream clear() function.
+            void      Clear(bool clearInput = true, bool clearOutput = true);
+
         protected:
             std::istream* mpStdIstream;
             std::ostream* mpStdOstream;
@@ -151,7 +157,7 @@ namespace EA
 
         inline
         StreamCpp::StreamCpp(const StreamCpp& x)
-            : mnRefCount(0)
+            : IStream(), mnRefCount(0)
         {
             SetStream(x.mpStdIstream, x.mpStdOstream);
         }
@@ -169,14 +175,9 @@ namespace EA
 } // namespace EA
 
 
+#endif // EAIO_CPP_STREAM_ENABLED
+
 #endif // Header include guard
-
-
-
-
-
-
-
 
 
 

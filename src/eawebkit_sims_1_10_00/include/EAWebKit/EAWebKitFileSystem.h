@@ -87,25 +87,37 @@ namespace EA
             virtual ~FileSystem(){ }
 
             // Synchronous file IO
-            virtual FileObject CreateFileObject() = 0;
-            virtual void       DestroyFileObject(FileObject fileObject) = 0;
-            virtual bool       OpenFile(FileObject fileObject, const char* path, int openFlags) = 0;  // To consider: Add creation disposition parameter.
-            virtual FileObject OpenTempFile(const char* prefix, char* path) = 0;
-            virtual void       CloseFile(FileObject fileObject) = 0;
-            virtual int64_t    ReadFile(FileObject fileObject, void* buffer, int64_t size) = 0;
-            virtual bool       WriteFile(FileObject fileObject, const void* buffer, int64_t size) = 0;
-            virtual int64_t    GetFileSize(FileObject fileObject) = 0;
-            virtual int64_t    GetFilePosition(FileObject fileObject) = 0;
+            virtual FileObject	CreateFileObject() = 0;
+            virtual void		DestroyFileObject(FileObject fileObject) = 0;
+            virtual bool		OpenFile(FileObject fileObject, const char* path, int openFlags) = 0;  // To consider: Add creation disposition parameter.
+            virtual FileObject	OpenTempFile(const char* prefix, char* path) = 0;
+            virtual void		CloseFile(FileObject fileObject) = 0;
+            virtual int64_t		ReadFile(FileObject fileObject, void* buffer, int64_t size) = 0;
+            virtual bool		WriteFile(FileObject fileObject, const void* buffer, int64_t size) = 0;
+            virtual int64_t		GetFileSize(FileObject fileObject) = 0;
+            virtual int64_t		GetFilePosition(FileObject fileObject) = 0;
 
             // File system functionality
-            virtual bool       FileExists(const char* path) = 0;
-            virtual bool       DirectoryExists(const char* path) = 0;
-            virtual bool       RemoveFile(const char* path) = 0;
-            virtual bool       DeleteDirectory(const char* path) = 0;
-            virtual bool       GetFileSize(const char* path, int64_t& size) = 0;
-            virtual bool       GetFileModificationTime(const char* path, time_t& result) = 0;
-            virtual bool       MakeDirectory(const char* path) = 0;
-            virtual bool       GetDataDirectory(char* path) = 0;
+            virtual bool		FileExists(const char* path) = 0;
+            virtual bool		DirectoryExists(const char* path) = 0;
+            virtual bool		RemoveFile(const char* path) = 0;
+            virtual bool		DeleteDirectory(const char* path) = 0;
+            virtual bool		GetFileSize(const char* path, int64_t& size) = 0;
+            virtual bool		GetFileModificationTime(const char* path, time_t& result) = 0;
+            virtual bool		MakeDirectory(const char* path) = 0;
+            virtual bool		GetDataDirectory(char* path) = 0;
+
+			// Update 12/18/2010 : Added a GetBaseDirectory. This is slightly similar to GetDataDirectory() function just above it but differs
+			// in 2 significant ways.
+			// 1. If the user returns a valid path, it is used as the base path for all other file paths like cookies/cache and those paths are
+			// assumed to be relative paths. 
+			// 2. It is a new function in order to be backward compatible. If the user does not want the current behavior to change, i.e., 
+			// cookies/caches etc. paths specified as full paths, simply not implement this function. Default implementation is provided below.
+			virtual bool		GetBaseDirectory(char8_t* path, size_t pathBufferCapacity) 
+			{ 
+				path[0] = 0; 
+				return false;
+			}
 
         };
 
@@ -136,7 +148,7 @@ namespace EA
                 bool       GetFileModificationTime(const char* path, time_t& result);
                 bool       MakeDirectory(const char* path);
                 bool       GetDataDirectory(char* path);
-
+				bool	   GetBaseDirectory(char8_t* path, size_t pathBufferCapacity); 
             };
         #endif
 

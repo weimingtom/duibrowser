@@ -40,6 +40,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <EARaster/EARasterColor.h>
 #include <EARaster/EARasterConfig.h>
 
+#ifndef UNUSED_IRASTER_CALLS_ENABLED
+    #define UNUSED_IRASTER_CALLS_ENABLED 0    // Set to 1 to activate unused Raster calls.  These are disabled to simplify IRaster.
+#endif
 
 namespace WKAL  // a.k.a. namespace WebCore
 {
@@ -52,7 +55,7 @@ namespace EA
     namespace Raster
     {
         // Forward declarations
-        class Surface;
+        class ISurface;
         class Color;
 
 
@@ -111,16 +114,34 @@ namespace EA
             kFlagCompressedYCOCGDXT5       = 0x40  // Set when image was compressed using RLE
         };
 
+        
+        // This provides some information on the general surface category that is being allocated
+        enum SurfaceCategory
+        {
+            kSurfaceCategoryDefault,            // Default if no category is known
+            kSurfaceCategoryMainView,           // The main view surface
+            kSurfaceCategoryImage,              // Image or image buffer    
+            kSurfaceCategoryImageCompression,   // This is a scratch surface used by the decompression to unpack to for the draw
+            kSurfaceCategoryText,               // A text surface, probably a string of glyphs
+            kSurfaceCategoryMovie,              // Movie
+            kSurfaceCategoryZoom,               // Zoomed or shrunk surface - probably a scratch surface
+            kSurfaceCategoryScratch,            // Temp surface
+            kSurfaceCategorySelectDropDown,     // Select dropdown popup
+            kSurfaceCategoryTooltip,            // Tooltip popup
+            kSurfaceCategoryCanvas,             // For canvas surfaces (not yet actived in EAWebKit - canvas surfaces are set as image surfaces)
+            kSurfaceCategoryExternal,           // Not inside EAWebKIt
+        };
+
 
         struct BlitInfo
         {
-            Surface* mpSource;
+            ISurface* mpSource;
             uint8_t* mpSPixels;     // Start of blit data.
             int      mnSWidth;      // Width of blit data.
             int      mnSHeight;     // Height of blit data.
             int      mnSSkip;       // Bytes from end of blit row to beginning of new blit row.
 
-            Surface* mpDest;
+            ISurface* mpDest;
             uint8_t* mpDPixels;
             int      mnDWidth;
             int      mnDHeight;
@@ -170,68 +191,129 @@ namespace EA
             void constrainRect(Rect& r) const
             {
                 //if r is outside of this rect, set width or height to zero
-                if(r.x > x+w || r.x + r.w < x)
-                {
-                    r.w = 0;
-                    return;
-                }
-                if(r.y > y+h || r.y + r.h < y)
-                {
-                    r.h = 0;
-                    return;
-                }
-
-                if(r.x < x)
-                {
-                    r.w -= x - r.x;
-                    r.x = x;
-                }
-
-                if(r.x + r.w > x + w)
-                {
-                    r.w -= (r.x + r.w) - (x + w);
-                }
-
-                if(r.y < y)
-                {
-                    r.h -= y - r.y;
-                    r.y = y;
-                }
-
-                if(r.y + r.h > y + h)
-                {
-                    r.h -= (r.y + r.h) - (y + h);
-                }
+                if(r.x > x+w || r.x + r.w < x){ r.w = 0;  return;}
+                if(r.y > y+h || r.y + r.h < y){ r.h = 0;  return;}
+                if(r.x < x){ r.w -= x - r.x; r.x = x;}
+                if(r.x + r.w > x + w){r.w -= (r.x + r.w) - (x + w);}
+                if(r.y < y){r.h -= y - r.y; r.y = y;}
+                if(r.y + r.h > y + h){r.h -= (r.y + r.h) - (y + h);}
             }
         };
 
         EARASTER_API void IntRectToEARect(const WKAL::IntRect& in, EA::Raster::Rect& out);
         EARASTER_API void EARectToIntRect(const EA::Raster::Rect& in, WKAL::IntRect& out);
 
+        struct Matrix2D
+        {
+            double m_m11;
+            double m_m12;
+            double m_m21;
+            double m_m22;
+            double m_dx;
+            double m_dy;
+        
+            Matrix2D(double a, double b, double c, double d, double e, double f) :
+             m_m11(a),m_m12(b),m_m21(c),m_m22(d),m_dx(e),m_dy(f){}
+        };
+
+
+        // Abstract ISurface class that is exportable.  
+        class EARASTER_API ISurface
+        {
+        public:
+            virtual ~ISurface(){}
+
+            virtual int  AddRef()=0;
+            virtual int  Release()=0;
+
+            virtual void SetPixelFormat(PixelFormatType pft)=0;
+            virtual bool Set(void* pData, int width, int height, int stride, PixelFormatType pft, bool bCopyData, bool bTakeOwnership, SurfaceCategory category)=0;
+            virtual bool Set(ISurface* pSource)=0;
+            virtual bool Resize(int width, int height, bool bCopyData)=0;
+            virtual bool FreeData()=0;
+            virtual void SetClipRect(const Rect* pRect)=0;
+            virtual void SetSurfaceFlags(int flags) =0;
+            virtual void SetBlitFunction(BlitFunctionType p) =0;
+            virtual void SetDrawFlags(int flags) =0;
+            virtual void SetBlitDest(ISurface* p) =0;
+            virtual void SetUserData(void* p) =0; 
+            virtual void SetClipRect(const Rect& r) =0;
+            virtual void SetCompressedSize(int size) =0;
+            virtual void SetCategory(SurfaceCategory category) =0;
+            
+            virtual int GetSurfaceFlags() const = 0;
+            virtual int GetWidth() const =0;
+            virtual int GetHeight() const =0;
+            virtual int GetStride() const =0;
+            virtual void* GetData() const =0;
+            virtual Rect& GetClipRect() =0;
+            virtual PixelFormat& GetPixelFormat() =0;
+            virtual ISurface* GetBlitDest() const =0;
+            virtual BlitFunctionType GetBlitFunction() const =0;
+            virtual int GetDrawFlags() const =0;
+            virtual void* GetUserData() const =0; 
+            virtual int GetCompressedSize() =0;
+            virtual SurfaceCategory GetCategory() =0;
+
+            virtual void Lock() =0;                     // Surface is drawn to
+            virtual void Unlock() =0;                   
+        protected:
+            virtual void InitMembers()=0 ;
+
+  };
+
 
         // Surface
         //
         // This class implements a single rectangular 2D pixel surface. 
+        // Uses main memory to allocate the buffer
         //
-        class EARASTER_API Surface
+        class EARASTER_API Surface : public ISurface
         {
         public:
             Surface();
             Surface(int width, int height, PixelFormatType pft);
-           ~Surface();
+            virtual ~Surface();
 
-            int  AddRef();
-            int  Release();
+            virtual int  AddRef();
+            virtual int  Release();
 
-            void SetPixelFormat(PixelFormatType pft);
-            bool Set(void* pData, int width, int height, int stride, PixelFormatType pft, bool bCopyData, bool bTakeOwnership);
-            bool Set(Surface* pSource);
-            bool Resize(int width, int height, bool bCopyData);
-            void FreeData();
-            void SetClipRect(const Rect* pRect);
+            virtual void SetPixelFormat(PixelFormatType pft);
+            virtual bool Set(void* pData, int width, int height, int stride, PixelFormatType pft, bool bCopyData, bool bTakeOwnership, SurfaceCategory category);
+            virtual bool Set(ISurface* pSource);
+            virtual bool Resize(int width, int height, bool bCopyData);
+            virtual bool FreeData();
+            virtual void SetClipRect(const Rect* pRect);
+        
+            virtual void Lock();
+            virtual void Unlock();
+
+            virtual int GetSurfaceFlags() const { return mSurfaceFlags; }
+            virtual int GetWidth()  const { return mWidth; }
+            virtual int GetHeight() const { return mHeight; }
+            virtual int GetStride() const { return mStride; }
+            virtual void* GetData() const { return mpData; }
+            virtual Rect& GetClipRect() { return mClipRect; }
+            virtual PixelFormat& GetPixelFormat() { return mPixelFormat; }
+            virtual ISurface* GetBlitDest() const { return mpBlitDest; }
+            virtual BlitFunctionType GetBlitFunction() const { return mpBlitFunction; }
+            virtual int GetDrawFlags() const { return mDrawFlags; }
+            virtual void* GetUserData() const { return mpUserData; }     
+            virtual int GetCompressedSize() { return mCompressedSize; }
+            virtual SurfaceCategory GetCategory() { return mCategory; };
+
+            virtual void SetSurfaceFlags(int flags) { mSurfaceFlags = flags; }
+            virtual void SetBlitFunction(BlitFunctionType p) { mpBlitFunction = p; }
+            virtual void SetDrawFlags(int flags) { mDrawFlags = flags; }
+            virtual void SetBlitDest(ISurface* p) { mpBlitDest = p; }
+            virtual void SetUserData(void* p) { mpUserData = p; } 
+            virtual void SetClipRect(const Rect& r) { mClipRect = r; }
+            virtual void SetCompressedSize(int size) { mCompressedSize = size; }
+            virtual void SetCategory(SurfaceCategory category) { mCategory = category; }
 
         protected:
-            void InitMembers();
+            virtual void InitMembers();
+
 
         public:
             PixelFormat         mPixelFormat;   // The format of the pixel data.
@@ -242,13 +324,15 @@ namespace EA
             int                 mStride;        // In bytes.
             int                 mLockCount;     // Used if the surface is somewhere other than conventional RAM.
             int                 mRefCount;      // Factory functions return a Surface with a mRefCount of 1.
-            void*               mpUserData;     // Arbitrary data the user can associate with this surface.
+            void*               mpUserData;     // Arbitrary data the user can associate with this surface. Used to store compressed images if image compression is active. Also used to store the view for scroll bars.
             int                 mCompressedSize; // Size of buffer if compression was used - CS 1/15/09 Added
             // Draw info.
             Rect                mClipRect;      // Drawing is restricted to within this rect.
-            Surface*            mpBlitDest;     // The last surface blitted to. Allows us to cache blit calculations.
+            ISurface*            mpBlitDest;     // The last surface blitted to. Allows us to cache blit calculations.
             int                 mDrawFlags;     // See enum DrawFlags.
             BlitFunctionType    mpBlitFunction; // The blitting function currently used to blit to mpBlitDest.
+            SurfaceCategory     mCategory;      // Surface main category like a main view surface or an image or text...
+
         };
 
 
@@ -268,11 +352,11 @@ namespace EA
         ///////////////////////////////////////////////////////////////////////
 
         // Surface management
-        EARASTER_API Surface*    CreateSurface();
-        EARASTER_API Surface*    CreateSurface(int width, int height, PixelFormatType pft);
-        EARASTER_API Surface*    CreateSurface(Surface* pSurface);
-        EARASTER_API Surface*    CreateSurface(void* pData, int width, int height, int stride, PixelFormatType pft, bool bCopyData, bool bTakeOwnership);
-        EARASTER_API void        DestroySurface(Surface* pSurface);
+        EARASTER_API ISurface*   CreateSurface();
+        EARASTER_API ISurface*   CreateSurface(int width, int height, PixelFormatType pft,SurfaceCategory category);
+        EARASTER_API ISurface*   CreateSurface(ISurface* pSurface);
+        EARASTER_API ISurface*   CreateSurface(void* pData, int width, int height, int stride, PixelFormatType pft, bool bCopyData, bool bTakeOwnership,SurfaceCategory category);
+        EARASTER_API void        DestroySurface(ISurface* pSurface);
 
         // Color conversion
         EARASTER_API void        ConvertColor(NativeColor c, PixelFormatType cFormat, Color& result);
@@ -283,78 +367,86 @@ namespace EA
         EARASTER_API void        ConvertColor(NativeColor c, const PixelFormat& pf, int& r, int& g, int& b);
 
         // Pixel functions
-        EARASTER_API void  GetPixel                (Surface* pSurface, int x, int y, Color& color);
-        EARASTER_API int   SetPixelSolidColor      (Surface* pSurface, int x, int y, const Color& color);
-        EARASTER_API int   SetPixelSolidColorNoClip(Surface* pSurface, int x, int y, const Color& color);
-        EARASTER_API int   SetPixelColor           (Surface* pSurface, int x, int y, const Color& color);
-        EARASTER_API int   SetPixelColorNoClip     (Surface* pSurface, int x, int y, const Color& color);
-        EARASTER_API int   SetPixelRGBA            (Surface* pSurface, int x, int y, int r, int g, int b, int a);
-        EARASTER_API int   SetPixelRGBANoClip      (Surface* pSurface, int x, int y, int r, int g, int b, int a);
+        EARASTER_API void  GetPixel                (ISurface* pSurface, int x, int y, Color& color);
+        EARASTER_API int   SetPixelSolidColor      (ISurface* pSurface, int x, int y, const Color& color);
+        EARASTER_API int   SetPixelSolidColorNoClip(ISurface* pSurface, int x, int y, const Color& color);
+        EARASTER_API int   SetPixelColor           (ISurface* pSurface, int x, int y, const Color& color);
+        EARASTER_API int   SetPixelColorNoClip     (ISurface* pSurface, int x, int y, const Color& color);
+        EARASTER_API int   SetPixelRGBA            (ISurface* pSurface, int x, int y, int r, int g, int b, int a);
+        EARASTER_API int   SetPixelRGBANoClip      (ISurface* pSurface, int x, int y, int r, int g, int b, int a);
 
         // Rectangle functions
-        EARASTER_API int   FillRectSolidColor      (Surface* pSurface, const Rect* pRect, const Color& color);
-        EARASTER_API int   FillRectColor           (Surface* pSurface, const Rect* pRect, const Color& color);
-        EARASTER_API int   RectangleColor          (Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color);
-        EARASTER_API int   RectangleColor          (Surface* pSurface, const EA::Raster::Rect& rect, const Color& c);
-        EARASTER_API int   RectangleRGBA           (Surface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a);
+        EARASTER_API int   FillRectSolidColor      (ISurface* pSurface, const Rect* pRect, const Color& color);
+        EARASTER_API int   FillRectColor           (ISurface* pSurface, const Rect* pRect, const Color& color);
+        EARASTER_API int   RectangleColor          (ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color);
+        EARASTER_API int   RectangleColor          (ISurface* pSurface, const EA::Raster::Rect& rect, const Color& c);
+        EARASTER_API int   RectangleRGBA           (ISurface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a);
 
-      //EARASTER_API int   BoxColor                (Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color);
-      //EARASTER_API int   BoxRGBA                 (Surface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a);
+      //EARASTER_API int   BoxColor                (ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color);
+      //EARASTER_API int   BoxRGBA                 (ISurface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a);
 
         // Line functions
-        EARASTER_API int   HLineSolidColor(Surface* pSurface, int x1, int x2, int  y, const Color& color);
-        EARASTER_API int   HLineSolidRGBA (Surface* pSurface, int x1, int x2, int  y, int r, int g, int b, int a);
-        EARASTER_API int   HLineColor     (Surface* pSurface, int x1, int x2, int  y, const Color& color);
-        EARASTER_API int   HLineRGBA      (Surface* pSurface, int x1, int x2, int  y, int r, int g, int b, int a);
-        EARASTER_API int   VLineSolidColor(Surface* pSurface, int  x, int y1, int y2, const Color& color);
-        EARASTER_API int   VLineSolidRGBA (Surface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a);
-        EARASTER_API int   VLineColor     (Surface* pSurface, int  x, int y1, int y2, const Color& color);
-        EARASTER_API int   VLineRGBA      (Surface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a);
-        EARASTER_API int   LineColor      (Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color);
-        EARASTER_API int   LineRGBA       (Surface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a);
-        EARASTER_API int   AALineColor    (Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color, bool bDrawEndpoint);
-        EARASTER_API int   AALineColor    (Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color);
-        EARASTER_API int   AALineRGBA     (Surface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a);
+        EARASTER_API int   HLineSolidColor(ISurface* pSurface, int x1, int x2, int  y, const Color& color);
+        EARASTER_API int   HLineColor     (ISurface* pSurface, int x1, int x2, int  y, const Color& color);
+        EARASTER_API int   VLineSolidColor(ISurface* pSurface, int  x, int y1, int y2, const Color& color);
+        EARASTER_API int   VLineColor     (ISurface* pSurface, int  x, int y1, int y2, const Color& color);
+        EARASTER_API int   LineColor      (ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color);
+        EARASTER_API int   LineRGBA       (ISurface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a);
+        EARASTER_API int   AALineRGBA     (ISurface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a);
 
         // Circle / Ellipse
-        EARASTER_API int   CircleColor       (Surface* pSurface, int x, int y, int radius, const Color& color);
-        EARASTER_API int   CircleRGBA        (Surface* pSurface, int x, int y, int radius, int r, int g, int b, int a);
-        EARASTER_API int   ArcColor          (Surface* pSurface, int x, int y, int r, int start, int end, const Color& color);
-        EARASTER_API int   ArcRGBA           (Surface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a);
-        EARASTER_API int   AACircleColor     (Surface* pSurface, int x, int y, int r, const Color& color);
-        EARASTER_API int   AACircleRGBA      (Surface* pSurface, int x, int y, int radius, int r, int g, int b, int a);
-        EARASTER_API int   FilledCircleColor (Surface* pSurface, int x, int y, int r, const Color& color);
-        EARASTER_API int   FilledCircleRGBA  (Surface* pSurface, int x, int y, int radius, int r, int g, int b, int a);
-        EARASTER_API int   EllipseColor      (Surface* pSurface, int x, int y, int rx, int ry, const Color& color);
-        EARASTER_API int   EllipseRGBA       (Surface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a);
-        EARASTER_API int   AAEllipseColor    (Surface* pSurface, int xc, int yc, int rx, int ry, const Color& color);
-        EARASTER_API int   AAEllipseRGBA     (Surface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a);
-        EARASTER_API int   FilledEllipseColor(Surface* pSurface, int x, int y, int rx, int ry, const Color& color);
-        EARASTER_API int   FilledEllipseRGBA (Surface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a);
-        EARASTER_API int   PieColor          (Surface* pSurface, int x, int y, int radius, int start, int end, const Color& color);
-        EARASTER_API int   PieRGBA           (Surface* pSurface, int x, int y, int radius,  int start, int end, int r, int g, int b, int a);
-        EARASTER_API int   FilledPieColor    (Surface* pSurface, int x, int y, int radius, int start, int end, const Color& color);
-        EARASTER_API int   FilledPieRGBA     (Surface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a);
+        EARASTER_API int   CircleColor       (ISurface* pSurface, int x, int y, int radius, const Color& color);
+        EARASTER_API int   CircleRGBA        (ISurface* pSurface, int x, int y, int radius, int r, int g, int b, int a);
+        EARASTER_API int   EllipseColor      (ISurface* pSurface, int x, int y, int rx, int ry, const Color& color);
+        EARASTER_API int   EllipseRGBA       (ISurface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a);
+        EARASTER_API int   AAEllipseColor    (ISurface* pSurface, int xc, int yc, int rx, int ry, const Color& color);
+        EARASTER_API int   FilledEllipseColor(ISurface* pSurface, int x, int y, int rx, int ry, const Color& color);
+        EARASTER_API int   FilledEllipseRGBA (ISurface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a);
+      
 
         // Polygon
-        EARASTER_API int   SimpleTriangle      (Surface* pSurface, int  x, int  y, int size, Orientation o, const Color& color);
-        EARASTER_API int   TrigonColor         (Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color);
-        EARASTER_API int   TrigonRGBA          (Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a);
-        EARASTER_API int   AATrigonColor       (Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color);
-        EARASTER_API int   AATrigonRGBA        (Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a);
-        EARASTER_API int   FilledTrigonColor   (Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color);
-        EARASTER_API int   FilledTrigonRGBA    (Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a);
-        EARASTER_API int   PolygonColor        (Surface* pSurface, const int* vx, const int* vy, int n, const Color& color);
-        EARASTER_API int   PolygonRGBA         (Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a);
-        EARASTER_API int   AAPolygonColor      (Surface* pSurface, const int* vx, const int* vy, int n, const Color& color);
-        EARASTER_API int   AAPolygonRGBA       (Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a);
-        EARASTER_API int   FilledPolygonColor  (Surface* pSurface, const int* vx, const int* vy, int n, const Color& color);
-        EARASTER_API int   FilledPolygonRGBA   (Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a);
-        EARASTER_API int   TexturedPolygon     (Surface* pSurface, const int* vx, const int* vy, int n, Surface* pTexture,int texture_dx,int texture_dy);
-        EARASTER_API int   FilledPolygonColorMT(Surface* pSurface, const int* vx, const int* vy, int n, const Color& color, int** polyInts, int* polyAllocated);
-        EARASTER_API int   FilledPolygonRGBAMT (Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a, int** polyInts, int* polyAllocated);
-        EARASTER_API int   TexturedPolygonMT   (Surface* pSurface, const int* vx, const int* vy, int n, Surface* pTexture, int texture_dx, int texture_dy, int** polyInts, int* polyAllocated);
+        EARASTER_API int   SimpleTriangle      (ISurface* pSurface, int  x, int  y, int size, Orientation o, const Color& color);
+        EARASTER_API int   PolygonColor        (ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color);
+        EARASTER_API int   PolygonRGBA         (ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a);
+        EARASTER_API int   AAPolygonColor      (ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color);
+        EARASTER_API int   AAPolygonRGBA       (ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a);
+        EARASTER_API int   FilledPolygonColor  (ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color);
+        EARASTER_API int   FilledPolygonColorMT(ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color, int** polyInts, int* polyAllocated);
+        EARASTER_API int   FilledPolygonRGBAMT (ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a, int** polyInts, int* polyAllocated);
+        EARASTER_API int   FilledPolygonRGBA   (ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a);
 
+
+#if UNUSED_IRASTER_CALLS_ENABLED 
+        // Line
+        EARASTER_API int   HLineSolidRGBA (ISurface* pSurface, int x1, int x2, int  y, int r, int g, int b, int a);
+        EARASTER_API int   HLineRGBA      (ISurface* pSurface, int x1, int x2, int  y, int r, int g, int b, int a);
+        EARASTER_API int   VLineSolidRGBA (ISurface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a);
+        EARASTER_API int   VLineRGBA      (ISurface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a);
+        EARASTER_API int   AALineColor    (ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color, bool bDrawEndpoint);
+        EARASTER_API int   AALineColor    (ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color);
+
+        // Circle / Ellipse
+        EARASTER_API int   ArcColor          (ISurface* pSurface, int x, int y, int r, int start, int end, const Color& color);
+        EARASTER_API int   ArcRGBA           (ISurface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a);
+        EARASTER_API int   AACircleColor     (ISurface* pSurface, int x, int y, int r, const Color& color);
+        EARASTER_API int   AACircleRGBA      (ISurface* pSurface, int x, int y, int radius, int r, int g, int b, int a);
+        EARASTER_API int   FilledCircleRGBA  (ISurface* pSurface, int x, int y, int radius, int r, int g, int b, int a);
+        EARASTER_API int   FilledCircleColor (ISurface* pSurface, int x, int y, int r, const Color& color);
+        EARASTER_API int   AAEllipseRGBA     (ISurface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a);
+        EARASTER_API int   PieColor          (ISurface* pSurface, int x, int y, int radius, int start, int end, const Color& color);
+        EARASTER_API int   PieRGBA           (ISurface* pSurface, int x, int y, int radius,  int start, int end, int r, int g, int b, int a);
+        EARASTER_API int   FilledPieColor    (ISurface* pSurface, int x, int y, int radius, int start, int end, const Color& color);
+        EARASTER_API int   FilledPieRGBA     (ISurface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a);
+        // Polygon
+        EARASTER_API int   TrigonColor         (ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color);
+        EARASTER_API int   TrigonRGBA          (ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a);
+        EARASTER_API int   AATrigonColor       (ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color);
+        EARASTER_API int   AATrigonRGBA        (ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a);
+        EARASTER_API int   FilledTrigonColor   (ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color);
+        EARASTER_API int   FilledTrigonRGBA    (ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a);
+        EARASTER_API int   TexturedPolygon     (ISurface* pSurface, const int* vx, const int* vy, int n, ISurface* pTexture,int texture_dx,int texture_dy);
+        EARASTER_API int   TexturedPolygonMT   (ISurface* pSurface, const int* vx, const int* vy, int n, ISurface* pTexture, int texture_dx, int texture_dy, int** polyInts, int* polyAllocated);
+#endif // UNUSED_IRASTER_CALLS_ENABLED
 
         ///////////////////////////////////////////////////////////////////////
         // Resampling
@@ -366,7 +458,7 @@ namespace EA
         // then the destination 32bit surface is anti-aliased. If the surface is not 8bit
         // or 32bit RGBA/ABGR it will be converted into a 32bit RGBA format on the fly.
         // zoomX/zoomY can be less than 1.0 for shrinking.
-        EARASTER_API Surface* ZoomSurface(Surface* pSurface, double zoomx, double zoomy, bool bSmooth);
+        EARASTER_API ISurface* ZoomSurface(ISurface* pSurface, double zoomx, double zoomy, bool bSmooth);
 
         // Returns the size of the target surface for a zoomSurface() call
         EARASTER_API void ZoomSurfaceSize(int width, int height, double zoomx, double zoomy, int* dstwidth, int* dstheight);
@@ -376,13 +468,17 @@ namespace EA
         // 3 = 1/3 the size, etc.) The destination surface is antialiased by averaging
         // the source box RGBA or Y information. If the surface is not 8bit
         // or 32bit RGBA/ABGR it will be converted into a 32bit RGBA format on the fly.
-        EARASTER_API Surface* ShrinkSurface(Surface* pSurface, int factorX, int factorY);
+        EARASTER_API ISurface* ShrinkSurface(ISurface* pSurface, int factorX, int factorY);
 
         // Returns a rotated surface by 90, 180, or 270 degrees.
-        EARASTER_API Surface* RotateSurface90Degrees(Surface* pSurface, int nClockwiseTurns);
+        EARASTER_API ISurface* RotateSurface90Degrees(ISurface* pSurface, int nClockwiseTurns);
+
+        // Apply a transform to surface .
+        EARASTER_API ISurface* TransformSurface(ISurface* pSurface, Rect& scrRect, Matrix2D& matrix);
+
 
         // Creates a surface that is the same as pSource but with surfaceAlpha multiplied into pSource.
-        EARASTER_API Surface* CreateTransparentSurface(Surface* pSource, int surfaceAlpha);
+        EARASTER_API ISurface* CreateTransparentSurface(ISurface* pSource, int surfaceAlpha);
 
 
         ///////////////////////////////////////////////////////////////////////
@@ -391,7 +487,7 @@ namespace EA
 
         // Generates rectSourceResult and rectDestResult from source and dest
         // surfaces and unclipped rectangles.
-        EARASTER_API bool ClipForBlit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, Rect& rectSourceResult, Rect& rectDestResult);
+        EARASTER_API bool ClipForBlit(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, Rect& rectSourceResult, Rect& rectDestResult);
 
         // Does a 1:1 blit from pRectSource in pSource to pRectDest in pDest. 
         // Handles the case whereby pRectSource and pRectDest may refer to out of bounds of 
@@ -400,12 +496,12 @@ namespace EA
         // pDestClipRect is not quite the same as pRectDest, as it's sometimes 
         // useful to blit a source rect to a dest rect but have it clip to another rect.
         // Returns 0 if OK or a negative error code.
-        EARASTER_API int Blit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pDestClipRect = NULL);
+        EARASTER_API int Blit(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, const Rect* pDestClipRect = NULL);
 
         // Does a 1:1 blit from pSource to pDest with the assumption that pRectSource and 
         // pRectDest are already clipped to pSource and pDest, respectively.
         // Returns 0 if OK or a negative error code.
-        EARASTER_API int BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest);
+        EARASTER_API int BlitNoClip(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest);
 
         //////////////////////////////////////////////////////////////////////////
         /// Blit a repeating pattern.
@@ -413,7 +509,7 @@ namespace EA
         /// the source origin will be. The blit is clipped to within pRectDest.
         /// If pRectSource is NULL then the entire Source is used, else the part
         /// of pSource that is tiled into pDest is the defined by pRectSource.
-        EARASTER_API int BlitTiled(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, int offsetX, int offsetY);
+        EARASTER_API int BlitTiled(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, int offsetX, int offsetY);
 
         //////////////////////////////////////////////////////////////////////////
         /// This function stretches an image over a rectangular region
@@ -444,12 +540,12 @@ namespace EA
         ///   pRectSourceCenter - Defines where the dividing lines between center
         ///       and edges are (For example, mLeft controls the position
         ///       of the dividing line between left edge and center.)
-        EARASTER_API int BlitEdgeTiled(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pRectSourceCenter);
+        EARASTER_API int BlitEdgeTiled(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, const Rect* pRectSourceCenter);
 
         // Sets up the blit function needed to blit pSource to pDest.
         // Normally you don't need to call this function, as the Surface class and Blit 
         // functions will do it automatically.
-        EARASTER_API bool SetupBlitFunction(Surface* pSource, Surface* pDest);
+        EARASTER_API bool SetupBlitFunction(ISurface* pSource, ISurface* pDest);
 
 
 
@@ -461,7 +557,7 @@ namespace EA
         EARASTER_API bool IntersectRect(const Rect& a, const Rect& b, Rect& result);
 
         // A PPM file is a simple bitmap format which many picture viewers can read.
-        EARASTER_API bool WritePPMFile(const char* pPath, Surface* pSurface, bool bAlphaOnly);
+        EARASTER_API bool WritePPMFile(const char* pPath, ISurface* pSurface, bool bAlphaOnly);
 
 		class IEARaster
 		{
@@ -473,11 +569,11 @@ namespace EA
 			virtual void IntRectToEARect(const WKAL::IntRect& in, EA::Raster::Rect& out) = 0;
 			virtual void EARectToIntRect(const EA::Raster::Rect& in, WKAL::IntRect& out) = 0;
 			// Surface management
-			virtual Surface*    CreateSurface() = 0;
-			virtual Surface*    CreateSurface(int width, int height, PixelFormatType pft) = 0;
-			virtual Surface*    CreateSurface(Surface* pSurface) = 0;
-			virtual Surface*    CreateSurface(void* pData, int width, int height, int stride, PixelFormatType pft, bool bCopyData, bool bTakeOwnership) = 0;
-			virtual void        DestroySurface(Surface* pSurface) = 0;
+			virtual ISurface*    CreateSurface() = 0;
+			virtual ISurface*    CreateSurface(int width, int height, PixelFormatType pft, SurfaceCategory category) = 0;
+			virtual ISurface*    CreateSurface(ISurface* pSurface) = 0;
+			virtual ISurface*    CreateSurface(void* pData, int width, int height, int stride, PixelFormatType pft, bool bCopyData, bool bTakeOwnership,SurfaceCategory category) = 0;
+			virtual void        DestroySurface(ISurface* pSurface) = 0;
 
 			// Color conversion
 			virtual void        ConvertColor(NativeColor c, PixelFormatType cFormat, Color& result) = 0;
@@ -488,77 +584,92 @@ namespace EA
 			virtual void        ConvertColor(NativeColor c, const PixelFormat& pf, int& r, int& g, int& b) = 0;
 
 			// Pixel functions
-			virtual void  GetPixel                (Surface* pSurface, int x, int y, Color& color) = 0;
-			virtual int   SetPixelSolidColor      (Surface* pSurface, int x, int y, const Color& color) = 0;
-			virtual int   SetPixelSolidColorNoClip(Surface* pSurface, int x, int y, const Color& color) = 0;
-			virtual int   SetPixelColor           (Surface* pSurface, int x, int y, const Color& color) = 0;
-			virtual int   SetPixelColorNoClip     (Surface* pSurface, int x, int y, const Color& color) = 0;
-			virtual int   SetPixelRGBA            (Surface* pSurface, int x, int y, int r, int g, int b, int a) = 0;
-			virtual int   SetPixelRGBANoClip      (Surface* pSurface, int x, int y, int r, int g, int b, int a) = 0;
+			virtual void  GetPixel                (ISurface* pSurface, int x, int y, Color& color) = 0;
+			virtual int   SetPixelSolidColor      (ISurface* pSurface, int x, int y, const Color& color) = 0;
+			virtual int   SetPixelSolidColorNoClip(ISurface* pSurface, int x, int y, const Color& color) = 0;
+			virtual int   SetPixelColor           (ISurface* pSurface, int x, int y, const Color& color) = 0;
+			virtual int   SetPixelColorNoClip     (ISurface* pSurface, int x, int y, const Color& color) = 0;
+			virtual int   SetPixelRGBA            (ISurface* pSurface, int x, int y, int r, int g, int b, int a) = 0;
+			virtual int   SetPixelRGBANoClip      (ISurface* pSurface, int x, int y, int r, int g, int b, int a) = 0;
 
 			// Rectangle functions
-			virtual int   FillRectSolidColor      (Surface* pSurface, const Rect* pRect, const Color& color) = 0;
-			virtual int   FillRectColor           (Surface* pSurface, const Rect* pRect, const Color& color) = 0;
-			virtual int   RectangleColor          (Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color) = 0;
-			virtual int   RectangleColor          (Surface* pSurface, const EA::Raster::Rect& rect, const Color& c) = 0;
-			virtual int   RectangleRGBA           (Surface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a) = 0;
-
-			//virtual int   BoxColor                (Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color) = 0;
-			//virtual int   BoxRGBA                 (Surface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a) = 0;
+			virtual int   FillRectSolidColor      (ISurface* pSurface, const Rect* pRect, const Color& color) = 0;
+			virtual int   FillRectColor           (ISurface* pSurface, const Rect* pRect, const Color& color) = 0;
+			virtual int   RectangleColor          (ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color) = 0;
+			virtual int   RectangleColor          (ISurface* pSurface, const EA::Raster::Rect& rect, const Color& c) = 0;
+			virtual int   RectangleRGBA           (ISurface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a) = 0;
 
 			// Line functions
-			virtual int   HLineSolidColor(Surface* pSurface, int x1, int x2, int  y, const Color& color) = 0;
-			virtual int   HLineSolidRGBA (Surface* pSurface, int x1, int x2, int  y, int r, int g, int b, int a) = 0;
-			virtual int   HLineColor     (Surface* pSurface, int x1, int x2, int  y, const Color& color) = 0;
-			virtual int   HLineRGBA      (Surface* pSurface, int x1, int x2, int  y, int r, int g, int b, int a) = 0;
-			virtual int   VLineSolidColor(Surface* pSurface, int  x, int y1, int y2, const Color& color) = 0;
-			virtual int   VLineSolidRGBA (Surface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a) = 0;
-			virtual int   VLineColor     (Surface* pSurface, int  x, int y1, int y2, const Color& color) = 0;
-			virtual int   VLineRGBA      (Surface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a) = 0;
-			virtual int   LineColor      (Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color) = 0;
-			virtual int   LineRGBA       (Surface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a) = 0;
-			virtual int   AALineColor    (Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color, bool bDrawEndpoint) = 0;
-			virtual int   AALineColor    (Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color) = 0;
-			virtual int   AALineRGBA     (Surface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a) = 0;
+            virtual int   HLineColor     (ISurface* pSurface, int x1, int x2, int  y, const Color& color) = 0;
+            virtual int   VLineColor     (ISurface* pSurface, int  x, int y1, int y2, const Color& color) = 0;
+            virtual int   LineRGBA       (ISurface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a) = 0;
 
 			// Circle / Ellipse
-			virtual int   CircleColor       (Surface* pSurface, int x, int y, int radius, const Color& color) = 0;
-			virtual int   CircleRGBA        (Surface* pSurface, int x, int y, int radius, int r, int g, int b, int a) = 0;
-			virtual int   ArcColor          (Surface* pSurface, int x, int y, int r, int start, int end, const Color& color) = 0;
-			virtual int   ArcRGBA           (Surface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a) = 0;
-			virtual int   AACircleColor     (Surface* pSurface, int x, int y, int r, const Color& color) = 0;
-			virtual int   AACircleRGBA      (Surface* pSurface, int x, int y, int radius, int r, int g, int b, int a) = 0;
-			virtual int   FilledCircleColor (Surface* pSurface, int x, int y, int r, const Color& color) = 0;
-			virtual int   FilledCircleRGBA  (Surface* pSurface, int x, int y, int radius, int r, int g, int b, int a) = 0;
-			virtual int   EllipseColor      (Surface* pSurface, int x, int y, int rx, int ry, const Color& color) = 0;
-			virtual int   EllipseRGBA       (Surface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a) = 0;
-			virtual int   AAEllipseColor    (Surface* pSurface, int xc, int yc, int rx, int ry, const Color& color) = 0;
-			virtual int   AAEllipseRGBA     (Surface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a) = 0;
-			virtual int   FilledEllipseColor(Surface* pSurface, int x, int y, int rx, int ry, const Color& color) = 0;
-			virtual int   FilledEllipseRGBA (Surface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a) = 0;
-			virtual int   PieColor          (Surface* pSurface, int x, int y, int radius, int start, int end, const Color& color) = 0;
-			virtual int   PieRGBA           (Surface* pSurface, int x, int y, int radius,  int start, int end, int r, int g, int b, int a) = 0;
-			virtual int   FilledPieColor    (Surface* pSurface, int x, int y, int radius, int start, int end, const Color& color) = 0;
-			virtual int   FilledPieRGBA     (Surface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a) = 0;
+			virtual int   CircleColor       (ISurface* pSurface, int x, int y, int radius, const Color& color) = 0;
+			virtual int   EllipseColor      (ISurface* pSurface, int x, int y, int rx, int ry, const Color& color) = 0;
+            virtual int   EllipseRGBA       (ISurface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a) = 0;
+            virtual int   FilledEllipseColor(ISurface* pSurface, int x, int y, int rx, int ry, const Color& color) = 0;
+            virtual int   FilledEllipseRGBA (ISurface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a) = 0;
 
 			// Polygon
-			virtual int   SimpleTriangle      (Surface* pSurface, int  x, int  y, int size, Orientation o, const Color& color) = 0;
-			virtual int   TrigonColor         (Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color) = 0;
-			virtual int   TrigonRGBA          (Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a) = 0;
-			virtual int   AATrigonColor       (Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color) = 0;
-			virtual int   AATrigonRGBA        (Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a) = 0;
-			virtual int   FilledTrigonColor   (Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color) = 0;
-			virtual int   FilledTrigonRGBA    (Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a) = 0;
-			virtual int   PolygonColor        (Surface* pSurface, const int* vx, const int* vy, int n, const Color& color) = 0;
-			virtual int   PolygonRGBA         (Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a) = 0;
-			virtual int   AAPolygonColor      (Surface* pSurface, const int* vx, const int* vy, int n, const Color& color) = 0;
-			virtual int   AAPolygonRGBA       (Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a) = 0;
-			virtual int   FilledPolygonColor  (Surface* pSurface, const int* vx, const int* vy, int n, const Color& color) = 0;
-			virtual int   FilledPolygonRGBA   (Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a) = 0;
-			virtual int   TexturedPolygon     (Surface* pSurface, const int* vx, const int* vy, int n, Surface* pTexture,int texture_dx,int texture_dy) = 0;
-			virtual int   FilledPolygonColorMT(Surface* pSurface, const int* vx, const int* vy, int n, const Color& color, int** polyInts, int* polyAllocated) = 0;
-			virtual int   FilledPolygonRGBAMT (Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a, int** polyInts, int* polyAllocated) = 0;
-			virtual int   TexturedPolygonMT   (Surface* pSurface, const int* vx, const int* vy, int n, Surface* pTexture, int texture_dx, int texture_dy, int** polyInts, int* polyAllocated) = 0;
+			virtual int   SimpleTriangle      (ISurface* pSurface, int  x, int  y, int size, Orientation o, const Color& color) = 0;
+            virtual int   PolygonRGBA         (ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a) = 0;
+            virtual int   FilledPolygonRGBA   (ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a) = 0;
+
+            //--- Start of draw functions used only within EARaster ---
+            // Note: These seem only used within EARaster and not directly by EAWebKit.  Also some might be using each other some so might actually be unused).
+			// Line functions
+            virtual int   HLineSolidColor(ISurface* pSurface, int x1, int x2, int  y, const Color& color) = 0;
+			virtual int   VLineSolidColor(ISurface* pSurface, int  x, int y1, int y2, const Color& color) = 0;
+            virtual int   LineColor      (ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color) = 0;
+            
+            // Circle / Ellipse
+			virtual int   CircleRGBA        (ISurface* pSurface, int x, int y, int radius, int r, int g, int b, int a) = 0;
+   			virtual int   AAEllipseColor    (ISurface* pSurface, int xc, int yc, int rx, int ry, const Color& color) = 0;
+
+            // Polygon
+			virtual int   PolygonColor        (ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color) = 0;
+			virtual int   AAPolygonColor      (ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color) = 0;
+			virtual int   AAPolygonRGBA       (ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a) = 0;
+			virtual int   FilledPolygonColor  (ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color) = 0;
+			virtual int   FilledPolygonRGBAMT (ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a, int** polyInts, int* polyAllocated) = 0;
+			virtual int   FilledPolygonColorMT(ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color, int** polyInts, int* polyAllocated) = 0;
+            //--- End of draw functions used only within EARaster ---
+
+#if UNUSED_IRASTER_CALLS_ENABLED 
+            //--- Start of unused draw functions inside EAWebKit ---
+            // These seem unused by EAWebKit.  We might consider removing them as they just complicate the IRaster interface and take code space          
+            // Line functions
+            virtual int   HLineSolidRGBA (ISurface* pSurface, int x1, int x2, int  y, int r, int g, int b, int a) = 0;
+			virtual int   HLineRGBA      (ISurface* pSurface, int x1, int x2, int  y, int r, int g, int b, int a) = 0;
+			virtual int   VLineSolidRGBA (ISurface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a) = 0;
+			virtual int   VLineRGBA      (ISurface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a) = 0;
+			virtual int   AALineColor    (ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color, bool bDrawEndpoint) = 0;
+   			virtual int   AALineColor    (ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color) = 0;
+            
+            // Circle / Ellipse
+			virtual int   ArcColor          (ISurface* pSurface, int x, int y, int r, int start, int end, const Color& color) = 0;
+			virtual int   ArcRGBA           (ISurface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a) = 0;
+			virtual int   AACircleColor     (ISurface* pSurface, int x, int y, int r, const Color& color) = 0;
+			virtual int   AACircleRGBA      (ISurface* pSurface, int x, int y, int radius, int r, int g, int b, int a) = 0;
+			virtual int   FilledCircleColor (ISurface* pSurface, int x, int y, int r, const Color& color) = 0;
+			virtual int   FilledCircleRGBA  (ISurface* pSurface, int x, int y, int radius, int r, int g, int b, int a) = 0;
+   			virtual int   AAEllipseRGBA     (ISurface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a) = 0;
+            virtual int   PieColor          (ISurface* pSurface, int x, int y, int radius, int start, int end, const Color& color) = 0;
+			virtual int   PieRGBA           (ISurface* pSurface, int x, int y, int radius,  int start, int end, int r, int g, int b, int a) = 0;
+			virtual int   FilledPieColor    (ISurface* pSurface, int x, int y, int radius, int start, int end, const Color& color) = 0;
+   			virtual int   FilledPieRGBA     (ISurface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a) = 0;
+            // Polygon
+			virtual int   TrigonColor         (ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color) = 0;
+			virtual int   TrigonRGBA          (ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a) = 0;
+			virtual int   AATrigonColor       (ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color) = 0;
+			virtual int   AATrigonRGBA        (ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a) = 0;
+			virtual int   FilledTrigonColor   (ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color) = 0;
+			virtual int   FilledTrigonRGBA    (ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a) = 0;
+			virtual int   TexturedPolygon     (ISurface* pSurface, const int* vx, const int* vy, int n, ISurface* pTexture,int texture_dx,int texture_dy) = 0;
+            virtual int   TexturedPolygonMT   (ISurface* pSurface, const int* vx, const int* vy, int n, ISurface* pTexture, int texture_dx, int texture_dy, int** polyInts, int* polyAllocated) = 0;
+            //--- End of unused functions inside EAWebKit ---
+#endif // UNUSED_IRASTER_CALLS_ENABLED 
 
 
 			///////////////////////////////////////////////////////////////////////
@@ -571,7 +682,7 @@ namespace EA
 			// then the destination 32bit surface is anti-aliased. If the surface is not 8bit
 			// or 32bit RGBA/ABGR it will be converted into a 32bit RGBA format on the fly.
 			// zoomX/zoomY can be less than 1.0 for shrinking.
-			virtual Surface* ZoomSurface(Surface* pSurface, double zoomx, double zoomy, bool bSmooth) = 0;
+			virtual ISurface* ZoomSurface(ISurface* pSurface, double zoomx, double zoomy, bool bSmooth) = 0;
 
 			// Returns the size of the target surface for a zoomSurface() = 0 call
 			virtual void ZoomSurfaceSize(int width, int height, double zoomx, double zoomy, int* dstwidth, int* dstheight) = 0;
@@ -581,13 +692,16 @@ namespace EA
 			// 3 = 1/3 the size, etc.) The destination surface is antialiased by averaging
 			// the source box RGBA or Y information. If the surface is not 8bit
 			// or 32bit RGBA/ABGR it will be converted into a 32bit RGBA format on the fly.
-			virtual Surface* ShrinkSurface(Surface* pSurface, int factorX, int factorY) = 0;
+			virtual ISurface* ShrinkSurface(ISurface* pSurface, int factorX, int factorY) = 0;
 
 			// Returns a rotated surface by 90, 180, or 270 degrees.
-			virtual Surface* RotateSurface90Degrees(Surface* pSurface, int nClockwiseTurns) = 0;
+			virtual ISurface* RotateSurface90Degrees(ISurface* pSurface, int nClockwiseTurns) = 0;
+
+            // Apply a transform to a surface.
+            virtual ISurface* TransformSurface(ISurface* pSurface, Rect& scrRect, Matrix2D& matrix) = 0;
 
 			// Creates a surface that is the same as pSource but with surfaceAlpha multiplied into pSource.
-			virtual Surface* CreateTransparentSurface(Surface* pSource, int surfaceAlpha) = 0;
+			virtual ISurface* CreateTransparentSurface(ISurface* pSource, int surfaceAlpha) = 0;
 
 
 			///////////////////////////////////////////////////////////////////////
@@ -596,7 +710,7 @@ namespace EA
 
 			// Generates rectSourceResult and rectDestResult from source and dest
 			// surfaces and unclipped rectangles.
-			virtual bool ClipForBlit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, Rect& rectSourceResult, Rect& rectDestResult) = 0;
+			virtual bool ClipForBlit(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, Rect& rectSourceResult, Rect& rectDestResult) = 0;
 
 			// Does a 1:1 blit from pRectSource in pSource to pRectDest in pDest. 
 			// Handles the case whereby pRectSource and pRectDest may refer to out of bounds of 
@@ -605,12 +719,12 @@ namespace EA
 			// pDestClipRect is not quite the same as pRectDest, as it's sometimes 
 			// useful to blit a source rect to a dest rect but have it clip to another rect.
 			// Returns 0 if OK or a negative error code.
-			virtual int Blit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pDestClipRect = NULL) = 0;
+			virtual int Blit(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, const Rect* pDestClipRect = NULL) = 0;
 
 			// Does a 1:1 blit from pSource to pDest with the assumption that pRectSource and 
 			// pRectDest are already clipped to pSource and pDest, respectively.
 			// Returns 0 if OK or a negative error code.
-			virtual int BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDestz) = 0;
+			virtual int BlitNoClip(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDestz) = 0;
 
 			//////////////////////////////////////////////////////////////////////////
 			/// Blit a repeating pattern.
@@ -618,7 +732,7 @@ namespace EA
 			/// the source origin will be. The blit is clipped to within pRectDest.
 			/// If pRectSource is NULL then the entire Source is used, else the part
 			/// of pSource that is tiled into pDest is the defined by pRectSource.
-			virtual int BlitTiled(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, int offsetX, int offsetY) = 0;
+			virtual int BlitTiled(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, int offsetX, int offsetY) = 0;
 
 			//////////////////////////////////////////////////////////////////////////
 			/// This function stretches an image over a rectangular region
@@ -649,12 +763,12 @@ namespace EA
 			///   pRectSourceCenter - Defines where the dividing lines between center
 			///       and edges are (For example, mLeft controls the position
 			///       of the dividing line between left edge and center.) = 0
-			virtual int BlitEdgeTiled(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pRectSourceCenter) = 0;
+			virtual int BlitEdgeTiled(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, const Rect* pRectSourceCenter) = 0;
 
 			// Sets up the blit function needed to blit pSource to pDest.
 			// Normally you don't need to call this function, as the Surface class and Blit 
 			// functions will do it automatically.
-			virtual bool SetupBlitFunction(Surface* pSource, Surface* pDest) = 0;
+			virtual bool SetupBlitFunction(ISurface* pSource, ISurface* pDest) = 0;
 
 
 
@@ -666,7 +780,7 @@ namespace EA
 			virtual bool IntersectRect(const Rect& a, const Rect& b, Rect& result) = 0;
 
 			// A PPM file is a simple bitmap format which many picture viewers can read.
-			virtual bool WritePPMFile(const char* pPath, Surface* pSurface, bool bAlphaOnly) = 0;
+			virtual bool WritePPMFile(const char* pPath, ISurface* pSurface, bool bAlphaOnly) = 0;
 
 			virtual RGBA32 makeRGB(int32_t r, int32_t g, int32_t b) = 0;
 			virtual RGBA32 makeRGBA(int32_t r, int32_t g, int32_t b, int32_t a) = 0;
@@ -685,11 +799,11 @@ namespace EA
 			virtual void IntRectToEARect(const WKAL::IntRect& in, EA::Raster::Rect& out);
 			virtual void EARectToIntRect(const EA::Raster::Rect& in, WKAL::IntRect& out);
 			// Surface management
-			virtual Surface*    CreateSurface();
-			virtual Surface*    CreateSurface(int width, int height, PixelFormatType pft);
-			virtual Surface*    CreateSurface(Surface* pSurface);
-			virtual Surface*    CreateSurface(void* pData, int width, int height, int stride, PixelFormatType pft, bool bCopyData, bool bTakeOwnership);
-			virtual void        DestroySurface(Surface* pSurface);
+			virtual ISurface*    CreateSurface();
+			virtual ISurface*    CreateSurface(int width, int height, PixelFormatType pft,SurfaceCategory category=kSurfaceCategoryDefault);
+			virtual ISurface*    CreateSurface(ISurface* pSurface);
+			virtual ISurface*    CreateSurface(void* pData, int width, int height, int stride, PixelFormatType pft, bool bCopyData, bool bTakeOwnership,SurfaceCategory category=kSurfaceCategoryDefault);
+			virtual void        DestroySurface(ISurface* pSurface);
 
 			// Color conversion
 			virtual void        ConvertColor(NativeColor c, PixelFormatType cFormat, Color& result);
@@ -700,91 +814,101 @@ namespace EA
 			virtual void        ConvertColor(NativeColor c, const PixelFormat& pf, int& r, int& g, int& b);
 
 			// Pixel functions
-			virtual void  GetPixel                (Surface* pSurface, int x, int y, Color& color);
-			virtual int   SetPixelSolidColor      (Surface* pSurface, int x, int y, const Color& color);
-			virtual int   SetPixelSolidColorNoClip(Surface* pSurface, int x, int y, const Color& color);
-			virtual int   SetPixelColor           (Surface* pSurface, int x, int y, const Color& color);
-			virtual int   SetPixelColorNoClip     (Surface* pSurface, int x, int y, const Color& color);
-			virtual int   SetPixelRGBA            (Surface* pSurface, int x, int y, int r, int g, int b, int a);
-			virtual int   SetPixelRGBANoClip      (Surface* pSurface, int x, int y, int r, int g, int b, int a);
+			virtual void  GetPixel                (ISurface* pSurface, int x, int y, Color& color);
+			virtual int   SetPixelSolidColor      (ISurface* pSurface, int x, int y, const Color& color);
+			virtual int   SetPixelSolidColorNoClip(ISurface* pSurface, int x, int y, const Color& color);
+			virtual int   SetPixelColor           (ISurface* pSurface, int x, int y, const Color& color);
+			virtual int   SetPixelColorNoClip     (ISurface* pSurface, int x, int y, const Color& color);
+			virtual int   SetPixelRGBA            (ISurface* pSurface, int x, int y, int r, int g, int b, int a);
+			virtual int   SetPixelRGBANoClip      (ISurface* pSurface, int x, int y, int r, int g, int b, int a);
 
 			// Rectangle functions
-			virtual int   FillRectSolidColor      (Surface* pSurface, const Rect* pRect, const Color& color);
-			virtual int   FillRectColor           (Surface* pSurface, const Rect* pRect, const Color& color);
-			virtual int   RectangleColor          (Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color);
-			virtual int   RectangleColor          (Surface* pSurface, const EA::Raster::Rect& rect, const Color& c);
-			virtual int   RectangleRGBA           (Surface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a);
+			virtual int   FillRectSolidColor      (ISurface* pSurface, const Rect* pRect, const Color& color);
+			virtual int   FillRectColor           (ISurface* pSurface, const Rect* pRect, const Color& color);
+			virtual int   RectangleColor          (ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color);
+			virtual int   RectangleColor          (ISurface* pSurface, const EA::Raster::Rect& rect, const Color& c);
+			virtual int   RectangleRGBA           (ISurface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a);
 
-			//virtual int   BoxColor                (Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color);
-			//virtual int   BoxRGBA                 (Surface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a);
+			//virtual int   BoxColor                (ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color);
+			//virtual int   BoxRGBA                 (ISurface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a);
 
 			// Line functions
-			virtual int   HLineSolidColor(Surface* pSurface, int x1, int x2, int  y, const Color& color);
-			virtual int   HLineSolidRGBA (Surface* pSurface, int x1, int x2, int  y, int r, int g, int b, int a);
-			virtual int   HLineColor     (Surface* pSurface, int x1, int x2, int  y, const Color& color);
-			virtual int   HLineRGBA      (Surface* pSurface, int x1, int x2, int  y, int r, int g, int b, int a);
-			virtual int   VLineSolidColor(Surface* pSurface, int  x, int y1, int y2, const Color& color);
-			virtual int   VLineSolidRGBA (Surface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a);
-			virtual int   VLineColor     (Surface* pSurface, int  x, int y1, int y2, const Color& color);
-			virtual int   VLineRGBA      (Surface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a);
-			virtual int   LineColor      (Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color);
-			virtual int   LineRGBA       (Surface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a);
-			virtual int   AALineColor    (Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color, bool bDrawEndpoint);
-			virtual int   AALineColor    (Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color);
-			virtual int   AALineRGBA     (Surface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a);
+			virtual int   HLineSolidColor(ISurface* pSurface, int x1, int x2, int  y, const Color& color);
+			virtual int   HLineColor     (ISurface* pSurface, int x1, int x2, int  y, const Color& color);
+			virtual int   VLineSolidColor(ISurface* pSurface, int  x, int y1, int y2, const Color& color);
+			virtual int   VLineColor     (ISurface* pSurface, int  x, int y1, int y2, const Color& color);
+			virtual int   LineColor      (ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color);
+			virtual int   LineRGBA       (ISurface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a);
+			virtual int   AALineRGBA     (ISurface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a);
 
 			// Circle / Ellipse
-			virtual int   CircleColor       (Surface* pSurface, int x, int y, int radius, const Color& color);
-			virtual int   CircleRGBA        (Surface* pSurface, int x, int y, int radius, int r, int g, int b, int a);
-			virtual int   ArcColor          (Surface* pSurface, int x, int y, int r, int start, int end, const Color& color);
-			virtual int   ArcRGBA           (Surface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a);
-			virtual int   AACircleColor     (Surface* pSurface, int x, int y, int r, const Color& color);
-			virtual int   AACircleRGBA      (Surface* pSurface, int x, int y, int radius, int r, int g, int b, int a);
-			virtual int   FilledCircleColor (Surface* pSurface, int x, int y, int r, const Color& color);
-			virtual int   FilledCircleRGBA  (Surface* pSurface, int x, int y, int radius, int r, int g, int b, int a);
-			virtual int   EllipseColor      (Surface* pSurface, int x, int y, int rx, int ry, const Color& color);
-			virtual int   EllipseRGBA       (Surface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a);
-			virtual int   AAEllipseColor    (Surface* pSurface, int xc, int yc, int rx, int ry, const Color& color);
-			virtual int   AAEllipseRGBA     (Surface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a);
-			virtual int   FilledEllipseColor(Surface* pSurface, int x, int y, int rx, int ry, const Color& color);
-			virtual int   FilledEllipseRGBA (Surface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a);
-			virtual int   PieColor          (Surface* pSurface, int x, int y, int radius, int start, int end, const Color& color);
-			virtual int   PieRGBA           (Surface* pSurface, int x, int y, int radius,  int start, int end, int r, int g, int b, int a);
-			virtual int   FilledPieColor    (Surface* pSurface, int x, int y, int radius, int start, int end, const Color& color);
-			virtual int   FilledPieRGBA     (Surface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a);
+			virtual int   CircleColor       (ISurface* pSurface, int x, int y, int radius, const Color& color);
+			virtual int   CircleRGBA        (ISurface* pSurface, int x, int y, int radius, int r, int g, int b, int a);
+			virtual int   EllipseColor      (ISurface* pSurface, int x, int y, int rx, int ry, const Color& color);
+			virtual int   EllipseRGBA       (ISurface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a);
+			virtual int   AAEllipseColor    (ISurface* pSurface, int xc, int yc, int rx, int ry, const Color& color);
+			virtual int   FilledEllipseColor(ISurface* pSurface, int x, int y, int rx, int ry, const Color& color);
+			virtual int   FilledEllipseRGBA (ISurface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a);
+
 
 			// Polygon
-			virtual int   SimpleTriangle      (Surface* pSurface, int  x, int  y, int size, Orientation o, const Color& color);
-			virtual int   TrigonColor         (Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color);
-			virtual int   TrigonRGBA          (Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a);
-			virtual int   AATrigonColor       (Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color);
-			virtual int   AATrigonRGBA        (Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a);
-			virtual int   FilledTrigonColor   (Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color);
-			virtual int   FilledTrigonRGBA    (Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a);
-			virtual int   PolygonColor        (Surface* pSurface, const int* vx, const int* vy, int n, const Color& color);
-			virtual int   PolygonRGBA         (Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a);
-			virtual int   AAPolygonColor      (Surface* pSurface, const int* vx, const int* vy, int n, const Color& color);
-			virtual int   AAPolygonRGBA       (Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a);
-			virtual int   FilledPolygonColor  (Surface* pSurface, const int* vx, const int* vy, int n, const Color& color);
-			virtual int   FilledPolygonRGBA   (Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a);
-			virtual int   TexturedPolygon     (Surface* pSurface, const int* vx, const int* vy, int n, Surface* pTexture,int texture_dx,int texture_dy);
-			virtual int   FilledPolygonColorMT(Surface* pSurface, const int* vx, const int* vy, int n, const Color& color, int** polyInts, int* polyAllocated);
-			virtual int   FilledPolygonRGBAMT (Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a, int** polyInts, int* polyAllocated);
-			virtual int   TexturedPolygonMT   (Surface* pSurface, const int* vx, const int* vy, int n, Surface* pTexture, int texture_dx, int texture_dy, int** polyInts, int* polyAllocated);
+			virtual int   SimpleTriangle      (ISurface* pSurface, int  x, int  y, int size, Orientation o, const Color& color);
+			virtual int   PolygonColor        (ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color);
+			virtual int   PolygonRGBA         (ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a);
+			virtual int   AAPolygonColor      (ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color);
+			virtual int   AAPolygonRGBA       (ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a);
+			virtual int   FilledPolygonColor  (ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color);
+			virtual int   FilledPolygonColorMT(ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color, int** polyInts, int* polyAllocated);
+			virtual int   FilledPolygonRGBAMT (ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a, int** polyInts, int* polyAllocated);
+   			virtual int   FilledPolygonRGBA   (ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a);
 
-			virtual Surface* ZoomSurface(Surface* pSurface, double zoomx, double zoomy, bool bSmooth);
+#if UNUSED_IRASTER_CALLS_ENABLED 
+            // Line
+			virtual int   HLineSolidRGBA (ISurface* pSurface, int x1, int x2, int  y, int r, int g, int b, int a);
+			virtual int   HLineRGBA      (ISurface* pSurface, int x1, int x2, int  y, int r, int g, int b, int a);
+			virtual int   VLineSolidRGBA (ISurface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a);
+			virtual int   VLineRGBA      (ISurface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a);
+			virtual int   AALineColor    (ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color, bool bDrawEndpoint);
+			virtual int   AALineColor    (ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color);
+
+            // Circle / Ellipse
+			virtual int   ArcColor          (ISurface* pSurface, int x, int y, int r, int start, int end, const Color& color);
+			virtual int   ArcRGBA           (ISurface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a);
+			virtual int   AACircleColor     (ISurface* pSurface, int x, int y, int r, const Color& color);
+			virtual int   AACircleRGBA      (ISurface* pSurface, int x, int y, int radius, int r, int g, int b, int a);
+			virtual int   FilledCircleColor (ISurface* pSurface, int x, int y, int r, const Color& color);
+			virtual int   FilledCircleRGBA  (ISurface* pSurface, int x, int y, int radius, int r, int g, int b, int a);
+			virtual int   AAEllipseRGBA     (ISurface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a);
+			virtual int   PieColor          (ISurface* pSurface, int x, int y, int radius, int start, int end, const Color& color);
+			virtual int   PieRGBA           (ISurface* pSurface, int x, int y, int radius,  int start, int end, int r, int g, int b, int a);
+			virtual int   FilledPieColor    (ISurface* pSurface, int x, int y, int radius, int start, int end, const Color& color);
+			virtual int   FilledPieRGBA     (ISurface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a);
+            
+            // Polygon
+			virtual int   TrigonColor         (ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color);
+			virtual int   TrigonRGBA          (ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a);
+			virtual int   AATrigonColor       (ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color);
+			virtual int   AATrigonRGBA        (ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a);
+			virtual int   FilledTrigonColor   (ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color);
+			virtual int   FilledTrigonRGBA    (ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a);
+			virtual int   TexturedPolygon     (ISurface* pSurface, const int* vx, const int* vy, int n, ISurface* pTexture,int texture_dx,int texture_dy);
+			virtual int   TexturedPolygonMT   (ISurface* pSurface, const int* vx, const int* vy, int n, ISurface* pTexture, int texture_dx, int texture_dy, int** polyInts, int* polyAllocated);
+#endif // UNUSED_IRASTER_CALLS_ENABLED
+
+			virtual ISurface* ZoomSurface(ISurface* pSurface, double zoomx, double zoomy, bool bSmooth);
 			virtual void ZoomSurfaceSize(int width, int height, double zoomx, double zoomy, int* dstwidth, int* dstheight);
-			virtual Surface* ShrinkSurface(Surface* pSurface, int factorX, int factorY);
-			virtual Surface* RotateSurface90Degrees(Surface* pSurface, int nClockwiseTurns);
-			virtual Surface* CreateTransparentSurface(Surface* pSource, int surfaceAlpha);
-			virtual bool ClipForBlit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, Rect& rectSourceResult, Rect& rectDestResult);
-			virtual int Blit(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pDestClipRect = NULL);
-			virtual int BlitNoClip(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest);
-			virtual int BlitTiled(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, int offsetX, int offsetY);
-			virtual int BlitEdgeTiled(Surface* pSource, const Rect* pRectSource, Surface* pDest, const Rect* pRectDest, const Rect* pRectSourceCenter);
-			virtual bool SetupBlitFunction(Surface* pSource, Surface* pDest);
+			virtual ISurface* ShrinkSurface(ISurface* pSurface, int factorX, int factorY);
+			virtual ISurface* RotateSurface90Degrees(ISurface* pSurface, int nClockwiseTurns);
+            virtual ISurface* TransformSurface(ISurface* pSurface, Rect& scrRect, Matrix2D& matrix);
+            virtual ISurface* CreateTransparentSurface(ISurface* pSource, int surfaceAlpha);
+			virtual bool ClipForBlit(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, Rect& rectSourceResult, Rect& rectDestResult);
+			virtual int Blit(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, const Rect* pDestClipRect = NULL);
+			virtual int BlitNoClip(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest);
+			virtual int BlitTiled(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, int offsetX, int offsetY);
+			virtual int BlitEdgeTiled(ISurface* pSource, const Rect* pRectSource, ISurface* pDest, const Rect* pRectDest, const Rect* pRectSourceCenter);
+			virtual bool SetupBlitFunction(ISurface* pSource, ISurface* pDest);
 			virtual bool IntersectRect(const Rect& a, const Rect& b, Rect& result);
-			virtual bool WritePPMFile(const char* pPath, Surface* pSurface, bool bAlphaOnly);
+			virtual bool WritePPMFile(const char* pPath, ISurface* pSurface, bool bAlphaOnly);
 			virtual RGBA32 makeRGB(int32_t r, int32_t g, int32_t b);
 			virtual RGBA32 makeRGBA(int32_t r, int32_t g, int32_t b, int32_t a);
 

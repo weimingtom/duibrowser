@@ -56,7 +56,8 @@ StreamNull::StreamNull()
 // StreamNull
 //
 StreamNull::StreamNull(const StreamNull&)
-  : mnRefCount(0)
+  : IStream()
+  , mnRefCount(0)
 {
 }
 

@@ -272,6 +272,7 @@ EAIO_API bool File::Create(const char16_t* pPath, bool bTruncate)
         return false;
 
     #else
+        EA_FAIL_M("Unimplemented");
 
         // Bug Paul Pedriana to finish this for the given platform.
         (void)pPath; (void)bTruncate;        
@@ -343,6 +344,7 @@ EAIO_API bool File::Create(const char8_t* pPath, bool bTruncate)
         return false;
 
     #else
+        EA_FAIL_M("Unimplemented");
 
         // Bug Paul Pedriana to finish this for the given platform.
         (void)pPath; (void)bTruncate;        
@@ -385,6 +387,7 @@ EAIO_API bool File::Exists(const char16_t* pPath)
                 return S_ISREG(tempStat.st_mode) == 0;
 
         #else
+            EA_FAIL_M("Unimplemented");
             // Bug Paul Pedriana to finish this for the given platform.
         #endif
     }
@@ -421,6 +424,7 @@ EAIO_API bool File::Exists(const char8_t* pPath)
                 return S_ISREG(tempStat.st_mode) == 0;
 
         #else
+            EA_FAIL_M("Unimplemented");
             // Bug Paul Pedriana to finish this for the given platform.
         #endif
     }
@@ -513,6 +517,7 @@ EAIO_API bool File::Remove(const char16_t* pPath)
         return (result == 0);
 
     #else
+        EA_FAIL_M("Unimplemented");
 
         // Bug Paul Pedriana to finish this for the given platform.
         (void)pPath;
@@ -544,6 +549,7 @@ EAIO_API bool File::Remove(const char8_t* pPath)
         return (result == 0);
 
     #else
+        EA_FAIL_M("Unimplemented");
 
         // Bug Paul Pedriana to finish this for the given platform.
         (void)pPath;
@@ -612,8 +618,21 @@ EAIO_API bool File::Move(const char16_t* pPathSource, const char16_t* pPathDesti
 
         return false;
 
-    #elif defined(EA_PLATFORM_UNIX)
+    #elif defined(EA_PLATFORM_UNIX) 
+        char8_t srcPath8[kMaxPathLength];
+        StrlcpyUTF16ToUTF8(srcPath8, kMaxPathLength, pPathSource);
 
+        char8_t dstPath8[kMaxPathLength];
+        StrlcpyUTF16ToUTF8(dstPath8, kMaxPathLength, pPathDestination);
+
+        if (!bOverwriteIfPresent && Exists(dstPath8))
+            return false;
+        
+        if (rename(srcPath8, dstPath8) == 0)
+            return true;
+
+        // If we failed, it might be because we tried to move between two different filesystems.
+        // In which case we must manually copy.
         if(Copy(pPathSource, pPathDestination, bOverwriteIfPresent))
         {
             Remove(pPathSource); // To consider: Back out of the copy if the remove fails.
@@ -623,6 +642,7 @@ EAIO_API bool File::Move(const char16_t* pPathSource, const char16_t* pPathDesti
         return false;
 
     #else
+        EA_FAIL_M("Unimplemented");
 
         // Bug Paul Pedriana to finish this for the given platform.
          (void)pPathSource; (void)pPathDestination; (void)bOverwriteIfPresent;
@@ -682,6 +702,14 @@ EAIO_API bool File::Move(const char8_t* pPathSource, const char8_t* pPathDestina
 
     #elif defined(EA_PLATFORM_UNIX)
 
+        if (!bOverwriteIfPresent && Exists(pPathDestination))
+            return false;
+        
+        if (rename(pPathSource, pPathDestination) == 0)
+            return true;
+
+        // If we failed, it might be because we tried to move between two different filesystems.
+        // In which case we must manually copy.
         if(Copy(pPathSource, pPathDestination, bOverwriteIfPresent))
         {
             Remove(pPathSource); // To consider: Back out of the copy if the remove fails.
@@ -691,6 +719,7 @@ EAIO_API bool File::Move(const char8_t* pPathSource, const char8_t* pPathDestina
         return false;
 
     #else
+        EA_FAIL_M("Unimplemented");
 
         // Bug Paul Pedriana to finish this for the given platform.
          (void)pPathSource; (void)pPathDestination; (void)bOverwriteIfPresent;
@@ -780,6 +809,7 @@ EAIO_API bool File::Copy(const char16_t* pPathSource, const char16_t* pPathDesti
         return false;
 
     #else
+        EA_FAIL_M("Unimplemented");
 
         // Bug Paul Pedriana to finish this for the given platform.
         (void)pPathSource; (void)pPathDestination; (void)bOverwriteIfPresent;
@@ -846,6 +876,7 @@ EAIO_API bool File::Copy(const char8_t* pPathSource, const char8_t* pPathDestina
         return false;
 
     #else
+        EA_FAIL_M("Unimplemented");
 
         // Bug Paul Pedriana to finish this for the given platform.
         (void)pPathSource; (void)pPathDestination; (void)bOverwriteIfPresent;
@@ -914,6 +945,7 @@ EAIO_API size_type File::GetSize(const char16_t* pPath)
         if(result == 0)
             return tempStat.st_size;
     #else
+        EA_FAIL_M("Unimplemented");
 
         // Bug Paul Pedriana to finish this for the given platform.
         (void)pPath;
@@ -1089,6 +1121,7 @@ EAIO_API int File::GetAttributes(const char16_t* pPath)
         }
 
     #else
+        EA_FAIL_M("Unimplemented");
 
         // Bug Paul Pedriana to finish this for the given platform.
         (void)pPath;
@@ -1228,6 +1261,7 @@ EAIO_API int File::GetAttributes(const char8_t* pPath)
         }
 
     #else
+        EA_FAIL_M("Unimplemented");
 
         // Bug Paul Pedriana to finish this for the given platform.
         (void)pPath;
@@ -1338,16 +1372,42 @@ EAIO_API bool File::SetAttributes(const char16_t* pPath, int nAttributeMask, boo
 
         return false;
 
-    #elif defined(EA_PLATFORM_UNIX)
+    #elif defined(EA_PLATFORM_UNIX) 
 
-        // To do:
-        // int chmod(const char *path, mode_t mode);
+        char8_t pPath8[kMaxPathLength];
+        StrlcpyUTF16ToUTF8(pPath8, kMaxPathLength, pPath);
 
-        (void)pPath; (void)nAttributeMask; (void)bEnable;
+
+        struct stat tempStat;
+        if (stat(pPath8, &tempStat) == 0)
+            return false;
+
+        mode_t modeChange = 0;
+
+        if (nAttributeMask & kAttributeReadable)
+            modeChange |= S_IROTH;
+        if (nAttributeMask & kAttributeWritable)
+            modeChange |= S_IWOTH;
+        if (nAttributeMask & kAttributeExecutable)
+            modeChange |= S_IXOTH;
+
+        if (modeChange == 0)
+            return true;
+
+
+        mode_t newMode;
+        if (bEnable)
+            newMode = tempStat.st_mode | modeChange;
+        else
+            newMode = tempStat.st_mode & ~modeChange;
+
+        if (chmod(pPath8, newMode) == 0)
+            return true;
 
         return false;
 
     #else
+        EA_FAIL_M("Unimplemented");
 
         // Bug Paul Pedriana to finish this for the given platform.
         (void)pPath; (void)nAttributeMask; (void)bEnable;
@@ -1455,14 +1515,35 @@ EAIO_API bool File::SetAttributes(const char8_t* pPath, int nAttributeMask, bool
 
     #elif defined(EA_PLATFORM_UNIX)
 
-        // To do:
-        // int chmod(const char *path, mode_t mode);
+        struct stat tempStat;
+        if (stat(pPath, &tempStat) == 0)
+            return false;
 
-        (void)pPath; (void)nAttributeMask; (void)bEnable;
+        mode_t modeChange = 0;
+
+        if (nAttributeMask & kAttributeReadable)
+            modeChange |= S_IROTH;
+        if (nAttributeMask & kAttributeWritable)
+            modeChange |= S_IWOTH;
+        if (nAttributeMask & kAttributeExecutable)
+            modeChange |= S_IXOTH;
+
+        if (modeChange == 0)
+            return true;
+
+        mode_t newMode;
+        if (bEnable)
+            newMode = tempStat.st_mode | modeChange;
+        else
+            newMode = tempStat.st_mode & ~modeChange;
+
+        if (chmod(pPath, newMode) == 0)
+            return true;
 
         return false;
 
     #else
+        EA_FAIL_M("Unimplemented");
 
         // Bug Paul Pedriana to finish this for the given platform.
         (void)pPath; (void)nAttributeMask; (void)bEnable;
@@ -1526,6 +1607,7 @@ EAIO_API time_t File::GetTime(const char16_t* pPath, FileTimeType timeType)
         return 0;
 
     #else
+        EA_FAIL_M("Unimplemented");
 
         // No way to get the file time for the given platform.
         // Or possibly the platform isn't supported yet.
@@ -1578,6 +1660,7 @@ EAIO_API time_t File::GetTime(const char8_t* pPath, FileTimeType timeType)
         return 0;
 
     #else
+        EA_FAIL_M("Unimplemented");
 
         // No way to get the file time for the given platform.
         // Or possibly the platform isn't supported yet.
@@ -1980,122 +2063,168 @@ EAIO_API bool InitializeFileSystem(bool /*bInitialize*/)
 //
 EAIO_API bool MakeTempPathName(char16_t* pPath, const char16_t* pDirectory, const char16_t* pFileName, const char16_t* pExtension, uint32_t nDestPathLength)
 {
-    using namespace EA::IO::Path;
+    #ifndef EA_PLATFORM_UNIX
+        using namespace EA::IO::Path;
+    
 
-    // User must allocate space for the resulting temp path.
-    if(pPath)
-    {
-        static const char16_t pFileNameDefault[]  = { 't', 'e', 'm', 'p', 0 };
-        static const char16_t pExtensionDefault[] = { '.', 't', 'm', 'p', 0 };
+        // User must allocate space for the resulting temp path.
+        if(pPath)
+        {
+            static const char16_t pFileNameDefault[]  = { 't', 'e', 'm', 'p', 0 };
+            static const char16_t pExtensionDefault[] = { '.', 't', 'm', 'p', 0 };
 
         time_t nTime = clock();
 
-        char16_t tempPath[kMaxPathLength];
+            char16_t tempPath[kMaxPathLength];
+
+            if(!pFileName)
+                pFileName = pFileNameDefault;
+
+            if(!pExtension)
+                pExtension = pExtensionDefault;
+
+            if(!pDirectory)
+            {
+                if (!GetTempDirectory(tempPath))
+                    return false;
+                pDirectory = tempPath;
+            }
+
+            for(size_t i = 0; i < 64; i++, nTime--)
+            {
+                char16_t buffer[20];
+
+                PathString16 tempFilePath(pDirectory);
+                Path::Append(tempFilePath, pFileName);
+                
+                tempFilePath.operator+=(EAIOItoa16((uint32_t)nTime, buffer));
+                tempFilePath.operator+=(pExtension);
+
+                uint32_t nSrcPathLength = (uint32_t)tempFilePath.length();
+                if (nSrcPathLength > nDestPathLength)
+                    break;
+
+                EAIOStrlcpy16(pPath, tempFilePath.c_str(), nDestPathLength);
+
+                FileStream fileStream(pPath);
+                if(fileStream.Open(kAccessFlagReadWrite, kCDCreateNew))
+                {
+                    fileStream.Close();
+                    return true;
+                }
+            #ifdef EA_PLATFORM_XENON
+                
+                else if(File::Exists(pPath))
+                    return true;
+            #endif
+                else if(fileStream.GetState() == kFSErrorWriteProtect) // If the directory cannot be written to...
+                    break;
+            }
+
+        }
+
+        return false;
+    #else
+        if(!pDirectory)
+            pDirectory = L"/tmp";
 
         if(!pFileName)
-            pFileName = pFileNameDefault;
+            pFileName = L"temp";
 
         if(!pExtension)
-            pExtension = pExtensionDefault;
+            pExtension = L"";
 
-        if(!pDirectory)
-        {
-            if (!GetTempDirectory(tempPath))
-                return false;
-            pDirectory = tempPath;
-        }
+        char8_t path8[kMaxPathLength];
+        if(snprintf(path8, kMaxPathLength, "%ls%lsXXXXX%ls", pDirectory, pFileName, pExtension) >= kMaxPathLength)
+            return false;
 
-        for(size_t i = 0; i < 64; i++, nTime--)
-        {
-            char16_t buffer[20];
+        if (mkstemp(path8) != 0)
+            return false;
+        // TODO: might want to set g/o flags here?
 
-            PathString16 tempFilePath(pDirectory);
-            Path::Append(tempFilePath, pFileName);
-            
-            tempFilePath.operator+=(EAIOItoa16((uint32_t)nTime, buffer));
-            tempFilePath.operator+=(pExtension);
-
-            uint32_t nSrcPathLength = (uint32_t)tempFilePath.length();
-            if (nSrcPathLength > nDestPathLength)
-                break;
-
-            EAIOStrlcpy16(pPath, tempFilePath.c_str(), nDestPathLength);
-
-            FileStream fileStream(pPath);
-            if(fileStream.Open(kAccessFlagReadWrite, kCDCreateNew))
-            {
-                fileStream.Close();
-                return true;
-            }
-        #ifdef EA_PLATFORM_XENON
-            else if(File::Exists(pPath))
-                return true;
-        #endif
-            else if(fileStream.GetState() == kFSErrorWriteProtect) // If the directory cannot be written to...
-                break;
-        }
-    }
-
-    return false;
+        StrlcpyUTF8ToUTF16(pPath, nDestPathLength, path8);
+        return true;
+    #endif
 }
 
 EAIO_API bool MakeTempPathName(char8_t* pPath, const char8_t* pDirectory, const char8_t* pFileName, const char8_t* pExtension, uint32_t nDestPathLength)
 {
-    // User must allocate space for the resulting temp path.
-    if(pPath)
-    {
-        static const char8_t pFileNameDefault[]  = { 't', 'e', 'm', 'p', 0 };
-        static const char8_t pExtensionDefault[] = { '.', 't', 'm', 'p', 0 };
+    #ifndef EA_PLATFORM_UNIX
+        // User must allocate space for the resulting temp path.
+        if(pPath)
+        {
+            static const char8_t pFileNameDefault[]  = { 't', 'e', 'm', 'p', 0 };
+            static const char8_t pExtensionDefault[] = { '.', 't', 'm', 'p', 0 };
 
-        time_t nTime = clock();
+			time_t nTime = clock();
 
-        char8_t tempPath[kMaxPathLength];
+            char8_t tempPath[kMaxPathLength];
+
+            if(!pFileName)
+                pFileName = pFileNameDefault;
+
+            if(!pExtension)
+                pExtension = pExtensionDefault;
+
+            if(!pDirectory)
+            {
+                if(!GetTempDirectory(tempPath))
+                    return false;
+                pDirectory = tempPath;
+            }
+
+            for(size_t i = 0; i < 64; i++, nTime--)
+            {
+                char8_t buffer[20];
+
+                Path::PathString8 tempFilePath(pDirectory);
+                Path::Append(tempFilePath, pFileName);
+
+                tempFilePath.operator+=(EAIOItoa8((uint32_t)nTime, buffer));
+                tempFilePath.operator+=(pExtension);
+
+                uint32_t nSrcPathLength = (uint32_t)tempFilePath.length();
+                if (nSrcPathLength > nDestPathLength)
+                    break;
+
+                EAIOStrlcpy8(pPath, tempFilePath.c_str(), nDestPathLength);
+
+                FileStream fileStream(pPath);
+                if(fileStream.Open(kAccessFlagReadWrite, kCDCreateNew))
+                {
+                    fileStream.Close();
+                    return true;
+                }
+            #ifdef EA_PLATFORM_XENON
+                
+                else if(File::Exists(pPath))
+                    return true;
+            #endif
+                else if(fileStream.GetState() == kFSErrorWriteProtect) // If the directory cannot be written to...
+                    break;
+            }
+        }
+
+        return false;
+    #else
+        if(!pDirectory)
+            pDirectory = "/tmp";
 
         if(!pFileName)
-            pFileName = pFileNameDefault;
+            pFileName = "temp";
 
         if(!pExtension)
-            pExtension = pExtensionDefault;
+            pExtension = "";
 
-        if(!pDirectory)
-        {
-            if(!GetTempDirectory(tempPath))
-                return false;
-            pDirectory = tempPath;
-        }
+        if (snprintf(pPath, nDestPathLength, "%s%sXXXXX%s", pDirectory, pFileName, pExtension) >= (int)nDestPathLength)
+            return false;
 
-        for(size_t i = 0; i < 64; i++, nTime--)
-        {
-            char8_t buffer[20];
+        if (mkstemp(pPath) != 0)
+            return false;
+        // TODO: might want to set g/o flags here?
 
-            Path::PathString8 tempFilePath(pDirectory);
-            Path::Append(tempFilePath, pFileName);
-
-            tempFilePath.operator+=(EAIOItoa8((uint32_t)nTime, buffer));
-            tempFilePath.operator+=(pExtension);
-
-            uint32_t nSrcPathLength = (uint32_t)tempFilePath.length();
-            if (nSrcPathLength > nDestPathLength)
-                break;
-
-            EAIOStrlcpy8(pPath, tempFilePath.c_str(), nDestPathLength);
-
-            FileStream fileStream(pPath);
-            if(fileStream.Open(kAccessFlagReadWrite, kCDCreateNew))
-            {
-                fileStream.Close();
-                return true;
-            }
-        #ifdef EA_PLATFORM_XENON
-            else if(File::Exists(pPath))
-                return true;
-        #endif
-            else if(fileStream.GetState() == kFSErrorWriteProtect) // If the directory cannot be written to...
-                break;
-        }
-    }
-
-    return false;
+        return true;
+    #endif
 }
 
 
@@ -2138,16 +2267,17 @@ EAIO_API int GetTempDirectory(char16_t* pDirectory, uint32_t nMaxPermittedLength
         return EAIOStrlen16(pDirectory);
 
     #elif defined(EA_PLATFORM_UNIX)
+        const char8_t* tmp  = getenv("TMPDIR");
 
-        pDirectory[0] = '/';
-        pDirectory[1] = 't';
-        pDirectory[2] = 'm';
-        pDirectory[3] = 'p';
-        pDirectory[4] = '/';
-        pDirectory[5] = 0;
-        return 5;
+        if (!tmp)
+            tmp = "/tmp/";        
+
+        return StrlcpyUTF8ToUTF16(pDirectory, nMaxPermittedLength, tmp);
+        
+    
 
     #else
+        EA_FAIL_M("Unimplemented");
 
         // Bug Paul Pedriana to finish this for the given platform.
         pDirectory[0] = 0;
@@ -2188,15 +2318,14 @@ EAIO_API int GetTempDirectory(char8_t* pDirectory, uint32_t nMaxPermittedLength)
         return (int)(unsigned)nTempDirLength;
 
     #elif defined(EA_PLATFORM_UNIX)
+        const char8_t* tmp  = getenv("TMPDIR");
 
-        pDirectory[0] = '/';
-        pDirectory[1] = 't';
-        pDirectory[2] = 'm';
-        pDirectory[3] = 'p';
-        pDirectory[4] = '/';
-        return 5;
+        if (!tmp)
+            tmp = "/tmp/";        
 
-    #else
+        return EAIOStrlcpy8(pDirectory, tmp, nMaxPermittedLength);
+        
+     #else
 
         // Bug Paul Pedriana to finish this for the given platform.
         return -1;
@@ -2301,6 +2430,7 @@ EAIO_API uint64_t GetDriveFreeSpace(const char16_t* pPath)
         // Fall through
 
     #else
+        EA_FAIL_M("Unimplemented");
         // Bug Paul Pedriana for this when you need it.
         (void)pPath;
 
@@ -2542,7 +2672,7 @@ EAIO_API DriveType GetDriveTypeValue(const char8_t* pPath)
 
 ///////////////////////////////////////////////////////////////////////////////
 // GetDriveInfo
-// 9/25/09 CSidhall - Removed unused drive info for  for LGPL platforms issues
+// 9/25/09 CSidhall - Removed unused drive info 
 
 ///////////////////////////////////////////////////////////////////////////////
 // Directory::Exists
@@ -2578,6 +2708,7 @@ EAIO_API bool Directory::Exists(const char16_t* pDirectory)
             // Fall through to return false.
 
         #else
+            EA_FAIL_M("Unimplemented");
             // Bug Paul Pedriana to finish this for the given platform.
         #endif
     }
@@ -2719,6 +2850,7 @@ namespace
             return false;
 
         #else
+            EA_FAIL_M("Unimplemented");
             // Bug Paul Pedriana for this when you need it.
             (void)pDirectory;
             return false;
@@ -2804,13 +2936,13 @@ namespace
 {
     bool RemoveDirectoryRecursiveInternal(char16_t* pDirectory, size_t pathLen) 
     {
-        DirectoryIterator            it;
+        DirectoryIterator            di;
         DirectoryIterator::EntryList entryList(DirectoryIterator::EntryList::allocator_type(EASTL_NAME_VAL(EAIO_ALLOC_PREFIX "FileUtil")));
 
         size_t namePos = pathLen;
         bool   success = true;
         
-        if (it.Read(pDirectory, entryList, 0, kDirectoryEntryFile | kDirectoryEntryDirectory))
+        if (di.Read(pDirectory, entryList, 0, kDirectoryEntryFile | kDirectoryEntryDirectory))
         {
             // Make sure the directory ends in a path separator. Note: If we have a
             // relative drive specification (c:), we don't want to add a backslash to it!
@@ -2903,6 +3035,7 @@ EAIO_API bool Directory::Remove(const char16_t* pDirectory, bool bAllowRecursive
             #endif
 
         #else
+            EA_FAIL_M("Unimplemented");
             // Bug Paul Pedriana for this when you need it.
             return false;
         #endif
@@ -2943,7 +3076,17 @@ EAIO_API bool Directory::Rename(const char16_t* pDirectoryOld, const char16_t* p
         (void)pDirectoryOld; (void)pDirectoryNew;
         return false;
 
+    #elif defined(EA_PLATFORM_UNIX)
+        char8_t pPathSource8[kMaxPathLength];
+        StrlcpyUTF16ToUTF8(pPathSource8, kMaxPathLength, pDirectoryOld);
+
+        char8_t pPathDestination8[kMaxPathLength];
+        StrlcpyUTF16ToUTF8(pPathDestination8, kMaxPathLength, pDirectoryNew);
+
+        return rename(pPathSource8, pPathDestination8);
+        
     #else
+        EA_FAIL_M("Unimplemented");
         // Bug Paul Pedriana for this when you need it.
         // This isn't necessarily supported on all platforms.
         // On the other hand, a brute force version which copies contents
@@ -2956,13 +3099,17 @@ EAIO_API bool Directory::Rename(const char16_t* pDirectoryOld, const char16_t* p
 
 EAIO_API bool Directory::Rename(const char8_t* pDirectoryOld, const char8_t* pDirectoryNew)
 {
-    EA::IO::Path::PathString16 oldPath16;
-    ConvertPathUTF8ToUTF16(oldPath16, pDirectoryOld);
+    #if defined(EA_PLATFORM_UNIX) 
+        return rename(pDirectoryOld, pDirectoryNew);
+    #else        
+        EA::IO::Path::PathString16 oldPath16;
+        ConvertPathUTF8ToUTF16(oldPath16, pDirectoryOld);
 
-    EA::IO::Path::PathString16 newPath16;
-    ConvertPathUTF8ToUTF16(newPath16, pDirectoryNew);
+        EA::IO::Path::PathString16 newPath16;
+        ConvertPathUTF8ToUTF16(newPath16, pDirectoryNew);
 
-    return Directory::Rename(oldPath16.c_str(), newPath16.c_str());
+        return Directory::Rename(oldPath16.c_str(), newPath16.c_str());
+    #endif
 }
 
 
@@ -2992,30 +3139,27 @@ EAIO_API bool Directory::Copy(const char16_t* pDirectorySource, const char16_t* 
             DirectoryIterator            directoryIterator;
             DirectoryIterator::EntryList entryList(DirectoryIterator::EntryList::allocator_type(EASTL_NAME_VAL(EAIO_ALLOC_PREFIX "EAFileNotification/FSEntry")));
 
-            bResult = (directoryIterator.Read(source16.c_str(), entryList, NULL, bRecursive ? kDirectoryEntryDirectory | kDirectoryEntryFile : kDirectoryEntryFile) != 0);
+            directoryIterator.Read(source16.c_str(), entryList, NULL, bRecursive ? kDirectoryEntryDirectory | kDirectoryEntryFile : kDirectoryEntryFile);
 
-            if(bResult)
+            for(DirectoryIterator::EntryList::iterator it(entryList.begin()); it != entryList.end(); ++it)
             {
-                for(DirectoryIterator::EntryList::iterator it(entryList.begin()); it != entryList.end(); ++it)
+                DirectoryIterator::Entry& entry = *it;
+
+                PathString16 sourcePath16(source16);
+                PathString16 destPath16(dest16);
+
+                Path::Join(sourcePath16, entry.msName.c_str());
+                Path::Join(destPath16, entry.msName.c_str());
+
+                if((entry.mType == kDirectoryEntryDirectory) && bRecursive)
                 {
-                    DirectoryIterator::Entry& entry = *it;
-
-                    PathString16 sourcePath16(source16);
-                    PathString16 destPath16(dest16);
-
-                    Path::Join(sourcePath16, entry.msName.c_str());
-                    Path::Join(destPath16, entry.msName.c_str());
-
-                    if((entry.mType == kDirectoryEntryDirectory) && bRecursive)
-                    {
-                        if(!Directory::Copy(sourcePath16.c_str(), destPath16.c_str(), bOverwriteIfAlreadyPresent))
-                            bResult = false;
-                    }
-                    else if(entry.mType == kDirectoryEntryFile)
-                    {
-                        if(!File::Copy(sourcePath16.c_str(), destPath16.c_str(), bOverwriteIfAlreadyPresent))
-                            bResult = false;
-                    }
+                    if(!Directory::Copy(sourcePath16.c_str(), destPath16.c_str(), bOverwriteIfAlreadyPresent))
+                        bResult = false;
+                }
+                else if(entry.mType == kDirectoryEntryFile)
+                {
+                    if(!File::Copy(sourcePath16.c_str(), destPath16.c_str(), bOverwriteIfAlreadyPresent))
+                        bResult = false;
                 }
             }
         }
@@ -3188,11 +3332,26 @@ EAIO_API int Directory::GetCurrentWorkingDirectory(char16_t* pDirectory, uint32_
 
 EAIO_API int Directory::GetCurrentWorkingDirectory(char8_t* pDirectory, uint32_t nMaxPermittedLength)
 {
-    char16_t pDirectory16[kMaxPathLength];
+    #if defined(EA_PLATFORM_UNIX)
 
-    Directory::GetCurrentWorkingDirectory(pDirectory16, kMaxPathLength);
+        const char* const pResult = getcwd(pDirectory, nMaxPermittedLength);
 
-    return (int)(unsigned)StrlcpyUTF16ToUTF8(pDirectory, nMaxPermittedLength, pDirectory16);
+        if(pResult)
+        {
+            Path::EnsureTrailingSeparator(pDirectory, nMaxPermittedLength);
+            return strlen(pDirectory); // No StdC
+        }
+
+        pDirectory[0] = 0;
+        return 0;
+
+    #else
+        char16_t pDirectory16[kMaxPathLength];
+
+        Directory::GetCurrentWorkingDirectory(pDirectory16, kMaxPathLength);
+
+        return (int)(unsigned)StrlcpyUTF16ToUTF8(pDirectory, nMaxPermittedLength, pDirectory16);
+    #endif
 }
 
 
@@ -3246,10 +3405,14 @@ EAIO_API bool Directory::SetCurrentWorkingDirectory(const char16_t* pDirectory)
 
 EAIO_API bool Directory::SetCurrentWorkingDirectory(const char8_t* pDirectory)
 {
-    EA::IO::Path::PathString16 path16;
-    ConvertPathUTF8ToUTF16(path16, pDirectory);
+    #if defined(EA_PLATFORM_UNIX) || defined(__APPLE__)
+        return chdir(pDirectory) == 0;
+    #else
+        EA::IO::Path::PathString16 path16;
+        ConvertPathUTF8ToUTF16(path16, pDirectory);
 
-    return Directory::SetCurrentWorkingDirectory(path16.c_str());
+        return Directory::SetCurrentWorkingDirectory(path16.c_str());
+    #endif
 }
 
 
@@ -3260,19 +3423,17 @@ EAIO_API bool IsDirectoryEmpty(const char16_t* pDirectory, int nDirectoryEntryFl
 
     if(bRecursive)
         return it.ReadRecursive(pDirectory, entryList, NULL, nDirectoryEntryFlags, true, true, 1) == 0;
-    else
-        return it.Read(pDirectory, entryList, NULL, nDirectoryEntryFlags, 1) == 0;
+
+    return it.Read(pDirectory, entryList, NULL, nDirectoryEntryFlags, 1) == 0;
 }
 
 EAIO_API bool IsDirectoryEmpty(const char8_t*  pDirectory, int nDirectoryEntryFlags, bool bRecursive)
 {
     EA::IO::Path::PathString16 path16;
     ConvertPathUTF8ToUTF16(path16, pDirectory);
-
-    return IsDirectoryEmpty(path16.c_str(), nDirectoryEntryFlags, bRecursive);
+	
+	return IsDirectoryEmpty(path16.c_str(), nDirectoryEntryFlags, bRecursive);
 }
-
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // GetSpecialDirectory
@@ -3399,6 +3560,17 @@ EAIO_API int GetSpecialDirectory(SpecialDirectory specialDirectory, char16_t* pD
             return (int)EAIOStrlen16(pDirectory);
         return -1;
 
+    #elif defined(EA_PLATFORM_UNIX)
+        // better just call 8-bit version and convert, as we don't have a 
+        // 16-bit non-eastl::string sprintf available any more.
+        
+        char8_t directory8[kMaxDirectoryLength];
+
+        int result = GetSpecialDirectory(specialDirectory, directory8, bEnsureDirectoryExistence, kMaxDirectoryLength);
+        if (result < 0)
+            return -1;
+
+        return StrlcpyUTF8ToUTF16(pDirectory, nMaxPermittedLength, directory8);
     #else
 
         // Bug Paul Pedriana for this when you need it for another platform.
@@ -3418,15 +3590,75 @@ EAIO_API int GetSpecialDirectory(SpecialDirectory specialDirectory, char16_t* pD
 EAIO_API int GetSpecialDirectory(SpecialDirectory specialDirectory, char8_t* pDirectory, 
                         bool bEnsureDirectoryExistence, uint32_t nMaxPermittedLength)
 {
-    EA::IO::Path::PathString16 path16;
-    path16.resize(nMaxPermittedLength);
+    #if !defined(EA_PLATFORM_UNIX)
+        EA::IO::Path::PathString16 path16;
+        path16.resize(nMaxPermittedLength);
 
-    if(GetSpecialDirectory(specialDirectory, &path16[0], bEnsureDirectoryExistence, nMaxPermittedLength))
-    {
-        return (int)StrlcpyUTF16ToUTF8(pDirectory, nMaxPermittedLength, path16.c_str());
-    }
+        if(GetSpecialDirectory(specialDirectory, &path16[0], bEnsureDirectoryExistence, nMaxPermittedLength))
+        {
+            return (int)StrlcpyUTF16ToUTF8(pDirectory, nMaxPermittedLength, path16.c_str());
+        }
+        
+        return -1;
+    #else
+        (void)bEnsureDirectoryExistence;
 
-    return -1;
+        const char8_t* home    = getenv("HOME");
+        const char8_t* shared  = "/Users/Shared";  // TODO: this is OSX-specific
+        const char8_t* tmp     = getenv("TMPDIR");
+
+        if (!tmp)
+            tmp = "/tmp/";
+        if (!home)
+            home = tmp;
+
+        switch (specialDirectory)
+        {
+            case kSpecialDirectoryNone:
+                return -1;
+                
+            case kSpecialDirectoryTemp:
+                return EAIOStrlcpy8(pDirectory, tmp, nMaxPermittedLength);
+
+            case kSpecialDirectoryOperatingSystem:
+                return EAIOStrlcpy8(pDirectory, "/System/", nMaxPermittedLength);
+            case kSpecialDirectoryOperatingSystemTrash:
+                // Return per-user trash.
+                return snprintf(pDirectory, nMaxPermittedLength, "%s/.Trash/", home);
+            case kSpecialDirectoryOperatingSystemFonts:
+                // there should really be kSpecialDirectoryUserFonts too.
+                return EAIOStrlcpy8(pDirectory, "/Library/Fonts/", nMaxPermittedLength);
+            
+            case kSpecialDirectoryCurrentApplication:
+                // TODO. Not sure we can get to argv now that EAIO is off by itself.
+                return -1;
+
+            case kSpecialDirectoryUserDesktop:
+                return snprintf(pDirectory, nMaxPermittedLength, "%s/Desktop/", home);
+            case kSpecialDirectoryCommonDesktop:
+                return snprintf(pDirectory, nMaxPermittedLength, "%s/Desktop/", shared);
+            case kSpecialDirectoryUserApplicationData:
+                return snprintf(pDirectory, nMaxPermittedLength, "%s/Library/", home);
+            case kSpecialDirectoryCommonApplicationData:
+                return snprintf(pDirectory, nMaxPermittedLength, "%s/Library/", shared);
+            case kSpecialDirectoryUserDocuments:
+                return snprintf(pDirectory, nMaxPermittedLength, "%s/Documents/", home);
+            case kSpecialDirectoryCommonDocuments:
+                return snprintf(pDirectory, nMaxPermittedLength, "%s/Documents/", shared);
+
+            case kSpecialDirectoryUserMusic:
+                return snprintf(pDirectory, nMaxPermittedLength, "%s/Music/", home);
+            case kSpecialDirectoryCommonMusic:
+                return snprintf(pDirectory, nMaxPermittedLength, "%s/Music/", shared);
+
+            case kSpecialDirectoryUserProgramsShortcuts:    // shortcuts is a windowsism, assume they mean the apps directory
+                return snprintf(pDirectory, nMaxPermittedLength, "%s/Applications/", home);
+            case kSpecialDirectoryCommonProgramsShortcuts:
+                return EAIOStrlcpy8(pDirectory, "/Applications/", nMaxPermittedLength);
+        }
+
+        return -1;
+    #endif
 }
 
 
@@ -3519,57 +3751,61 @@ bool IsFileNameCharValid(char16_t c, FileSystem fileSystemType)
 //
 bool IsFileNameStringValid(const char16_t* pName, FileSystem fileSystemType)
 {
-    using namespace EA::IO::Path;
+	using namespace EA::IO::Path;
 
-    PathString16 sName(pName);
+	PathString16 sName(pName);
 
-    if(sName.length() < (eastl_size_t)kMaxFileNameLength) // Problem: This value is tied to the compilation target and not the fileSystemType.
-    {
-        //Check for bad characters. This is an OK technique even for multi-byte locales.
-        for(eastl_size_t i(0), iEnd(sName.length()); i < iEnd; i++)
-        {
-            const char16_t c = sName[i];  //We don't have to worry about multi-byte text because we use UTF8 which is not hostile to what we do here.
+	if(sName.length() < (eastl_size_t)kMaxFileNameLength) // Problem: This value is tied to the compilation target and not the fileSystemType.
+	{
+		//Check for bad characters. This is an OK technique even for multi-byte locales.
+		for(eastl_size_t i(0), iEnd(sName.length()); i < iEnd; i++)
+		{
+			const char16_t c = sName[i];  //We don't have to worry about multi-byte text because we use UTF8 which is not hostile to what we do here.
 
-            if(!IsFileNameCharValid(c, fileSystemType))
-                return false;
-        }
+			if(!IsFileNameCharValid(c, fileSystemType))
+				return false;
+		}
 
-        // Do reserved word tests
-        if((fileSystemType == kFileSystemWindows) || 
-           (fileSystemType == kFileSystemFAT)     ||
-           (fileSystemType == kFileSystemFAT32)   ||
-           (fileSystemType == kFileSystemNTFS))
-        { 
-            PathString16 sCurrentComponentLowerCaseMinusExtension(sName);
-            sCurrentComponentLowerCaseMinusExtension.make_lower();
+		// Do reserved word tests
+		if((fileSystemType == kFileSystemWindows) || 
+			(fileSystemType == kFileSystemFAT)     ||
+			(fileSystemType == kFileSystemFAT32)   ||
+			(fileSystemType == kFileSystemNTFS))
+		{ 
+			PathString16 sCurrentComponentLowerCaseMinusExtension(sName);
+			sCurrentComponentLowerCaseMinusExtension.make_lower();
 
-            // Remove anything past a dot because that's insignificant to Windows when testing reserved words.
-            const eastl_size_t nDotPosition(sCurrentComponentLowerCaseMinusExtension.find('.'));
-            if(nDotPosition != PathString16::npos)
-                sCurrentComponentLowerCaseMinusExtension.erase(nDotPosition);
+			// Remove anything past a dot because that's insignificant to Windows when testing reserved words.
+			const eastl_size_t nDotPosition(sCurrentComponentLowerCaseMinusExtension.find('.'));
+			if(nDotPosition != PathString16::npos)
+				sCurrentComponentLowerCaseMinusExtension.erase(nDotPosition);
 
-            // Also trim off any spaces at the end because those are insignificant to Windows when testing reserved words.
-            sCurrentComponentLowerCaseMinusExtension.rtrim();
+			// Also trim off any spaces at the end because those are insignificant to Windows when testing reserved words.
+			sCurrentComponentLowerCaseMinusExtension.rtrim();
 
-            for(eastl_size_t i(0); i < (sizeof(pReservedNamesWin32) / sizeof(pReservedNamesWin32[0])); i++)
-            {
-                if(sCurrentComponentLowerCaseMinusExtension == pReservedNamesWin32[i])
-                    return false;
-            }
-        }
+			for(eastl_size_t i(0); i < (sizeof(pReservedNamesWin32) / sizeof(pReservedNamesWin32[0])); i++)
+			{
+				if(sCurrentComponentLowerCaseMinusExtension == pReservedNamesWin32[i])
+					return false;
+			}
+		}
 
-        // Components that consist of just '.' and/or ' ' chars are illegal.
-        // The Win32 documentation doesn't specifically state that these combinations
-        // are illegal, but in practice they are. Thus, "...", "   ", and ". ." are
-        // all invalid.
-        if(sName.find_first_not_of(L". ") == PathString16::npos)
-            return false;
+		// Components that consist of just '.' and/or ' ' chars are illegal.
+		// The Win32 documentation doesn't specifically state that these combinations
+		// are illegal, but in practice they are. Thus, "...", "   ", and ". ." are
+		// all invalid.
+		if(sName.find_first_not_of(L". ") == PathString16::npos)
+			return false;
 
-        return true;
-    }
+		return true;
+	}
 
-    return false;
+	return false;
 }
+
+
+
+
 
 
 bool IsDirectoryNameStringValid(const char16_t* pName, FileSystem fileSystemType)
@@ -3697,7 +3933,7 @@ bool IsFilePathStringValid(const char16_t* pPath, FileSystem fileSystemType)
             if((sPath.length() >= 3) &&     // Similar to iswalpha(sPath[0])
                ((sPath[0] >= 'a' && sPath[0] <= 'z') || (sPath[0] >= 'A' && sPath[0] <= 'Z')) && // If is a Windows drive letter...
                (sPath[1] == ':') &&
-               (sPath[2] == '\\'))       // '/' (as opposed to '\') is allowed as directory separators but not after "C:". 
+               (sPath[2] == '\\'))       // '/' (as opposed to '\') is allowed as directory separators but not after "C:". That's Microsoft for ya.
             {
                 nPosition = 3;
             }

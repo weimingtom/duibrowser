@@ -261,6 +261,18 @@ EAIO_API bool FnMatch(const char8_t* EA_RESTRICT pPattern, const char8_t* EA_RES
 namespace // anonymous
 {
 
+// We make our our Strchr because some platforms don't implement it, some implement
+// it in 32 bit wchar_t only (Linux), and this function is very simple.
+char16_t* Strchr(const char16_t* pString, char16_t c)
+{
+    do {
+        if(*pString == c)
+            return (char16_t*)pString;
+    } while (*pString++);
+
+    return NULL;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // RangeMatch
@@ -382,14 +394,14 @@ EAIO_API bool FnMatch(const char16_t* EA_RESTRICT pPattern, const char16_t* EA_R
                 if(c == '\0')
                 {
                     if(fnMatchFlags & kFNMPathname)
-                        return (fnMatchFlags & kFNMLeadingDir) || !wcschr(pString, cSeparator) ? true : false;
+                        return (fnMatchFlags & kFNMLeadingDir) || !Strchr(pString, cSeparator) ? true : false;
                     else
                         return true;
                 }
 
                 else if((c == cSeparator) && (fnMatchFlags & kFNMPathname))
                 {
-                    pString = wcschr(pString, cSeparator);
+                    pString = Strchr(pString, cSeparator);
 
                     if(pString == NULL)
                         return false;

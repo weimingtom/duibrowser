@@ -54,10 +54,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
-#include "EARaster.h"
-#include "EARasterColor.h"
+#include "EARaster/EARaster.h"
+#include "EARaster/EARasterColor.h"
 #include "EARaster/internal/EARasterUtils.h"
 #include "Color.h"
+#include "AffineTransform.h"
+#include "IntRect.h"
 #include <EAWebKit/internal/EAWebKitAssert.h>
 #include <math.h>
 #include <stdlib.h>
@@ -91,10 +93,10 @@ union PixelBytes
 
 
 // Defines for pPixel clipping tests.
-#define clip_xmin(pSurface) (pSurface->mClipRect.x())
-#define clip_xmax(pSurface) (pSurface->mClipRect.x() + pSurface->mClipRect.width())
-#define clip_ymin(pSurface) (pSurface->mClipRect.y())
-#define clip_ymax(pSurface) (pSurface->mClipRect.y() + pSurface->mClipRect.height())
+#define clip_xmin(pSurface) (pSurface->GetClipRect().x())
+#define clip_xmax(pSurface) (pSurface->GetClipRect().x() + pSurface->GetClipRect().width())
+#define clip_ymin(pSurface) (pSurface->GetClipRect().y())
+#define clip_ymax(pSurface) (pSurface->GetClipRect().y() + pSurface->GetClipRect().height())
 
 
 // Sets count uint32s at pDest to value.
@@ -305,37 +307,38 @@ EARASTER_API void ConvertColor(const Color& c, int& r, int& g, int& b, int& a)
     a = c.alpha();
 }
 
-EARASTER_API void GetPixel(Surface* pSurface, int x, int y, Color& color) 
+EARASTER_API void GetPixel(ISurface* pSurface, int x, int y, Color& color) 
 {
-    EAW_ASSERT(((unsigned)x < (unsigned)pSurface->mWidth) && ((unsigned)y < (unsigned)pSurface->mHeight));
+    EAW_ASSERT(((unsigned)x < (unsigned)pSurface->GetWidth()) && ((unsigned)y < (unsigned)pSurface->GetHeight()));
 
-    const void* const pPixel = (char*)pSurface->mpData + (pSurface->mStride * y) + (pSurface->mPixelFormat.mBytesPerPixel * x);
+    const void* const pPixel = (char*)pSurface->GetData() + (pSurface->GetStride() * y) + (pSurface->GetPixelFormat().mBytesPerPixel * x);
 
     uint32_t c;
-    memcpy(&c, pPixel, pSurface->mPixelFormat.mBytesPerPixel);
+    memcpy(&c, pPixel, pSurface->GetPixelFormat().mBytesPerPixel);
 
-    ConvertColor(c, pSurface->mPixelFormat.mPixelFormatType, color);
+    ConvertColor(c, pSurface->GetPixelFormat().mPixelFormatType, color);
 }
 
 
 // The color is directly copied to the dest, including any alpha in the color. 
 // No blending is done, regardless of the color alpha value.
-EARASTER_API int SetPixelSolidColor(Surface* pSurface, int x, int y, const Color& color)
+EARASTER_API int SetPixelSolidColor(ISurface* pSurface, int x, int y, const Color& color)
 {
-    if(((unsigned)x < (unsigned)pSurface->mWidth) && ((unsigned)y < (unsigned)pSurface->mHeight))
+    if(((unsigned)x < (unsigned)pSurface->GetWidth()) && ((unsigned)y < (unsigned)pSurface->GetHeight()))
     {
-        switch (pSurface->mPixelFormat.mPixelFormatType)
+        pSurface->Lock();
+        switch (pSurface->GetPixelFormat().mPixelFormatType)
         {
             case kPixelFormatTypeARGB: // 1:1 mapping
             {
-                uint32_t* pPixel = (uint32_t*)((uint8_t*)pSurface->mpData + (pSurface->mStride * y) + (4 * x));
+                uint32_t* pPixel = (uint32_t*)((uint8_t*)pSurface->GetData() + (pSurface->GetStride() * y) + (4 * x));
                 *pPixel = color.rgb();
                 break;
             }
 
             case kPixelFormatTypeRGB:
             {
-                uint8_t* pPixel = (uint8_t*)pSurface->mpData + (pSurface->mStride * y) + (3 * x);
+                uint8_t* pPixel = (uint8_t*)pSurface->GetData() + (pSurface->GetStride() * y) + (3 * x);
 
                 pPixel[0] = color.red();
                 pPixel[1] = color.green();
@@ -346,11 +349,12 @@ EARASTER_API int SetPixelSolidColor(Surface* pSurface, int x, int y, const Color
             default:
             {
                 // We assume the pPixel is 32 bit aligned.
-                uint32_t* pPixel = (uint32_t*)((uint8_t*)pSurface->mpData + (pSurface->mStride * y) + (4 * x));
-                *pPixel = ConvertColor(color, pSurface->mPixelFormat.mPixelFormatType);
+                uint32_t* pPixel = (uint32_t*)((uint8_t*)pSurface->GetData() + (pSurface->GetStride() * y) + (4 * x));
+                *pPixel = ConvertColor(color, pSurface->GetPixelFormat().mPixelFormatType);
                 break;
             }
         }
+        pSurface->Unlock();            
     }
 
     return 0;
@@ -358,14 +362,14 @@ EARASTER_API int SetPixelSolidColor(Surface* pSurface, int x, int y, const Color
 
 
 // 2/12/09 CSidhall This can do a rect clip before the pixel draw in case partially out of area  
-static int SetPixelSolidColorAndUseClippingRect(Surface* pSurface, const int x, const int y, const Color& color, const bool clipFlag)
+static int SetPixelSolidColorAndUseClippingRect(ISurface* pSurface, const int x, const int y, const Color& color, const bool clipFlag)
 {
     if(clipFlag == true)
     {
-        if( (x < pSurface->mClipRect.x) ||
-            (x > (pSurface->mClipRect.x + pSurface->mClipRect.width())) ||
-            (y < pSurface->mClipRect.y) ||    
-            (y > (pSurface->mClipRect.y + pSurface->mClipRect.width())) )
+        if( (x < pSurface->GetClipRect().x) ||
+            (x > (pSurface->GetClipRect().x + pSurface->GetClipRect().width())) ||
+            (y < pSurface->GetClipRect().y) ||    
+            (y > (pSurface->GetClipRect().y + pSurface->GetClipRect().width())) )
         {
             return 0;
         }
@@ -378,22 +382,25 @@ static int SetPixelSolidColorAndUseClippingRect(Surface* pSurface, const int x, 
 
 // The color is directly copied to the dest, including any alpha in the color. 
 // No blending is done, regardless of the color alpha value.
-EARASTER_API int SetPixelSolidColorNoClip(Surface* pSurface, int x, int y, const Color& color)
+EARASTER_API int SetPixelSolidColorNoClip(ISurface* pSurface, int x, int y, const Color& color)
 {
-    EAW_ASSERT(((unsigned)x < (unsigned)pSurface->mWidth) && ((unsigned)y < (unsigned)pSurface->mHeight));
+    EAW_ASSERT(((unsigned)x < (unsigned)pSurface->GetWidth()) && ((unsigned)y < (unsigned)pSurface->GetHeight()));
+    
+    pSurface->Lock();
 
-    switch (pSurface->mPixelFormat.mPixelFormatType)
+    switch (pSurface->GetPixelFormat().mPixelFormatType)
     {
+    
         case kPixelFormatTypeARGB: // 1:1 mapping
         {
-            uint32_t* pPixel = (uint32_t*)((uint8_t*)pSurface->mpData + (pSurface->mStride * y) + (4 * x));
+            uint32_t* pPixel = (uint32_t*)((uint8_t*)pSurface->GetData() + (pSurface->GetStride() * y) + (4 * x));
             *pPixel = color.rgb();
             break;
         }
 
         case kPixelFormatTypeRGB:
         {
-            uint8_t* pPixel = (uint8_t*)pSurface->mpData + (pSurface->mStride * y) + (3 * x);
+            uint8_t* pPixel = (uint8_t*)pSurface->GetData() + (pSurface->GetStride() * y) + (3 * x);
 
             pPixel[0] = color.red();
             pPixel[1] = color.green();
@@ -404,34 +411,35 @@ EARASTER_API int SetPixelSolidColorNoClip(Surface* pSurface, int x, int y, const
         default:
         {
             // We assume the pPixel is 32 bit aligned.
-            uint32_t* pPixel = (uint32_t*)((uint8_t*)pSurface->mpData + (pSurface->mStride * y) + (4 * x));
-            *pPixel = ConvertColor(color, pSurface->mPixelFormat.mPixelFormatType);
+            uint32_t* pPixel = (uint32_t*)((uint8_t*)pSurface->GetData() + (pSurface->GetStride() * y) + (4 * x));
+            *pPixel = ConvertColor(color, pSurface->GetPixelFormat().mPixelFormatType);
             break;
         }
     }
+    pSurface->Unlock();
 
     return 0;
 }
 
 
 // The color is alpha-blended with the destination surface.
-EARASTER_API int SetPixelColor(Surface* pSurface, int x, int y, const Color& color)
+EARASTER_API int SetPixelColor(ISurface* pSurface, int x, int y, const Color& color)
 {
-    if(((unsigned)x < (unsigned)pSurface->mWidth) && ((unsigned)y < (unsigned)pSurface->mHeight))
+    if(((unsigned)x < (unsigned)pSurface->GetWidth()) && ((unsigned)y < (unsigned)pSurface->GetHeight()))
         SetPixelColorNoClip(pSurface, x, y, color);
 
     return 0;
 }
 
 // 2/12/09 CSidhall This can do a rect clip before the pixel draw in case partially out of area
-static int SetPixelColorAndUseClippingRect(Surface* pSurface, const int x, const int y, const Color& color, const bool clipFlag)
+static int SetPixelColorAndUseClippingRect(ISurface* pSurface, const int x, const int y, const Color& color, const bool clipFlag)
 {
     if(clipFlag == true)
     {
-        if( (x < pSurface->mClipRect.x) ||
-            (x > (pSurface->mClipRect.x + pSurface->mClipRect.width())) ||
-            (y < pSurface->mClipRect.y) ||    
-            (y > (pSurface->mClipRect.y + pSurface->mClipRect.width())) )
+        if( (x < pSurface->GetClipRect().x) ||
+            (x > (pSurface->GetClipRect().x + pSurface->GetClipRect().width())) ||
+            (y < pSurface->GetClipRect().y) ||    
+            (y > (pSurface->GetClipRect().y + pSurface->GetClipRect().width())) )
         {
             return 0;
         }
@@ -441,15 +449,17 @@ static int SetPixelColorAndUseClippingRect(Surface* pSurface, const int x, const
 
 
 // The color is alpha-blended with the destination surface.
-EARASTER_API int SetPixelColorNoClip(Surface* pSurface, int x, int y, const Color& color)
+EARASTER_API int SetPixelColorNoClip(ISurface* pSurface, int x, int y, const Color& color)
 {
     const int sA = color.alpha();
 
-    switch (pSurface->mPixelFormat.mPixelFormatType)
+    pSurface->Lock();
+
+    switch (pSurface->GetPixelFormat().mPixelFormatType)
     {
         case kPixelFormatTypeRGB:
         {
-            uint8_t*  pPixel = (uint8_t*)pSurface->mpData + (y * pSurface->mStride) + (x * 3);
+            uint8_t*  pPixel = (uint8_t*)pSurface->GetData() + (y * pSurface->GetStride()) + (x * 3);
             const int sR     = color.red();
             const int sG     = color.green();
             const int sB     = color.blue();
@@ -476,7 +486,7 @@ EARASTER_API int SetPixelColorNoClip(Surface* pSurface, int x, int y, const Colo
 
         case kPixelFormatTypeARGB: // 1:1 mapping
         {
-            uint32_t* const pPixel = (uint32_t*)pSurface->mpData + (y * pSurface->mStride / 4) + x;
+            uint32_t* const pPixel = (uint32_t*)pSurface->GetData() + (y * pSurface->GetStride() / 4) + x;
 
             if(sA == 255)   // If the source is opaque...
                 *pPixel = color.rgb();
@@ -501,12 +511,13 @@ EARASTER_API int SetPixelColorNoClip(Surface* pSurface, int x, int y, const Colo
             break;
         }
     }
+    pSurface->Unlock();
 
     return 0;
 }
 
 
-EARASTER_API int SetPixelRGBA(Surface* pSurface, int x, int y, int r, int g, int b, int a)
+EARASTER_API int SetPixelRGBA(ISurface* pSurface, int x, int y, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -514,7 +525,7 @@ EARASTER_API int SetPixelRGBA(Surface* pSurface, int x, int y, int r, int g, int
 }
 
 
-EARASTER_API int SetPixelRGBANoClip(Surface* pSurface, int x, int y, int r, int g, int b, int a)
+EARASTER_API int SetPixelRGBANoClip(ISurface* pSurface, int x, int y, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -528,23 +539,24 @@ EARASTER_API int SetPixelRGBANoClip(Surface* pSurface, int x, int y, int r, int 
 
 // Applies no blending. Writes the color to the destination. Writes the color
 // alpha to the destination if the destination has an alpha channel.
-EARASTER_API int FillRectSolidColor(Surface* pSurface, const Rect* pRect, const Color& color)
+EARASTER_API int FillRectSolidColor(ISurface* pSurface, const Rect* pRect, const Color& color)
 {
     Rect rectTemp;
 
     if(pRect)
     {
-        if(IntersectRect(*pRect, pSurface->mClipRect, rectTemp))  // If the intersection is empty... nothing to do.
+        if(IntersectRect(*pRect, pSurface->GetClipRect(), rectTemp))  // If the intersection is empty... nothing to do.
             pRect = &rectTemp;
         else
             return 0;
     } 
     else
-        pRect = &pSurface->mClipRect;
+        pRect = &pSurface->GetClipRect();
 
-    uint8_t* pRow = (uint8_t*)pSurface->mpData + (pRect->y * pSurface->mStride) + (pSurface->mPixelFormat.mBytesPerPixel * pRect->x);
+    pSurface->Lock();
+    uint8_t* pRow = (uint8_t*)pSurface->GetData() + (pRect->y * pSurface->GetStride()) + (pSurface->GetPixelFormat().mBytesPerPixel * pRect->x);
 
-    switch (pSurface->mPixelFormat.mBytesPerPixel)
+    switch (pSurface->GetPixelFormat().mBytesPerPixel)
     {
         case 3: // kPixelFormatTypeRGB
         {
@@ -563,46 +575,50 @@ EARASTER_API int FillRectSolidColor(Surface* pSurface, const Rect* pRect, const 
                     pixels[2] = b;
                 }
 
-                pRow += pSurface->mStride;
+                pRow += pSurface->GetStride();
             }
             break;
         }
 
         case 4:
         {
-            const uint32_t c32 = ConvertColor(color, pSurface->mPixelFormat.mPixelFormatType);
+            const uint32_t c32 = ConvertColor(color, pSurface->GetPixelFormat().mPixelFormatType);
 
             for(int y = pRect->h, w = pRect->w; y; --y)
             {
                 memset4(pRow, c32, w);
-                pRow += pSurface->mStride;
+                pRow += pSurface->GetStride();
             }
             break;
         }
     }
+    pSurface->Unlock();
 
     return 0;
 }
 
 
-EARASTER_API int FillRectColor(Surface* pSurface, const Rect* pRect, const Color& color)
+EARASTER_API int FillRectColor(ISurface* pSurface, const Rect* pRect, const Color& color)
 {
     Rect rectTemp;
 
     if(pRect)
     {
-        if(IntersectRect(*pRect, pSurface->mClipRect, rectTemp))  // If the intersection is empty... nothing to do.
+        if(IntersectRect(*pRect, pSurface->GetClipRect(), rectTemp))  // If the intersection is empty... nothing to do.
             pRect = &rectTemp;
         else
             return 0;
     } 
     else
-        pRect = &pSurface->mClipRect;
+        pRect = &pSurface->GetClipRect();
 
     const int sA = color.alpha();
-    uint8_t* pRow = (uint8_t*)pSurface->mpData + (pRect->y * pSurface->mStride) + (pSurface->mPixelFormat.mBytesPerPixel * pRect->x);
 
-    switch (pSurface->mPixelFormat.mBytesPerPixel)
+    pSurface->Lock();
+    uint8_t* pRow = (uint8_t*)pSurface->GetData() + (pRect->y * pSurface->GetStride()) + (pSurface->GetPixelFormat().mBytesPerPixel * pRect->x);
+    
+
+    switch (pSurface->GetPixelFormat().mBytesPerPixel)
     {
         case 3: // kPixelFormatTypeRGB
         {
@@ -635,14 +651,14 @@ EARASTER_API int FillRectColor(Surface* pSurface, const Rect* pRect, const Color
                     }
                 }
 
-                pRow += pSurface->mStride;
+                pRow += pSurface->GetStride();
             }
             break;
         }
 
         case 4:
         {
-            // const uint32_t c32 = ConvertColor(color, pSurface->mPixelFormat.mPixelFormatType); Uh, I don't think this is what we want to do, is it?
+            // const uint32_t c32 = ConvertColor(color, pSurface->GetPixelFormat().mPixelFormatType); Uh, I don't think this is what we want to do, is it?
             uint32_t s = color.rgb();  // We are assuming that the color is 32 bit ARGB here.
 
             // 7/22/09 CS -Added faster loop for the most frequent case. Grabbed from FillRectSolidColor()     
@@ -651,7 +667,7 @@ EARASTER_API int FillRectColor(Surface* pSurface, const Rect* pRect, const Color
                 for(int y = pRect->h, w = pRect->w; y; --y)
                 {
                     memset4(pRow, s, w);
-                    pRow += pSurface->mStride;
+                    pRow += pSurface->GetStride();
                 }
             }
             else
@@ -681,21 +697,24 @@ EARASTER_API int FillRectColor(Surface* pSurface, const Rect* pRect, const Color
                             *pPixel = s;        
                         }
                     }
-                    pRow += pSurface->mStride;
+                    pRow += pSurface->GetStride();
                 }
             }    
             break;
         }
     }
+    
+    pSurface->Unlock();
+
     return 0;
 }
 
 
 // Draws a single-pPixel-thick rectangle outline.
-EARASTER_API int RectangleColor(Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color)
+EARASTER_API int RectangleColor(ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color)
 {
     // Check visibility of clipping rectangle
-    if((pSurface->mClipRect.width() == 0) || (pSurface->mClipRect.height() == 0))
+    if((pSurface->GetClipRect().width() == 0) || (pSurface->GetClipRect().height() == 0))
         return 0;
 
     // Swap x1, x2 if required 
@@ -751,7 +770,7 @@ EARASTER_API int RectangleColor(Surface* pSurface, int x1, int y1, int x2, int y
     return result;
 }
 
-EARASTER_API int RectangleColor(Surface* pSurface, const EA::Raster::Rect& rect, const EA::Raster::Color& c)
+EARASTER_API int RectangleColor(ISurface* pSurface, const EA::Raster::Rect& rect, const EA::Raster::Color& c)
 {
     return RectangleColor(  pSurface, 
                             rect.x, 
@@ -761,7 +780,7 @@ EARASTER_API int RectangleColor(Surface* pSurface, const EA::Raster::Rect& rect,
                             c);
 }
 
-EARASTER_API int RectangleRGBA(Surface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a)
+EARASTER_API int RectangleRGBA(ISurface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -799,7 +818,7 @@ static int GetClipCode(int x, int y, int left, int top, int right, int bottom)
 }
 
 
-static int ClipLine(Surface* pSurface, int* x1, int* y1, int* x2, int* y2)
+static int ClipLine(ISurface* pSurface, int* x1, int* y1, int* x2, int* y2)
 {
     int    left, right, top, bottom;
     int    code1, code2;
@@ -808,10 +827,10 @@ static int ClipLine(Surface* pSurface, int* x1, int* y1, int* x2, int* y2)
     float  m;
 
     // Get clipping boundary 
-    left   = pSurface->mClipRect.x;
-    right  = pSurface->mClipRect.x + pSurface->mClipRect.width() - 1;
-    top    = pSurface->mClipRect.y;
-    bottom = pSurface->mClipRect.y + pSurface->mClipRect.height() - 1;
+    left   = pSurface->GetClipRect().x;
+    right  = pSurface->GetClipRect().x + pSurface->GetClipRect().width() - 1;
+    top    = pSurface->GetClipRect().y;
+    bottom = pSurface->GetClipRect().y + pSurface->GetClipRect().height() - 1;
 
     while(1)
     {
@@ -880,7 +899,7 @@ static int ClipLine(Surface* pSurface, int* x1, int* y1, int* x2, int* y2)
 
 // Draw a solid line in a given color. The alpha of the color is taken into
 // consideration while drawing pixels, but the line itself is not anti-aliased. 
-EARASTER_API int LineColor(Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color)
+EARASTER_API int LineColor(ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color)
 {
     int      pixx, pixy;
     int      x, y;
@@ -924,9 +943,11 @@ EARASTER_API int LineColor(Surface* pSurface, int x1, int y1, int x2, int y2, co
     {
         dx     = (sx * dx) + 1;
         dy     = (sy * dy) + 1;
-        pixx   = pSurface->mPixelFormat.mBytesPerPixel;
-        pixy   = pSurface->mStride;
-        pPixel = (uint8_t*)pSurface->mpData + (pixy * y1) + (pixx * x1);
+        pixx   = pSurface->GetPixelFormat().mBytesPerPixel;
+        pixy   = pSurface->GetStride();
+        
+        pSurface->Lock();
+        pPixel = (uint8_t*)pSurface->GetData() + (pixy * y1) + (pixx * x1);
         pixx  *= sx;
         pixy  *= sy;
 
@@ -945,7 +966,7 @@ EARASTER_API int LineColor(Surface* pSurface, int x1, int y1, int x2, int y2, co
         x = 0;
         y = 0;
 
-        switch (pSurface->mPixelFormat.mPixelFormatType)
+        switch (pSurface->GetPixelFormat().mPixelFormatType)
         {
             case kPixelFormatTypeRGB:
             {
@@ -994,6 +1015,7 @@ EARASTER_API int LineColor(Surface* pSurface, int x1, int y1, int x2, int y2, co
                 // Fall through. Draw something wrong so you can at least see it.
             }
         }
+        pSurface->Unlock();
     }
     else
     {
@@ -1047,7 +1069,7 @@ EARASTER_API int LineColor(Surface* pSurface, int x1, int y1, int x2, int y2, co
 }
 
 
-EARASTER_API int LineRGBA(Surface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a)
+EARASTER_API int LineRGBA(ISurface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -1056,12 +1078,12 @@ EARASTER_API int LineRGBA(Surface* pSurface, int x1, int y1, int x2, int y2, int
 
 
 // Overwrite the destination with the source.
-EARASTER_API int HLineSolidColor(Surface* pSurface, int x1, int x2, int y, const Color& color)
+EARASTER_API int HLineSolidColor(ISurface* pSurface, int x1, int x2, int y, const Color& color)
 {
     int left, right, top, bottom;
 
     // Check visibility of clipping rectangle.
-    if((pSurface->mClipRect.width() == 0) || (pSurface->mClipRect.height() == 0))
+    if((pSurface->GetClipRect().width() == 0) || (pSurface->GetClipRect().height() == 0))
         return 0;
     
     // Swap x1, x2 if required to ensure (x1 <= x2).
@@ -1073,16 +1095,16 @@ EARASTER_API int HLineSolidColor(Surface* pSurface, int x1, int x2, int y, const
     }
 
     // Get clipping boundary and check visibility of hline.
-    left = pSurface->mClipRect.x;
+    left = pSurface->GetClipRect().x;
     if(x2 < left)
         return 0;
 
-    right = pSurface->mClipRect.x + pSurface->mClipRect.width() - 1;
+    right = pSurface->GetClipRect().x + pSurface->GetClipRect().width() - 1;
     if(x1 > right)
         return 0;
 
-    top    = pSurface->mClipRect.y;
-    bottom = pSurface->mClipRect.y + pSurface->mClipRect.height() - 1;
+    top    = pSurface->GetClipRect().y;
+    bottom = pSurface->GetClipRect().y + pSurface->GetClipRect().height() - 1;
     if((y < top) || (y > bottom))
         return 0;
 
@@ -1096,11 +1118,13 @@ EARASTER_API int HLineSolidColor(Surface* pSurface, int x1, int x2, int y, const
     // Calculate width 
     const int w = x2 - x1;
 
+    pSurface->Lock();
+
     // More variable setup.
-    uint8_t* pPixel = (uint8_t*)pSurface->mpData + (pSurface->mStride * y) + (pSurface->mPixelFormat.mBytesPerPixel * x1);
+    uint8_t* pPixel = (uint8_t*)pSurface->GetData() + (pSurface->GetStride() * y) + (pSurface->GetPixelFormat().mBytesPerPixel * x1);
 
     // Draw 
-    switch (pSurface->mPixelFormat.mBytesPerPixel)
+    switch (pSurface->GetPixelFormat().mBytesPerPixel)
     {
         case 3:
         {
@@ -1128,12 +1152,13 @@ EARASTER_API int HLineSolidColor(Surface* pSurface, int x1, int x2, int y, const
             break;
         }
     }
+    pSurface->Unlock();    
 
     return 0;
 }
 
 
-EARASTER_API int HLineSolidRGBA(Surface* pSurface, int x1, int x2, int y, int r, int g, int b, int a)
+EARASTER_API int HLineSolidRGBA(ISurface* pSurface, int x1, int x2, int y, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -1141,7 +1166,7 @@ EARASTER_API int HLineSolidRGBA(Surface* pSurface, int x1, int x2, int y, int r,
 }
 
 
-EARASTER_API int HLineColor(Surface* pSurface, int x1, int x2, int y, const Color& color)
+EARASTER_API int HLineColor(ISurface* pSurface, int x1, int x2, int y, const Color& color)
 {
     if(color.alpha() == 0xff) // If the color is solid...
         return HLineSolidColor(pSurface, x1, x2, y, color);
@@ -1152,7 +1177,7 @@ EARASTER_API int HLineColor(Surface* pSurface, int x1, int x2, int y, const Colo
 }
 
 
-EARASTER_API int HLineRGBA(Surface* pSurface, int x1, int x2, int y, int r, int g, int b, int a)
+EARASTER_API int HLineRGBA(ISurface* pSurface, int x1, int x2, int y, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -1161,12 +1186,12 @@ EARASTER_API int HLineRGBA(Surface* pSurface, int x1, int x2, int y, int r, int 
 
 
 // Draw vertical line without alpha blending. Copy the color to the destination.
-EARASTER_API int VLineSolidColor(Surface* pSurface, int x, int y1, int y2, const Color& color)
+EARASTER_API int VLineSolidColor(ISurface* pSurface, int x, int y1, int y2, const Color& color)
 {
     int left, right, top, bottom;
 
     // Check visibility of clipping rectangle
-    if((pSurface->mClipRect.width() == 0) || (pSurface->mClipRect.height() == 0))
+    if((pSurface->GetClipRect().width() == 0) || (pSurface->GetClipRect().height() == 0))
         return 0;
     
     // Swap y1, y2 if required to ensure y1 <= y2
@@ -1178,16 +1203,16 @@ EARASTER_API int VLineSolidColor(Surface* pSurface, int x, int y1, int y2, const
     }
 
     // Get clipping boundary and check visibility of vline 
-    left  = pSurface->mClipRect.x;
-    right = pSurface->mClipRect.x + pSurface->mClipRect.width() - 1;
+    left  = pSurface->GetClipRect().x;
+    right = pSurface->GetClipRect().x + pSurface->GetClipRect().width() - 1;
     if((x < left) || (x > right))
         return 0;
 
-    top = pSurface->mClipRect.y;
+    top = pSurface->GetClipRect().y;
     if(y2 < top)
         return 0;
 
-    bottom = pSurface->mClipRect.y + pSurface->mClipRect.height() - 1;
+    bottom = pSurface->GetClipRect().y + pSurface->GetClipRect().height() - 1;
     if(y1 > bottom)
         return 0;
 
@@ -1202,11 +1227,12 @@ EARASTER_API int VLineSolidColor(Surface* pSurface, int x, int y1, int y2, const
     const int h = y2 - y1;
 
     // More variable setup 
-    uint8_t* pPixel     = ((uint8_t*) pSurface->mpData) + (pSurface->mStride * y1) + (pSurface->mPixelFormat.mBytesPerPixel * x);
-    uint8_t* pPixelLast = pPixel + (pSurface->mStride * h);
+    pSurface->Lock();
+    uint8_t* pPixel     = ((uint8_t*) pSurface->GetData()) + (pSurface->GetStride() * y1) + (pSurface->GetPixelFormat().mBytesPerPixel * x);
+    uint8_t* pPixelLast = pPixel + (pSurface->GetStride() * h);
 
     // Draw 
-    switch (pSurface->mPixelFormat.mBytesPerPixel)
+    switch (pSurface->GetPixelFormat().mBytesPerPixel)
     {
         case 3:
         {
@@ -1214,7 +1240,7 @@ EARASTER_API int VLineSolidColor(Surface* pSurface, int x, int y1, int y2, const
             const int g = color.green();
             const int b = color.blue();
 
-            for(; pPixel <= pPixelLast; pPixel += pSurface->mStride)
+            for(; pPixel <= pPixelLast; pPixel += pSurface->GetStride())
             {
                 pPixel[0] = r;
                 pPixel[1] = g;
@@ -1228,18 +1254,18 @@ EARASTER_API int VLineSolidColor(Surface* pSurface, int x, int y1, int y2, const
         {
             const uint32_t c32 = color.rgb();
 
-            for(; pPixel <= pPixelLast; pPixel += pSurface->mStride)
+            for(; pPixel <= pPixelLast; pPixel += pSurface->GetStride())
                 *(uint32_t*)pPixel = c32;
 
             break;
         }
     }
-
+    pSurface->Unlock();
     return 0;
 }
 
 
-EARASTER_API int VLineSolidRGBA(Surface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a)
+EARASTER_API int VLineSolidRGBA(ISurface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -1249,7 +1275,7 @@ EARASTER_API int VLineSolidRGBA(Surface* pSurface, int  x, int y1, int y2, int r
 
 // Draw vertical line with alpha blending enabled from the given color.
 // Line is inclusive from the [x,y1] to [x,y2].
-EARASTER_API int VLineColor(Surface* pSurface, int  x, int y1, int y2, const Color& color)
+EARASTER_API int VLineColor(ISurface* pSurface, int  x, int y1, int y2, const Color& color)
 {
     if(color.alpha() == 0xff) // If the color is solid...
         return VLineSolidColor(pSurface, x, y1, y2, color);
@@ -1260,7 +1286,7 @@ EARASTER_API int VLineColor(Surface* pSurface, int  x, int y1, int y2, const Col
 }
 
 
-EARASTER_API int VLineRGBA(Surface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a)
+EARASTER_API int VLineRGBA(ISurface* pSurface, int  x, int y1, int y2, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -1268,7 +1294,7 @@ EARASTER_API int VLineRGBA(Surface* pSurface, int  x, int y1, int y2, int r, int
 }
 
 
-static int SetPixelColorWeightedNoClip(Surface* pSurface, int x, int y, const Color& color, int alpha)
+static int SetPixelColorWeightedNoClip(ISurface* pSurface, int x, int y, const Color& color, int alpha)
 {
     // The Color class doesn't have the ability to set just the alpha channel, so we manually handle it.
     const uint32_t c32 = color.rgb();
@@ -1279,7 +1305,7 @@ static int SetPixelColorWeightedNoClip(Surface* pSurface, int x, int y, const Co
 }
 
 
-static int SetPixelColorWeighted(Surface* pSurface, int x, int y, const Color& color, int alpha)
+static int SetPixelColorWeighted(ISurface* pSurface, int x, int y, const Color& color, int alpha)
 {
     // The Color class doesn't have the ability to set just the alpha channel, so we manually handle it.
     const uint32_t c32 = color.rgb();
@@ -1292,7 +1318,7 @@ static int SetPixelColorWeighted(Surface* pSurface, int x, int y, const Color& c
 
 // Draw anitialiased line, also taking into account color alpha.
 // Standard Wu AA line implementation.
-EARASTER_API int AALineColor(Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color, bool bDrawEndpoint)
+EARASTER_API int AALineColor(ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color, bool bDrawEndpoint)
 {
     int32_t  xx0, yy0, xx1, yy1;
     uint32_t intshift, erracc, erradj;
@@ -1303,7 +1329,7 @@ EARASTER_API int AALineColor(Surface* pSurface, int x1, int y1, int x2, int y2, 
     const uint32_t kAABitCount   = 8;
 
     // Check visibility of clipping rectangle.
-    if((pSurface->mClipRect.width() == 0) || (pSurface->mClipRect.height() == 0))
+    if((pSurface->GetClipRect().width() == 0) || (pSurface->GetClipRect().height() == 0))
         return 0;
 
     // Clip line and test if we have to draw.
@@ -1441,13 +1467,13 @@ EARASTER_API int AALineColor(Surface* pSurface, int x1, int y1, int x2, int y2, 
 }
 
 
-EARASTER_API int AALineColor(Surface* pSurface, int x1, int y1, int x2, int y2, const Color& color)
+EARASTER_API int AALineColor(ISurface* pSurface, int x1, int y1, int x2, int y2, const Color& color)
 {
     return AALineColor(pSurface, x1, y1, x2, y2, color, true);
 }
 
 
-EARASTER_API int AALineRGBA(Surface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a)
+EARASTER_API int AALineRGBA(ISurface* pSurface, int x1, int y1, int x2, int y2, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -1459,7 +1485,7 @@ EARASTER_API int AALineRGBA(Surface* pSurface, int x1, int y1, int x2, int y2, i
 // Circle / Ellipse
 ///////////////////////////////////////////////////////////////////////////////
 //special case tiny circle
-int MicroCircleColor(Surface* pSurface, const Point& center, int radius, const Color& c)
+int MicroCircleColor(ISurface* pSurface, const Point& center, int radius, const Color& c)
 {
     //circle pixels determined by drawing circles in MS Paint.  Center is assumed to 
     //be one to the bottom left of the true center.
@@ -1544,7 +1570,7 @@ int MicroCircleColor(Surface* pSurface, const Point& center, int radius, const C
 }
 
 //special case tiny filled circle
-int FilledMicroCircleRGBA(Surface* pSurface, const Point& center, int radius, const Color& c)
+int FilledMicroCircleRGBA(ISurface* pSurface, const Point& center, int radius, const Color& c)
 {
     //circle pixesl determined by drawing circles in MS Paint.  Center is assumed to 
     //be one to the bottom left of the true center.
@@ -1622,7 +1648,7 @@ int FilledMicroCircleRGBA(Surface* pSurface, const Point& center, int radius, co
 }
 
 // Draws a single-pixel-thick solid circle outline.
-EARASTER_API int CircleColor(Surface* pSurface, int x, int y, int radius, const Color& color)
+EARASTER_API int CircleColor(ISurface* pSurface, int x, int y, int radius, const Color& color)
 {
     int     left, right, top, bottom;
     int     x1, y1, x2, y2;
@@ -1635,7 +1661,7 @@ EARASTER_API int CircleColor(Surface* pSurface, int x, int y, int radius, const 
     int     ypcy, ymcy, ypcx, ymcx;
 
     // Check visibility of clipping rectangle
-    if((pSurface->mClipRect.width() == 0) || (pSurface->mClipRect.height() == 0))
+    if((pSurface->GetClipRect().width() == 0) || (pSurface->GetClipRect().height() == 0))
         return 0;
 
     // Sanity check radius 
@@ -1648,23 +1674,23 @@ EARASTER_API int CircleColor(Surface* pSurface, int x, int y, int radius, const 
 
     // Get circle and clipping boundary and test if bounding box of circle is visible 
     x2   = x + radius;
-    left = pSurface->mClipRect.x;
+    left = pSurface->GetClipRect().x;
     if(x2 < left)
         return 0;
 
     x1    = x - radius;
-    right = pSurface->mClipRect.x + pSurface->mClipRect.width() - 1;
+    right = pSurface->GetClipRect().x + pSurface->GetClipRect().width() - 1;
 
     if(x1 > right)
         return 0;
 
     y2  = y + radius;
-    top = pSurface->mClipRect.y;
+    top = pSurface->GetClipRect().y;
     if(y2 < top)
         return 0;
 
     y1     = y - radius;
-    bottom = pSurface->mClipRect.y + pSurface->mClipRect.height() - 1;
+    bottom = pSurface->GetClipRect().y + pSurface->GetClipRect().height() - 1;
     if(y1 > bottom)
         return 0;
 
@@ -1793,7 +1819,7 @@ EARASTER_API int CircleColor(Surface* pSurface, int x, int y, int radius, const 
 }
 
 
-EARASTER_API int CircleRGBA(Surface* pSurface, int x, int y, int radius, int r, int g, int b, int a)
+EARASTER_API int CircleRGBA(ISurface* pSurface, int x, int y, int radius, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -1802,7 +1828,7 @@ EARASTER_API int CircleRGBA(Surface* pSurface, int x, int y, int radius, int r, 
 
 
 // Draws a segment of a circle outline given by a start and end angle in degrees.
-EARASTER_API int ArcColor(Surface* pSurface, int x, int y, int radius, int start, int end, const Color& color)
+EARASTER_API int ArcColor(ISurface* pSurface, int x, int y, int radius, int start, int end, const Color& color)
 {
     int      left, right, top, bottom;
     int      x1, y1, x2, y2;
@@ -1815,7 +1841,7 @@ EARASTER_API int ArcColor(Surface* pSurface, int x, int y, int radius, int start
     int      ypcy, ymcy, ypcx, ymcx;
 
     // Check visibility of clipping rectangle.
-    if((pSurface->mClipRect.width() == 0) || (pSurface->mClipRect.height() == 0))
+    if((pSurface->GetClipRect().width() == 0) || (pSurface->GetClipRect().height() == 0))
         return 0;
 
     // Sanity check radius 
@@ -1832,22 +1858,22 @@ EARASTER_API int ArcColor(Surface* pSurface, int x, int y, int radius, int start
 
     // Get arc's circle and clipping boundary and test if bounding box of circle is visible.
     x2   = x + radius;
-    left = pSurface->mClipRect.x;
+    left = pSurface->GetClipRect().x;
     if(x2 < left)
         return 0;
 
     x1    = x - radius;
-    right = pSurface->mClipRect.x + pSurface->mClipRect.width() - 1;
+    right = pSurface->GetClipRect().x + pSurface->GetClipRect().width() - 1;
     if(x1 > right)
         return 0;
 
     y2   = y + radius;
-    top = pSurface->mClipRect.y;
+    top = pSurface->GetClipRect().y;
     if(y2 < top)
         return 0;
 
     y1     = y - radius;
-    bottom = pSurface->mClipRect.y + pSurface->mClipRect.height() - 1;
+    bottom = pSurface->GetClipRect().y + pSurface->GetClipRect().height() - 1;
     if(y1 > bottom)
         return 0;
 
@@ -2142,7 +2168,7 @@ EARASTER_API int ArcColor(Surface* pSurface, int x, int y, int radius, int start
 }
 
 
-EARASTER_API int ArcRGBA(Surface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a)
+EARASTER_API int ArcRGBA(ISurface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -2150,13 +2176,13 @@ EARASTER_API int ArcRGBA(Surface* pSurface, int x, int y, int radius, int start,
 }
 
 
-EARASTER_API int AACircleColor(Surface* pSurface, int x, int y, int radius, const Color& color)
+EARASTER_API int AACircleColor(ISurface* pSurface, int x, int y, int radius, const Color& color)
 {
     return AAEllipseColor(pSurface, x, y, radius, radius, color);
 }
 
 
-EARASTER_API int AACircleRGBA(Surface* pSurface, int x, int y, int radius, int r, int g, int b, int a)
+EARASTER_API int AACircleRGBA(ISurface* pSurface, int x, int y, int radius, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -2164,7 +2190,7 @@ EARASTER_API int AACircleRGBA(Surface* pSurface, int x, int y, int radius, int r
 }
 
 
-EARASTER_API int FilledCircleColor(Surface* pSurface, int x, int y, int radius, const Color& color)
+EARASTER_API int FilledCircleColor(ISurface* pSurface, int x, int y, int radius, const Color& color)
 {
     int left, right, top, bottom;
     int x1, y1, x2, y2;
@@ -2179,7 +2205,7 @@ EARASTER_API int FilledCircleColor(Surface* pSurface, int x, int y, int radius, 
     int ypcy, ymcy, ypcx, ymcx;
 
     // Check visibility of clipping rectangle
-    if((pSurface->mClipRect.width() == 0) || (pSurface->mClipRect.height() == 0))
+    if((pSurface->GetClipRect().width() == 0) || (pSurface->GetClipRect().height() == 0))
         return 0;
 
     // Sanity check radius 
@@ -2192,22 +2218,22 @@ EARASTER_API int FilledCircleColor(Surface* pSurface, int x, int y, int radius, 
 
     // Get circle and clipping boundary and test if bounding box of circle is visible.
     x2   = x + radius;
-    left = pSurface->mClipRect.x;
+    left = pSurface->GetClipRect().x;
     if(x2 < left)
         return 0;
 
     x1    = x - radius;
-    right = pSurface->mClipRect.x + pSurface->mClipRect.width() - 1;
+    right = pSurface->GetClipRect().x + pSurface->GetClipRect().width() - 1;
     if(x1 > right)
         return 0;
 
     y2  = y + radius;
-    top = pSurface->mClipRect.y;
+    top = pSurface->GetClipRect().y;
     if(y2 < top)
         return 0;
 
     y1     = y - radius;
-    bottom = pSurface->mClipRect.y + pSurface->mClipRect.height() - 1;
+    bottom = pSurface->GetClipRect().y + pSurface->GetClipRect().height() - 1;
     if(y1 > bottom)
         return 0;
 
@@ -2276,7 +2302,7 @@ EARASTER_API int FilledCircleColor(Surface* pSurface, int x, int y, int radius, 
 }
 
 
-EARASTER_API int FilledCircleRGBA(Surface* pSurface, int x, int y, int radius, int r, int g, int b, int a)
+EARASTER_API int FilledCircleRGBA(ISurface* pSurface, int x, int y, int radius, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -2286,7 +2312,7 @@ EARASTER_API int FilledCircleRGBA(Surface* pSurface, int x, int y, int radius, i
 // Draws an ellipse outline of a single pixel thick.
 // The outline is not anti-aliased, but the color alpha is taken into 
 // account for the pixels drawn.
-EARASTER_API int EllipseColor(Surface* pSurface, int x, int y, int rx, int ry, const Color& color)
+EARASTER_API int EllipseColor(ISurface* pSurface, int x, int y, int rx, int ry, const Color& color)
 {
     // To do: Make specialized code for small circles, as this will be commonly used.
     int left, right, top, bottom;
@@ -2300,7 +2326,7 @@ EARASTER_API int EllipseColor(Surface* pSurface, int x, int y, int rx, int ry, c
     int xmk, xpk, ymh, yph;
 
     // Check visibility of clipping rectangle
-    if((pSurface->mClipRect.width() == 0) || (pSurface->mClipRect.height() == 0))
+    if((pSurface->GetClipRect().width() == 0) || (pSurface->GetClipRect().height() == 0))
         return 0;
 
     // Sanity check radii 
@@ -2317,22 +2343,22 @@ EARASTER_API int EllipseColor(Surface* pSurface, int x, int y, int rx, int ry, c
 
     // Get circle and clipping boundary and test if bounding box of circle is visible.
     x2   = x + rx;
-    left = pSurface->mClipRect.x;
+    left = pSurface->GetClipRect().x;
     if(x2 < left)
         return 0;
 
     x1    = x - rx;
-    right = pSurface->mClipRect.x + pSurface->mClipRect.width() - 1;
+    right = pSurface->GetClipRect().x + pSurface->GetClipRect().width() - 1;
     if(x1 > right)
         return 0;
 
     y2  = y + ry;
-    top = pSurface->mClipRect.y;
+    top = pSurface->GetClipRect().y;
     if(y2 < top)
         return 0;
 
     y1     = y - ry;
-    bottom = pSurface->mClipRect.y + pSurface->mClipRect.height() - 1;
+    bottom = pSurface->GetClipRect().y + pSurface->GetClipRect().height() - 1;
     if(y1 > bottom)
         return 0;
 
@@ -2597,7 +2623,7 @@ EARASTER_API int EllipseColor(Surface* pSurface, int x, int y, int rx, int ry, c
 }
 
 
-EARASTER_API int EllipseRGBA(Surface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a)
+EARASTER_API int EllipseRGBA(ISurface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -2607,7 +2633,7 @@ EARASTER_API int EllipseRGBA(Surface* pSurface, int x, int y, int rx, int ry, in
 
 // Draws an anti-aliased ellipse (or circle) at the center given by x/y and radius given by rx/ry.
 // To do: Implement special cases for tiny circles, as that will be what we are doing very often.
-EARASTER_API int AAEllipseColor(Surface* pSurface, int xc, int yc, int rx, int ry, const Color& color)
+EARASTER_API int AAEllipseColor(ISurface* pSurface, int xc, int yc, int rx, int ry, const Color& color)
 {
     int      left, right, top, bottom;
     int      x1,y1,x2,y2;
@@ -2619,7 +2645,7 @@ EARASTER_API int AAEllipseColor(Surface* pSurface, int xc, int yc, int rx, int r
     uint8_t  weight, iweight;
 
     // Check visibility of clipping rectangle
-    if((pSurface->mClipRect.width() == 0) || (pSurface->mClipRect.height() == 0))
+    if((pSurface->GetClipRect().width() == 0) || (pSurface->GetClipRect().height() == 0))
         return 0;
 
     // Sanity check radii 
@@ -2636,22 +2662,22 @@ EARASTER_API int AAEllipseColor(Surface* pSurface, int xc, int yc, int rx, int r
 
     // Get circle and clipping boundary and test if bounding box of circle is visible 
     x2   = xc + rx;
-    left = pSurface->mClipRect.x;
+    left = pSurface->GetClipRect().x;
     if(x2 < left)
         return 0;
 
     x1    = xc - rx;
-    right = pSurface->mClipRect.x + pSurface->mClipRect.width() - 1;
+    right = pSurface->GetClipRect().x + pSurface->GetClipRect().width() - 1;
     if(x1 > right)
         return 0;
 
     y2  = yc + ry;
-    top = pSurface->mClipRect.y;
+    top = pSurface->GetClipRect().y;
     if(y2 < top)
         return 0;
 
     y1     = yc - ry;
-    bottom = pSurface->mClipRect.y + pSurface->mClipRect.height() - 1;
+    bottom = pSurface->GetClipRect().y + pSurface->GetClipRect().height() - 1;
     if(y1 > bottom)
         return 0;
     
@@ -2815,7 +2841,7 @@ EARASTER_API int AAEllipseColor(Surface* pSurface, int xc, int yc, int rx, int r
 }
 
 
-EARASTER_API int AAEllipseRGBA(Surface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a)
+EARASTER_API int AAEllipseRGBA(ISurface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -2825,7 +2851,7 @@ EARASTER_API int AAEllipseRGBA(Surface* pSurface, int x, int y, int rx, int ry, 
 
 // Draws a solid color ellipse (or circle) at the center given by x/y and radius given by rx/ry.
 // To do: Implement special cases for tiny circles, as that will be what we are doing very often.
-EARASTER_API int FilledEllipseColor(Surface* pSurface, int x, int y, int rx, int ry, const Color& color)
+EARASTER_API int FilledEllipseColor(ISurface* pSurface, int x, int y, int rx, int ry, const Color& color)
 {
     int left, right, top, bottom;
     int x1, y1, x2, y2;
@@ -2838,7 +2864,7 @@ EARASTER_API int FilledEllipseColor(Surface* pSurface, int x, int y, int rx, int
     int xmk, xpk;
 
     // Check visibility of clipping rectangle
-    if((pSurface->mClipRect.width() == 0) || (pSurface->mClipRect.height() == 0))
+    if((pSurface->GetClipRect().width() == 0) || (pSurface->GetClipRect().height() == 0))
         return 0;
 
     // Sanity check radii 
@@ -2855,22 +2881,22 @@ EARASTER_API int FilledEllipseColor(Surface* pSurface, int x, int y, int rx, int
 
     // Get circle and clipping boundary and test if bounding box of circle is visible.
     x2   = x + rx;
-    left = pSurface->mClipRect.x;
+    left = pSurface->GetClipRect().x;
     if(x2 < left)
         return 0;
 
     x1    = x - rx;
-    right = pSurface->mClipRect.x + pSurface->mClipRect.width() - 1;
+    right = pSurface->GetClipRect().x + pSurface->GetClipRect().width() - 1;
     if(x1 > right)
         return 0;
 
     y2  = y + ry;
-    top = pSurface->mClipRect.y;
+    top = pSurface->GetClipRect().y;
     if(y2 < top)
         return 0;
 
     y1     = y - ry;
-    bottom = pSurface->mClipRect.y + pSurface->mClipRect.height() - 1;
+    bottom = pSurface->GetClipRect().y + pSurface->GetClipRect().height() - 1;
     if(y1 > bottom)
         return 0;
 
@@ -2981,7 +3007,7 @@ EARASTER_API int FilledEllipseColor(Surface* pSurface, int x, int y, int rx, int
 }
 
 
-EARASTER_API int FilledEllipseRGBA(Surface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a)
+EARASTER_API int FilledEllipseRGBA(ISurface* pSurface, int x, int y, int rx, int ry, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -2991,7 +3017,7 @@ EARASTER_API int FilledEllipseRGBA(Surface* pSurface, int x, int y, int rx, int 
 
 
 // Low-speed float pie-calc implementation by drawing polygons/lines.
-static int PieColorInternal(Surface* pSurface, int x, int y, int radius, int start, int end, const Color& color, bool bFilled)
+static int PieColorInternal(ISurface* pSurface, int x, int y, int radius, int start, int end, const Color& color, bool bFilled)
 {
     int     left, right, top, bottom;
     int     x1, y1, x2, y2;
@@ -3004,7 +3030,7 @@ static int PieColorInternal(Surface* pSurface, int x, int y, int radius, int sta
     int     *vx, *vy;
 
     // Check visibility of clipping rectangle
-    if((pSurface->mClipRect.width() == 0) || (pSurface->mClipRect.height() == 0))
+    if((pSurface->GetClipRect().width() == 0) || (pSurface->GetClipRect().height() == 0))
            return 0;
 
     // Sanity check radii 
@@ -3023,22 +3049,22 @@ static int PieColorInternal(Surface* pSurface, int x, int y, int radius, int sta
     // Get pie's circle and clipping boundary and test if bounding box of circle is visible
 
     x2   = x + radius;
-    left = pSurface->mClipRect.x;
+    left = pSurface->GetClipRect().x;
     if(x2 < left)
            return 0;
 
     x1    = x - radius;
-    right = pSurface->mClipRect.x + pSurface->mClipRect.width() - 1;
+    right = pSurface->GetClipRect().x + pSurface->GetClipRect().width() - 1;
     if(x1 > right)
            return 0;
 
     y2  = y + radius;
-    top = pSurface->mClipRect.y;
+    top = pSurface->GetClipRect().y;
     if(y2 < top)
            return 0;
 
     y1     = y - radius;
-    bottom = pSurface->mClipRect.y + pSurface->mClipRect.height() - 1;
+    bottom = pSurface->GetClipRect().y + pSurface->GetClipRect().height() - 1;
     if(y1 > bottom)
            return 0;
 
@@ -3116,14 +3142,14 @@ static int PieColorInternal(Surface* pSurface, int x, int y, int radius, int sta
 
 
 // Draws a pie outline for a circle of the given x/y/radius and the start and end angle in degress.
-EARASTER_API int PieColor(Surface* pSurface, int x, int y, int radius, int start, int end, const Color& color) 
+EARASTER_API int PieColor(ISurface* pSurface, int x, int y, int radius, int start, int end, const Color& color) 
 {
     return PieColorInternal(pSurface, x, y, radius, start, end, color, false);
 }
 
 
 // Draws a pie outline for a circle of the given x/y/radius and the start and end angle in degress.
-EARASTER_API int PieRGBA(Surface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a)
+EARASTER_API int PieRGBA(ISurface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -3132,14 +3158,14 @@ EARASTER_API int PieRGBA(Surface* pSurface, int x, int y, int radius, int start,
 
 
 // Draws a filled pie for a circle of the given x/y/radius and the start and end angle in degress.
-EARASTER_API int FilledPieColor(Surface* pSurface, int x, int y, int radius, int start, int end, const Color& color)
+EARASTER_API int FilledPieColor(ISurface* pSurface, int x, int y, int radius, int start, int end, const Color& color)
 {
     return PieColorInternal(pSurface, x, y, radius, start, end, color, true);
 }
 
 
 // Draws a filled pie for a circle of the given x/y/radius and the start and end angle in degress.
-EARASTER_API int FilledPieRGBA(Surface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a)
+EARASTER_API int FilledPieRGBA(ISurface* pSurface, int x, int y, int radius, int start, int end, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -3167,7 +3193,7 @@ EARASTER_API int FilledPieRGBA(Surface* pSurface, int x, int y, int radius, int 
 //         * * *
 //       * * * * *
 //
-EARASTER_API int SimpleTriangle(Surface* pSurface, int x, int y, int size, Orientation o, const Color& color)
+EARASTER_API int SimpleTriangle(ISurface* pSurface, int x, int y, int size, Orientation o, const Color& color)
 {
     int result = 0;
 
@@ -3198,7 +3224,7 @@ EARASTER_API int SimpleTriangle(Surface* pSurface, int x, int y, int size, Orien
 }
 
 
-EARASTER_API int TrigonColor(Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color)
+EARASTER_API int TrigonColor(ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color)
 {
     const int vx[3] = { x1, x2, x3 }; 
     const int vy[3] = { y1, y2, y3 };
@@ -3207,7 +3233,7 @@ EARASTER_API int TrigonColor(Surface* pSurface, int x1, int y1, int x2, int y2, 
 }
 
 
-EARASTER_API int TrigonRGBA(Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a)
+EARASTER_API int TrigonRGBA(ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a)
 {
     const int vx[3] = { x1, x2, x3 }; 
     const int vy[3] = { y1, y2, y3 };
@@ -3216,7 +3242,7 @@ EARASTER_API int TrigonRGBA(Surface* pSurface, int x1, int y1, int x2, int y2, i
 }                                 
 
 
-EARASTER_API int AATrigonColor(Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color)
+EARASTER_API int AATrigonColor(ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color)
 {
     const int vx[3] = { x1, x2, x3 }; 
     const int vy[3] = { y1, y2, y3 };
@@ -3225,7 +3251,7 @@ EARASTER_API int AATrigonColor(Surface* pSurface, int x1, int y1, int x2, int y2
 }
 
 
-EARASTER_API int AATrigonRGBA(Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a)
+EARASTER_API int AATrigonRGBA(ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a)
 {
     const int vx[3] = { x1, x2, x3 }; 
     const int vy[3] = { y1, y2, y3 };
@@ -3234,7 +3260,7 @@ EARASTER_API int AATrigonRGBA(Surface* pSurface, int x1, int y1, int x2, int y2,
 }                                   
 
 
-EARASTER_API int FilledTrigonColor(Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color)
+EARASTER_API int FilledTrigonColor(ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, const Color& color)
 {
     const int vx[3] = { x1, x2, x3 }; 
     const int vy[3] = { y1, y2, y3 };
@@ -3243,7 +3269,7 @@ EARASTER_API int FilledTrigonColor(Surface* pSurface, int x1, int y1, int x2, in
 }
 
 
-EARASTER_API int FilledTrigonRGBA(Surface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a)
+EARASTER_API int FilledTrigonRGBA(ISurface* pSurface, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a)
 {
     const int vx[3] = { x1, x2, x3 }; 
     const int vy[3] = { y1, y2, y3 };
@@ -3253,12 +3279,12 @@ EARASTER_API int FilledTrigonRGBA(Surface* pSurface, int x1, int y1, int x2, int
 
 
 
-EARASTER_API int PolygonColor(Surface* pSurface, const int* vx, const int* vy, int n, const Color& color)
+EARASTER_API int PolygonColor(ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color)
 {
     const int *x1, *y1, *x2, *y2;
 
     // Check visibility of clipping rectangle
-    if((pSurface->mClipRect.width() == 0) || (pSurface->mClipRect.height() == 0))
+    if((pSurface->GetClipRect().width() == 0) || (pSurface->GetClipRect().height() == 0))
        return 0;
 
     // Sanity check 
@@ -3288,7 +3314,7 @@ EARASTER_API int PolygonColor(Surface* pSurface, const int* vx, const int* vy, i
 }
 
 
-EARASTER_API int PolygonRGBA(Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a)
+EARASTER_API int PolygonRGBA(ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -3296,12 +3322,12 @@ EARASTER_API int PolygonRGBA(Surface* pSurface, const int* vx, const int* vy, in
 }
 
 
-EARASTER_API int AAPolygonColor(Surface* pSurface, const int* vx, const int* vy, int n, const Color& color)
+EARASTER_API int AAPolygonColor(ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color)
 {
     const int *x1, *y1, *x2, *y2;
 
     // Check visibility of clipping rectangle
-    if((pSurface->mClipRect.width() == 0) || (pSurface->mClipRect.height() == 0))
+    if((pSurface->GetClipRect().width() == 0) || (pSurface->GetClipRect().height() == 0))
            return 0;
 
     // Sanity check 
@@ -3331,7 +3357,7 @@ EARASTER_API int AAPolygonColor(Surface* pSurface, const int* vx, const int* vy,
 }
 
 
-EARASTER_API int AAPolygonRGBA(Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a)
+EARASTER_API int AAPolygonRGBA(ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -3384,7 +3410,7 @@ static int  gfxPrimitivesPolyAllocatedGlobal = 0;
 // Returns 0 if OK.
 // This polygon is not necessarily convex.
 // The last two parameters are optional; but required for multithreaded operation.
-EARASTER_API int FilledPolygonColorMT(Surface* pSurface, const int* vx, const int* vy, int n, const Color& color, int** polyInts, int* polyAllocated)
+EARASTER_API int FilledPolygonColorMT(ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color, int** polyInts, int* polyAllocated)
 {
     int  i;
     int  y, xa, xb;
@@ -3394,7 +3420,7 @@ EARASTER_API int FilledPolygonColorMT(Surface* pSurface, const int* vx, const in
     int  gfxPrimitivesPolyAllocated = 0;
 
     // Check visibility of clipping rectangle
-    if((pSurface->mClipRect.width() == 0) || (pSurface->mClipRect.height() == 0))
+    if((pSurface->GetClipRect().width() == 0) || (pSurface->GetClipRect().height() == 0))
            return 0;
 
     // Sanity check number of edges
@@ -3529,7 +3555,7 @@ EARASTER_API int FilledPolygonColorMT(Surface* pSurface, const int* vx, const in
 }
 
 
-EARASTER_API int FilledPolygonRGBAMT(Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a, int** polyInts, int* polyAllocated)
+EARASTER_API int FilledPolygonRGBAMT(ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a, int** polyInts, int* polyAllocated)
 {
     const Color color(r, g, b, a);
 
@@ -3538,13 +3564,13 @@ EARASTER_API int FilledPolygonRGBAMT(Surface* pSurface, const int* vx, const int
 
 
 // Standard versions are calling multithreaded versions with NULL cache parameters.
-EARASTER_API int FilledPolygonColor(Surface* pSurface, const int* vx, const int* vy, int n, const Color& color)
+EARASTER_API int FilledPolygonColor(ISurface* pSurface, const int* vx, const int* vy, int n, const Color& color)
 {
     return FilledPolygonColorMT(pSurface, vx, vy, n, color, NULL, NULL);
 }
 
 
-EARASTER_API int FilledPolygonRGBA(Surface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a)
+EARASTER_API int FilledPolygonRGBA(ISurface* pSurface, const int* vx, const int* vy, int n, int r, int g, int b, int a)
 {
     const Color color(r, g, b, a);
 
@@ -3566,7 +3592,7 @@ struct ColorRGBA
 };
 
 // This function assumes the destination surface is the right size.
-static int ShrinkSurfaceRGBA(Surface* pSource, Surface* pDest, int factorX, int factorY)
+static int ShrinkSurfaceRGBA(ISurface* pSource, ISurface* pDest, int factorX, int factorY)
 {
     int       x, y, dx, dy, sgap, dgap, ra, ga, ba, aa;
     int       n_average;
@@ -3577,17 +3603,18 @@ static int ShrinkSurfaceRGBA(Surface* pSource, Surface* pDest, int factorX, int 
     n_average = factorX * factorY;
    
     // Scan destination
-    sp   = (ColorRGBA*)pSource->mpData;
-    sgap = pSource->mStride - (pSource->mWidth * 4);
+    sp   = (ColorRGBA*)pSource->GetData();
+    sgap = pSource->GetStride() - (pSource->GetWidth() * 4);
 
-    dp   = (ColorRGBA*)pDest->mpData;
-    dgap = pDest->mStride - (pDest->mWidth * 4);
+    pDest->Lock();
+    dp   = (ColorRGBA*)pDest->GetData();
+    dgap = pDest->GetStride() - (pDest->GetWidth() * 4);
 
-    for (y = 0; y < pDest->mHeight; y++)
+    for (y = 0; y < pDest->GetHeight(); y++)
     {
         osp = sp;
 
-        for (x = 0; x < pDest->mWidth; x++)
+        for (x = 0; x < pDest->GetWidth(); x++)
         {
             // Trace out source box and accumulate
             oosp = sp;
@@ -3605,7 +3632,7 @@ static int ShrinkSurfaceRGBA(Surface* pSource, Surface* pDest, int factorX, int 
                     sp++;
                 } // pSource dx loop
 
-                sp = (ColorRGBA*)((uint8_t*)sp + (pSource->mStride - (4 * factorX))); // next y
+                sp = (ColorRGBA*)((uint8_t*)sp + (pSource->GetStride() - (4 * factorX))); // next y
             } // pSource dy loop
 
             // next box-x
@@ -3622,11 +3649,12 @@ static int ShrinkSurfaceRGBA(Surface* pSource, Surface* pDest, int factorX, int 
         } // pDest x loop
 
         // next box-y
-        sp = (ColorRGBA*)((uint8_t*)osp + (pSource->mStride * factorY));
+        sp = (ColorRGBA*)((uint8_t*)osp + (pSource->GetStride() * factorY));
 
         // Advance destination pointers 
         dp = (ColorRGBA*)((uint8_t*)dp + dgap);
     } // pDest y loop
+    pDest->Unlock();
 
     return 0;
 }
@@ -3635,7 +3663,7 @@ static int ShrinkSurfaceRGBA(Surface* pSource, Surface* pDest, int factorX, int 
 // This function assumes the destination surface is the right size.
 // 32bit Zoomer with optional anti-aliasing by bilinear interpolation.
 // Magnifies or shrinks 32bit RGBA/ABGR pSource surface to pDest surface.
-static int ZoomSurfaceRGBA(Surface* pSource, Surface* pDest, bool bFlipX, bool bFlipY, bool bSmooth)
+static int ZoomSurfaceRGBA(ISurface* pSource, ISurface* pDest, bool bFlipX, bool bFlipY, bool bSmooth)
 {
     int       x, y, sx, sy, *sax, *say, *csax, *csay, csx, csy, ex, ey, t1, t2, sstep;
     ColorRGBA *c00, *c01, *c10, *c11;
@@ -3647,18 +3675,18 @@ static int ZoomSurfaceRGBA(Surface* pSource, Surface* pDest, bool bFlipX, bool b
     {
         // For interpolation: assume source dimension is one pPixel 
         // smaller to avoid overflow on right and bottom edge.     
-        sx = (int) (65536.0 * (float)(pSource->mWidth  - 1) / (float)pDest->mWidth);
-        sy = (int) (65536.0 * (float)(pSource->mHeight - 1) / (float)pDest->mHeight);
+        sx = (int) (65536.0 * (float)(pSource->GetWidth()  - 1) / (float)pDest->GetWidth());
+        sy = (int) (65536.0 * (float)(pSource->GetHeight() - 1) / (float)pDest->GetHeight());
     }
     else
     {
-        sx = (int) (65536.0 * (float)pSource->mWidth  / (float)pDest->mWidth);
-        sy = (int) (65536.0 * (float)pSource->mHeight / (float)pDest->mHeight);
+        sx = (int) (65536.0 * (float)pSource->GetWidth()  / (float)pDest->GetWidth());
+        sy = (int) (65536.0 * (float)pSource->GetHeight() / (float)pDest->GetHeight());
     }
 
 
     // 1/4/10 CSidhall - Added for canvas draw crash
-    if(pSource->mpData == NULL)
+    if(pSource->GetData() == NULL)
     {
        return -1;
     }
@@ -3666,12 +3694,12 @@ static int ZoomSurfaceRGBA(Surface* pSource, Surface* pDest, bool bFlipX, bool b
    
     // Allocate memory for pRow increments.
     // To do: Remove usage of the heap here for all but pathological cases.
-    sax = EAWEBKIT_NEW("ZoomSurface RGBA") int[pDest->mWidth + 1];// WTF::fastNewArray<int>(pDest->mWidth + 1);
+    sax = EAWEBKIT_NEW("ZoomSurface RGBA") int[pDest->GetWidth() + 1];// WTF::fastNewArray<int>(pDest->GetWidth() + 1);
 
     if(sax == NULL)
         return -1;
 
-    say = EAWEBKIT_NEW("ZoomSurface RGBA") int[pDest->mHeight + 1];//WTF::fastNewArray<int> (pDest->mHeight + 1);
+    say = EAWEBKIT_NEW("ZoomSurface RGBA") int[pDest->GetHeight() + 1];//WTF::fastNewArray<int> (pDest->GetHeight() + 1);
 
     if(say == NULL)
     {
@@ -3680,19 +3708,21 @@ static int ZoomSurfaceRGBA(Surface* pSource, Surface* pDest, bool bFlipX, bool b
     }
 
     // Precalculate pRow increments 
-    sp = csp = (ColorRGBA*) pSource->mpData;
-    dp = (ColorRGBA*) pDest->mpData;
+    sp = csp = (ColorRGBA*) pSource->GetData();
+    
+    pDest->Lock();
+    dp = (ColorRGBA*) pDest->GetData();
 
     if(bFlipX)
-        csp += (pSource->mWidth - 1);
+        csp += (pSource->GetWidth() - 1);
 
     if(bFlipY)
-        csp  = (ColorRGBA*)( (uint8_t*)csp + pSource->mStride * (pSource->mHeight - 1) );
+        csp  = (ColorRGBA*)( (uint8_t*)csp + pSource->GetStride() * (pSource->GetHeight() - 1) );
 
     csx  = 0;
     csax = sax;
 
-    for (x = 0; x <= pDest->mWidth; x++)
+    for (x = 0; x <= pDest->GetWidth(); x++)
     {
         *csax = csx;
         csax++;
@@ -3703,7 +3733,7 @@ static int ZoomSurfaceRGBA(Surface* pSource, Surface* pDest, bool bFlipX, bool b
     csy  = 0;
     csay = say;
 
-    for (y = 0; y <= pDest->mHeight; y++)
+    for (y = 0; y <= pDest->GetHeight(); y++)
     {
         *csay = csy;
         csay++;
@@ -3711,27 +3741,27 @@ static int ZoomSurfaceRGBA(Surface* pSource, Surface* pDest, bool bFlipX, bool b
         csy += sy;
     }
 
-    dgap = pDest->mStride - (pDest->mWidth * 4);
+    dgap = pDest->GetStride() - (pDest->GetWidth() * 4);
 
     if(bSmooth) // If interpolating zoom ...
     {
         // Scan destination 
         csay = say;
 
-        for (y = 0; y < pDest->mHeight; y++)
+        for (y = 0; y < pDest->GetHeight(); y++)
         {
             // Setup color source pointers 
             c00 = csp;
             c01 = csp;
             c01++;
 
-            c10 = (ColorRGBA*) ((uint8_t*) csp + pSource->mStride);
+            c10 = (ColorRGBA*) ((uint8_t*) csp + pSource->GetStride());
             c11 = c10;
             c11++;
 
             csax = sax;
 
-            for (x = 0; x < pDest->mWidth; x++)
+            for (x = 0; x < pDest->GetWidth(); x++)
             {
                 // Interpolate colors 
                 ex = (*csax & 0xffff);
@@ -3767,7 +3797,7 @@ static int ZoomSurfaceRGBA(Surface* pSource, Surface* pDest, bool bFlipX, bool b
 
             // Advance source pointer 
             csay++;
-            csp = (ColorRGBA*) ((uint8_t*) csp + (*csay >> 16) * pSource->mStride);
+            csp = (ColorRGBA*) ((uint8_t*) csp + (*csay >> 16) * pSource->GetStride());
 
             // Advance destination pointers 
             dp = (ColorRGBA*) ((uint8_t*) dp + dgap);
@@ -3778,12 +3808,12 @@ static int ZoomSurfaceRGBA(Surface* pSource, Surface* pDest, bool bFlipX, bool b
         // Non-Interpolating Zoom 
         csay = say;
 
-        for (y = 0; y < pDest->mHeight; y++)
+        for (y = 0; y < pDest->GetHeight(); y++)
         {
             sp   = csp;
             csax = sax;
 
-            for (x = 0; x < pDest->mWidth; x++)
+            for (x = 0; x < pDest->GetWidth(); x++)
             {
                 // Draw 
                 *dp = *sp;
@@ -3803,7 +3833,7 @@ static int ZoomSurfaceRGBA(Surface* pSource, Surface* pDest, bool bFlipX, bool b
 
             // Advance source pointer 
             csay++;
-            sstep = (*csay >> 16) * pSource->mStride;
+            sstep = (*csay >> 16) * pSource->GetStride();
 
             if(bFlipY)
                 sstep = -sstep;
@@ -3814,6 +3844,7 @@ static int ZoomSurfaceRGBA(Surface* pSource, Surface* pDest, bool bFlipX, bool b
             dp = (ColorRGBA*) ((uint8_t*) dp + dgap);
         }
     }
+    pDest->Unlock();
 
     // Remove temp arrays. 
     EAWEBKIT_DELETE[] sax;//WTF::fastDeleteArray<int> (sax);
@@ -3826,15 +3857,15 @@ static int ZoomSurfaceRGBA(Surface* pSource, Surface* pDest, bool bFlipX, bool b
  
 // 32bit specialized 90degree rotator
 // Rotates 'src' surface to 'pDest' surface in 90degree increments.
-EARASTER_API Surface* RotateSurface90Degrees(Surface* pSurface, int nClockwiseTurns) 
+EARASTER_API ISurface* RotateSurface90Degrees(ISurface* pSurface, int nClockwiseTurns) 
 {
     int      pRow, col;
-    Surface* pSurfaceResult = NULL;
+    ISurface* pSurfaceResult = NULL;
 
     // Has to be a valid surface pointer and only 32-bit surfaces (for now).
-    EAW_ASSERT(pSurface && (pSurface->mPixelFormat.mBytesPerPixel == 4));
+    EAW_ASSERT(pSurface && (pSurface->GetPixelFormat().mBytesPerPixel == 4));
 
-    if(pSurface && (pSurface->mPixelFormat.mBytesPerPixel == 4))
+    if(pSurface && (pSurface->GetPixelFormat().mBytesPerPixel == 4))
     {
         // Normalize nClockwiseTurns.
         while(nClockwiseTurns < 0)
@@ -3843,13 +3874,15 @@ EARASTER_API Surface* RotateSurface90Degrees(Surface* pSurface, int nClockwiseTu
         nClockwiseTurns = (nClockwiseTurns % 4);
 
         // If it's even, our new width will be the same as the source surface
-        const int newWidth  = (nClockwiseTurns % 2) ? (pSurface->mHeight) : (pSurface->mWidth);
-        const int newHeight = (nClockwiseTurns % 2) ? (pSurface->mWidth)  : (pSurface->mHeight);
+        const int newWidth  = (nClockwiseTurns % 2) ? (pSurface->GetHeight()) : (pSurface->GetWidth() );
+        const int newHeight = (nClockwiseTurns % 2) ? (pSurface->GetWidth())  : (pSurface->GetHeight() );
 
-        pSurfaceResult = CreateSurface(newWidth, newHeight, pSurface->mPixelFormat.mPixelFormatType);
+        pSurfaceResult = CreateSurface(newWidth, newHeight, pSurface->GetPixelFormat().mPixelFormatType, pSurface->GetCategory());
 
         if(pSurfaceResult)
         {
+            pSurfaceResult->Lock();
+
             if(nClockwiseTurns != 0)
             {
                 uint32_t* srcBuf = NULL;
@@ -3860,15 +3893,15 @@ EARASTER_API Surface* RotateSurface90Degrees(Surface* pSurface, int nClockwiseTu
                     // rotate clockwise
                     case 1: // rotated 90 degrees clockwise
                     {
-                        for (pRow = 0; pRow < pSurface->mHeight; ++pRow)
+                        for (pRow = 0; pRow < pSurface->GetHeight(); ++pRow)
                         {
-                            srcBuf = (uint32_t*)(pSurface->mpData)       + (pRow * pSurface->mStride / 4);
-                            dstBuf = (uint32_t*)(pSurfaceResult->mpData) + (pSurfaceResult->mWidth - pRow - 1);
+                            srcBuf = (uint32_t*)(pSurface->GetData())       + (pRow * pSurface->GetStride() / 4);
+                            dstBuf = (uint32_t*)(pSurfaceResult->GetData()) + (pSurfaceResult->GetWidth() - pRow - 1);
 
-                            for (col = 0; col < pSurface->mWidth; ++col)
+                            for (col = 0; col < pSurface->GetWidth(); ++col)
                             {
                                 *dstBuf = *srcBuf++;
-                                dstBuf += pSurfaceResult->mStride / 4;  // To do: This can be made faster by pre-calculating the delta.
+                                dstBuf += pSurfaceResult->GetStride() / 4;  // To do: This can be made faster by pre-calculating the delta.
                             }
                         }
                         break;
@@ -3876,12 +3909,12 @@ EARASTER_API Surface* RotateSurface90Degrees(Surface* pSurface, int nClockwiseTu
 
                     case 2: // rotated 180 degrees clockwise
                     {
-                        for(pRow = 0; pRow < pSurface->mHeight; ++pRow)
+                        for(pRow = 0; pRow < pSurface->GetHeight(); ++pRow)
                         {
-                            srcBuf = (uint32_t*)(pSurface->mpData) + (pRow * pSurface->mStride / 4);
-                            dstBuf = (uint32_t*)(pSurfaceResult->mpData) + ((pSurfaceResult->mHeight - pRow - 1) * pSurfaceResult->mStride / 4) + (pSurfaceResult->mWidth - 1);
+                            srcBuf = (uint32_t*)(pSurface->GetData()) + (pRow * pSurface->GetStride() / 4);
+                            dstBuf = (uint32_t*)(pSurfaceResult->GetData()) + ((pSurfaceResult->GetHeight() - pRow - 1) * pSurfaceResult->GetStride() / 4) + (pSurfaceResult->GetWidth() - 1);
 
-                            for(col = 0; col < pSurface->mWidth; ++col)
+                            for(col = 0; col < pSurface->GetWidth(); ++col)
                                 *dstBuf-- = *srcBuf++;
                         }
                         break;
@@ -3889,15 +3922,15 @@ EARASTER_API Surface* RotateSurface90Degrees(Surface* pSurface, int nClockwiseTu
 
                     case 3:
                     {
-                        for(pRow = 0; pRow < pSurface->mHeight; ++pRow)
+                        for(pRow = 0; pRow < pSurface->GetHeight(); ++pRow)
                         {
-                            srcBuf = (uint32_t*)(pSurface->mpData) + (pRow * pSurface->mStride / 4);
-                            dstBuf = (uint32_t*)(pSurfaceResult->mpData) + pRow + ((pSurfaceResult->mHeight - 1) * pSurfaceResult->mStride / 4);
+                            srcBuf = (uint32_t*)(pSurface->GetData()) + (pRow * pSurface->GetStride() / 4);
+                            dstBuf = (uint32_t*)(pSurfaceResult->GetData()) + pRow + ((pSurfaceResult->GetHeight() - 1) * pSurfaceResult->GetStride() / 4);
 
-                            for(col = 0; col < pSurface->mWidth; ++col)
+                            for(col = 0; col < pSurface->GetWidth(); ++col)
                             {
                                 *dstBuf = *srcBuf++;
-                                 dstBuf -= pSurfaceResult->mStride / 4;
+                                 dstBuf -= pSurfaceResult->GetStride() / 4;
                             }
                         }
                         break;
@@ -3910,16 +3943,82 @@ EARASTER_API Surface* RotateSurface90Degrees(Surface* pSurface, int nClockwiseTu
                 EAW_FAIL_MSG("RotateSurface90Degrees: Not completed.");
                 // if(Blit(pSurface, NULL, pSurfaceResult, NULL) != 0)
                 {
-                    DestroySurface(pSurface);
+                    DestroySurface(pSurfaceResult);
                     return NULL;
                 }
             }
+            pSurfaceResult->Unlock();
         }
     }
 
     return pSurfaceResult;
 }
 
+// This applies a transform to an existing texture and outputs a new transformed texture.
+// The srcRect is needed in case we are just using part of the source texture instead of the full texture.
+EARASTER_API ISurface* TransformSurface(ISurface* pSurface, EA::Raster::Rect& srcRect, Matrix2D& m) 
+{
+    using namespace WKAL;
+
+     AffineTransform transform(m.m_m11,m.m_m12,m.m_m21,m.m_m22,0,0);                 
+    IntRect rect = transform.mapRect(srcRect);
+    int dstW = rect.width();
+    int dstH = rect.height();
+
+    // Create the new surface    
+    ISurface* pSurfaceDst = CreateSurface(dstW, dstH, pSurface->GetPixelFormat().mPixelFormatType, pSurface->GetCategory());
+    if(!pSurfaceDst)
+        return pSurfaceDst;
+
+    // Probably many different algorithms are possible here. This just a simple one to get things started here.
+    // We can't just rotate all the texels from the source to the destination for we might get gaps because of floating point x,y coordinates or holes because of scale.
+    // Instead we rotate back from the destination to sample the color.  If we get negative coords, we are outside of the texture.
+
+    // Adjust the matrix to now convert the new surface to the old surface coordinate system
+    AffineTransform invT = transform.inverse();    
+    double x2,y2;  
+    invT.map( (double) rect.x(), (double) rect.y(), &x2, &y2);    
+    invT.setE(x2);
+    invT.setF(y2);
+
+  
+    int strideSrc = pSurface->GetStride() >> 2;    
+    int strideDst = pSurfaceDst->GetStride() >> 2;    
+    
+    pSurfaceDst->Lock();
+    for(int y1=0; y1 < dstH; y1++)
+    {
+        uint32_t* pDst = (uint32_t*)(pSurfaceDst->GetData()) + (y1 * strideDst);
+
+        // For now, just blast through all the pixels.
+        // Better might be for example to fill the surface first and build a center diagonal Y and run from the center x till the 2 edges are found.
+        // Would use a line equation to find the x center for each y row.
+        for(int x1=0; x1 < dstW; x1++)
+        {
+            invT.map(x1, y1, &x2, &y2);    
+            
+            // We need to check with the delta x,y and not 0,0 in case this is a part inside a texture.
+            if( ((int) x2 < srcRect.x) || ((int) x2 >= srcRect.w) || ((int) y2 < srcRect.y) || ((int) y2 >= srcRect.h) ) 
+            {
+                // Outside of the source texture so we blank it out      
+                *pDst = 0;
+            }
+            else
+            {
+                // Inside the source texture so grab the color value.
+                // To consider: Will Probably need to add filtering (bilinear) here instead of just sampling a single value.  
+                uint32_t* pSrc = (uint32_t*)(pSurface->GetData()) + ((uint32_t) y2 * strideSrc) + (uint32_t) x2;   
+                uint32_t value = *pSrc;
+                *pDst = value;
+            }
+            pDst++;
+        }
+    }
+    pSurfaceDst->Unlock();
+
+    // The calling function will need to free the surface
+    return pSurfaceDst;
+}
 
 EARASTER_API void ZoomSurfaceSize(int width, int height, double zoomX, double zoomY, int* destWidth, int* destHeight)
 {
@@ -3940,9 +4039,9 @@ EARASTER_API void ZoomSurfaceSize(int width, int height, double zoomX, double zo
 }
 
 
-EARASTER_API Surface* ZoomSurface(Surface* pSurface, double zoomX, double zoomY, bool bSmooth)
+EARASTER_API ISurface* ZoomSurface(ISurface* pSurface, double zoomX, double zoomY, bool bSmooth)
 {
-    Surface* pSurfaceResult = NULL;
+    ISurface* pSurfaceResult = NULL;
 
     if(pSurface)
     {
@@ -3955,9 +4054,9 @@ EARASTER_API Surface* ZoomSurface(Surface* pSurface, double zoomX, double zoomY,
             zoomY = -zoomY;
 
         int destWidth, destHeight;
-        ZoomSurfaceSize(pSurface->mWidth, pSurface->mHeight, zoomX, zoomY, &destWidth, &destHeight);
+        ZoomSurfaceSize(pSurface->GetWidth(), pSurface->GetHeight(), zoomX, zoomY, &destWidth, &destHeight);
 
-        pSurfaceResult = CreateSurface(destWidth, destHeight, pSurface->mPixelFormat.mPixelFormatType);
+        pSurfaceResult = CreateSurface(destWidth, destHeight, pSurface->GetPixelFormat().mPixelFormatType, kSurfaceCategoryZoom);
 
         if(pSurfaceResult)
             ZoomSurfaceRGBA(pSurface, pSurfaceResult, bFlipX, bFlipY, bSmooth);
@@ -3967,22 +4066,22 @@ EARASTER_API Surface* ZoomSurface(Surface* pSurface, double zoomX, double zoomY,
 }
 
 
-EARASTER_API Surface* ShrinkSurface(Surface* pSurface, int factorX, int factorY)
+EARASTER_API ISurface* ShrinkSurface(ISurface* pSurface, int factorX, int factorY)
 {
-    Surface* pSurfaceResult = NULL;
+    ISurface* pSurfaceResult = NULL;
 
     if(pSurface)
     {
-        int destWidth  = pSurface->mWidth  / factorX;
-        int destHeight = pSurface->mHeight / factorY;
+        int destWidth  = pSurface->GetWidth()  / factorX;
+        int destHeight = pSurface->GetHeight() / factorY;
 
-        while((destWidth * factorX) > pSurface->mWidth)
+        while((destWidth * factorX) > pSurface->GetWidth() )
             destWidth--;
 
-        while((destHeight * factorY) > pSurface->mHeight)
+        while((destHeight * factorY) > pSurface->GetHeight())
             destHeight--;
 
-        pSurfaceResult = CreateSurface(destWidth, destHeight, pSurface->mPixelFormat.mPixelFormatType);
+        pSurfaceResult = CreateSurface(destWidth, destHeight, pSurface->GetPixelFormat().mPixelFormatType, kSurfaceCategoryZoom);
 
         if(pSurfaceResult)
             ShrinkSurfaceRGBA(pSurface, pSurfaceResult, factorX, factorY);
@@ -3992,24 +4091,26 @@ EARASTER_API Surface* ShrinkSurface(Surface* pSurface, int factorX, int factorY)
 }
 
 
-EARASTER_API Surface* CreateTransparentSurface(Surface* pSource, int surfaceAlpha)
+EARASTER_API ISurface* CreateTransparentSurface(ISurface* pSource, int surfaceAlpha)
 {
-    Surface* const pResult = CreateSurface(pSource);
+    ISurface* const pResult = CreateSurface(pSource);
 
     if(pResult)
     {
         // This code currently assumes that the format is ARGB and that stride == width.
-        EAW_ASSERT((pResult->mStride == (pResult->mWidth * 4)) && (pResult->mPixelFormat.mPixelFormatType == kPixelFormatTypeARGB));
+        EAW_ASSERT((pResult->GetStride() == (pResult->GetWidth() * 4)) && (pResult->GetPixelFormat().mPixelFormatType == kPixelFormatTypeARGB));
+        
+        pResult->Lock();
+        uint32_t* pPixels = (uint32_t*)pResult->GetData();
 
-        uint32_t* pPixels = (uint32_t*)pResult->mpData;
-
-        for (int y = 0, yEnd = pSource->mHeight, xEnd = pSource->mWidth; y < yEnd; ++y)
+        for (int y = 0, yEnd = pSource->GetHeight(), xEnd = pSource->GetWidth(); y < yEnd; ++y)
         {
             for (int x = 0; x < xEnd; ++x, ++pPixels)
             {
                 *pPixels = MultiplyColorAlpha(*pPixels, surfaceAlpha);
             }
         }
+        pResult->Unlock();
     }
 
     return pResult;

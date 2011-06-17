@@ -42,7 +42,18 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // We keep all the stl related classes in this single file to start with. It can be broken down if necessary in future.
 ///////////////////////////////////////////////////////////////////////
 
+#include <EABase/config/eacompilertraits.h>
 #include <EABase/eabase.h>
+
+// Compatibility with older versions of EABase
+#ifndef EA_ALIGN
+#define EA_ALIGN EA_PREFIX_ALIGN
+#endif
+
+//Update: 12/22/2010 - On PS3, the actual stl object is newed in the wrapper classes instead of placement new in an aligned buffer. This is
+// because we have two different compilers on PS3. It is possible that using a different compiler/different compiler pre-processors on application
+// side can cause the alignment to go wonky. So for now, we revert to our old style on PS3.
+
 namespace EA
 {
     namespace WebKit
@@ -51,20 +62,28 @@ namespace EA
 		class EASTLFixedString8Wrapper
 		{
 		public:
-			EASTLFixedString8Wrapper();
+            static const int kFixedStringSize = 148;
+
+            EASTLFixedString8Wrapper();
 			EASTLFixedString8Wrapper(const char8_t* str);
 			EASTLFixedString8Wrapper(const EASTLFixedString8Wrapper& rhs);
 			EASTLFixedString8Wrapper& operator = (const EASTLFixedString8Wrapper& rhs);
 			~EASTLFixedString8Wrapper();
 			void* GetImpl() const;
 		private:
+#if defined(EA_PLATFORM_PS3)
 			void* mString8;
+#else
+			EA_ALIGN(4) char8_t mString8[kFixedStringSize];
+#endif
 		};
 
 		//This wraps eastl::fixed_string<char16_t,  128, true, EASTLAllocator>.
 		class EASTLFixedString16Wrapper
 		{
 		public:
+            static const int kMaxFixedStringSize = 276;
+
 			EASTLFixedString16Wrapper();
 			EASTLFixedString16Wrapper(const char16_t* str);
 			EASTLFixedString16Wrapper(const EASTLFixedString16Wrapper& rhs);
@@ -72,7 +91,11 @@ namespace EA
 			~EASTLFixedString16Wrapper();
 			void* GetImpl() const;
 		private:
+#if defined(EA_PLATFORM_PS3)
 			void* mString16;
+#else
+			EA_ALIGN(4) char8_t mString16[kMaxFixedStringSize];
+#endif
 		};
 		
 		//This wraps typedef eastl::fixed_multimap<FixedString16_64, FixedString16_64, 8, true, fstr_iless, EASTLAllocator> HeaderMap;
@@ -88,6 +111,61 @@ namespace EA
 			void* mHeaderMap;
 		};
 
+        class EASTLVectorJavaScriptValueWrapper
+        {
+        public:
+            static const int kSize = 16;
+
+            EASTLVectorJavaScriptValueWrapper();
+            EASTLVectorJavaScriptValueWrapper(const EASTLVectorJavaScriptValueWrapper& rhs);
+            EASTLVectorJavaScriptValueWrapper& operator = (const EASTLVectorJavaScriptValueWrapper& rhs);
+            ~EASTLVectorJavaScriptValueWrapper();
+            void* GetImpl() const;
+        private:
+#if defined(EA_PLATFORM_PS3)
+			void* mVector;
+#else
+			EA_ALIGN(4) char8_t mVector[kSize];
+#endif
+        };
+
+        class EASTLJavascriptValueHashMapWrapper
+        {
+        public:
+            static const int kSize = 32;
+
+            EASTLJavascriptValueHashMapWrapper();
+            EASTLJavascriptValueHashMapWrapper(const EASTLJavascriptValueHashMapWrapper& rhs);
+            EASTLJavascriptValueHashMapWrapper& operator =(const EASTLJavascriptValueHashMapWrapper& rhs);
+            ~EASTLJavascriptValueHashMapWrapper();
+            void* GetImpl() const;
+
+        private:
+#if defined(EA_PLATFORM_PS3)
+			void* mHashMap;
+#else
+			EA_ALIGN(4) char8_t mHashMap[kSize];
+#endif
+        };
+
+        class EASTLJavascriptValueHashMapIteratorWrapper
+        {
+        public:
+            static const int kSize = 8;
+
+            EASTLJavascriptValueHashMapIteratorWrapper();
+            EASTLJavascriptValueHashMapIteratorWrapper(const EASTLJavascriptValueHashMapIteratorWrapper& rhs);
+            EASTLJavascriptValueHashMapIteratorWrapper& operator =(const EASTLJavascriptValueHashMapIteratorWrapper& rhs);
+            ~EASTLJavascriptValueHashMapIteratorWrapper();
+            void* GetImpl() const;
+
+        private:
+#if defined(EA_PLATFORM_PS3)
+			void* mIterator;
+#else
+			EA_ALIGN(4) char8_t mIterator[kSize];
+#endif
+        };
     }
 }
 

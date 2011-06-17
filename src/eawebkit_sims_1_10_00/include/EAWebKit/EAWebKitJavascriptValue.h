@@ -49,7 +49,9 @@ namespace EA
 			JavascriptValueType_Undefined,
 			JavascriptValueType_Number,
 			JavascriptValueType_String,
-			JavascriptValueType_Boolean
+			JavascriptValueType_Boolean,
+            JavascriptValueType_Array,
+            JavascriptValueType_Object,
 		};
 
 		//////////////////////////////////////////////////////////////////////////
@@ -126,6 +128,18 @@ namespace EA
 				mBooleanValue = value;
 			}
 
+            // Similar to string. First use SetJavaScriptValues() after getting it with GetArrayValue(),
+            // then call SetArrayType()
+            void SetArrayType()
+            {
+                mType = JavascriptValueType_Array;
+            }
+
+            void SetObjectType()
+            {
+                mType = JavascriptValueType_Object;
+            }
+
 			//////////////////////////////////////////////////////////////////////////
 			// Getters
 			double GetNumberValue() const
@@ -139,10 +153,37 @@ namespace EA
 				return mStringValue;
 			}
 
+            const EASTLFixedString16Wrapper& GetStringValue() const
+            {
+                return mStringValue;
+            }
+
 			bool GetBooleanValue() const
 			{
 				return mBooleanValue;
 			}
+
+            EASTLVectorJavaScriptValueWrapper& GetArrayValue()
+            {
+                return mArrayValue;
+            }
+
+            const EASTLVectorJavaScriptValueWrapper& GetArrayValue() const
+            {
+                return mArrayValue;
+            }
+
+            EASTLJavascriptValueHashMapWrapper& GetHashMapValue()
+            {
+                return mHashMapValue;
+            }
+
+            const EASTLJavascriptValueHashMapWrapper& GetHashMapValue() const
+            {
+                return GetHashMapValue();
+            }
+
+            
 
 		private:
 			JavascriptValueType		mType;
@@ -151,9 +192,15 @@ namespace EA
 				double					mNumberValue;
 				bool					mBooleanValue;
             };
+
+			// TODO: dsiems: Investigate if there's another way to fix this problem, having the fixed string
+			// here bloats every instance of this class by ~217 bytes.  
+			// Ideally this class would stay in the 8-24 byte range.
             EASTLFixedString16Wrapper mStringValue;  // CSidhall 3/24/10 - changed from a pointer to fixed 
-                                                     // string wrapper to fix problem with mutliple strings 
+                                                     // string wrapper to fix problem with multiple strings 
                                                      // set in a same callback and getting stomped.
+            EASTLVectorJavaScriptValueWrapper mArrayValue;
+            EASTLJavascriptValueHashMapWrapper mHashMapValue;
 		};
     } // namespace WebKit
 

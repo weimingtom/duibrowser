@@ -27,7 +27,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 ///////////////////////////////////////////////////////////////////////////////
-// EAWebKitDocumentNavigator.cpp
+// EAWebKitPolarRegion.cpp
 // By Chris Stott
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -89,7 +89,7 @@ namespace EA
 			if (maxTheta-minTheta > 3.14159f)
 			{
 				Swap(minTheta,maxTheta);
-			}
+			} 
 
 		}
 

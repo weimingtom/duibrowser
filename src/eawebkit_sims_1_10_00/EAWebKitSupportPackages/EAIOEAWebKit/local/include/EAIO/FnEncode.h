@@ -97,11 +97,13 @@ namespace EA
 
         EAIO_API bool StrEq16(const char16_t* str1, const char16_t* str2);
 
-        EAIO_API size_t EAIOStrlen16(const char16_t* str);
-        EAIO_API size_t EAIOStrlcpy8(char8_t* pDestination, const char8_t* pSource, size_t nDestCapacity);
-        EAIO_API size_t EAIOStrlcpy16(char16_t* pDestination, const char16_t* pSource, size_t nDestCapacity);
+        EAIO_API size_t    EAIOStrlen8(const char8_t* str);
+        EAIO_API size_t    EAIOStrlen16(const char16_t* str);
+        EAIO_API size_t    EAIOStrlcpy8(char8_t* pDestination, const char8_t* pSource, size_t nDestCapacity);
+        EAIO_API size_t    EAIOStrlcpy16(char16_t* pDestination, const char16_t* pSource, size_t nDestCapacity);
 
     } // namespace IO
+
 } // namespace EA
 
 #endif // EAIO_FNENCODE_H
