@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WebDataSource_H
@@ -60,7 +60,7 @@ namespace WebCore {
     class String;
 }
 
-class WebDataSource: public WTF::FastAllocBase
+class WebDataSource/*: public WTF::FastAllocBase*/
 {
 public:
 

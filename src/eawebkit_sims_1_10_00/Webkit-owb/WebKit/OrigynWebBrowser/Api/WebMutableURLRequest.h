@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WebMutableURLRequest_H
@@ -56,7 +56,7 @@ namespace WebCore
 
 class HTTPHeaderPropertyBag;
 
-class WebMutableURLRequest: public WTF::FastAllocBase
+class WebMutableURLRequest/*: public WTF::FastAllocBase*/
 {
 public:
 

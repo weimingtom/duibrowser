@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WebURLAuthenticationChallengeSender_h
@@ -54,7 +54,7 @@ namespace WebCore {
 class WebURLAuthenticationChallenge;
 class WebURLCredential;
 
-class WebURLAuthenticationChallengeSender: public WTF::FastAllocBase
+class WebURLAuthenticationChallengeSender/*: public WTF::FastAllocBase*/
 {
 public:
 

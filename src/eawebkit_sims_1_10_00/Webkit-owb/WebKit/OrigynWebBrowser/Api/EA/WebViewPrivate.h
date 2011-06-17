@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2008-2009 Electronic Arts, Inc.  All rights reserved.
+Copyright (C) 2008-2010 Electronic Arts, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -45,7 +45,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BAL/Includes/FakedDeepsee.h"
 
 
-class WebViewPrivate: public WTF::FastAllocBase {
+class WebViewPrivate/*: public WTF::FastAllocBase*/ {
 public:
     WebViewPrivate(WebView *webView):m_webView(webView), isInitialized(false)
     {

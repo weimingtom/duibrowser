@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WebURLAuthenticationChallenge_h
@@ -53,7 +53,7 @@ class WebURLResponse;
 class WebError;
 class WebURLAuthenticationChallengeSender;
 
-class WebURLAuthenticationChallenge: public WTF::FastAllocBase {
+class WebURLAuthenticationChallenge/*: public WTF::FastAllocBase*/ {
 public:
 
     /**

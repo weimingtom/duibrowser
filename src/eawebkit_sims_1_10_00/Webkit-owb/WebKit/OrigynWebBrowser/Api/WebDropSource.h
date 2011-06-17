@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WebDropSource_h
@@ -37,7 +37,7 @@
 
 class WebView;
 
-class WebDropSource: public WTF::FastAllocBase
+class WebDropSource/*: public WTF::FastAllocBase*/
 {
 public:
     /**

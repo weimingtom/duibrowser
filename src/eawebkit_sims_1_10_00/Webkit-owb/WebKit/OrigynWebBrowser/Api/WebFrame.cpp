@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -156,7 +156,7 @@ Frame* core(const WebFrame* webFrame)
 
 #include <wtf/FastAllocBase.h>
 
-class WebFrame::WebFramePrivate: public WTF::FastAllocBase {
+class WebFrame::WebFramePrivate/*: public WTF::FastAllocBase*/ {
 public:
     WebFramePrivate() 
         : frame(0)

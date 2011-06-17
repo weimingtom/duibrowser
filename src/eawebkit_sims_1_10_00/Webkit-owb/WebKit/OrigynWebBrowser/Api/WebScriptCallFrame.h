@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WebScriptCallFrame_h
@@ -57,7 +57,7 @@ namespace WebCore {
     class String;
 }
 
-class WebScriptCallFrame: public WTF::FastAllocBase {
+class WebScriptCallFrame/*: public WTF::FastAllocBase*/ {
 public:
 
     /**

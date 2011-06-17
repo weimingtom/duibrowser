@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WebFramePolicyListener_h
@@ -54,7 +54,7 @@ namespace WebCore {
     class Frame;
 }
 
-class WebFramePolicyListener: public WTF::FastAllocBase {
+class WebFramePolicyListener/*: public WTF::FastAllocBase*/ {
 public:
 
     /**

@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef DefaultPolicyDelegate_h
@@ -63,7 +63,7 @@ typedef enum WebNavigationType {
 #define WebActionOriginalURLKey "WebActionOriginalURLKey"
 
 
-class DefaultPolicyDelegate: public WTF::FastAllocBase {
+class DefaultPolicyDelegate/*: public WTF::FastAllocBase*/ {
 public:
 
     /**

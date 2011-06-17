@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WebScriptObject_H
@@ -38,7 +38,7 @@ namespace WebCore {
     class String;
 }
 
-class WebScriptObject: public WTF::FastAllocBase
+class WebScriptObject/*: public WTF::FastAllocBase*/
 {
 public:
 

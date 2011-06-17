@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WebActionPropertyBag_h
@@ -48,7 +48,7 @@
 #include <Frame.h>
 #include <NavigationAction.h>
 
-class WebActionPropertyBag: public WTF::FastAllocBase
+class WebActionPropertyBag/*: public WTF::FastAllocBase*/
 {
 public:
 

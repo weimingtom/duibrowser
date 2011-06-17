@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WebHistory_H
@@ -45,7 +45,7 @@ class WebPreferences;
 class WebHistoryItem;
 class WebError;
 
-class WebHistory: public WTF::FastAllocBase {
+class WebHistory/*: public WTF::FastAllocBase*/ {
 public:
 
     /**

@@ -49,7 +49,6 @@
 #include <Page.h>
 #include <WindowFeatures.h>
 #include "BAL/Includes/FakedDeepsee.h"
-
 #include <cstdio>
 
 using namespace WebCore;
@@ -242,19 +241,19 @@ void WebChromeClient::closeWindowSoon()
 }
 
 void WebChromeClient::runJavaScriptAlert(Frame *frame, const String& message)
-{
-    //OWB_PRINTF("Javascript Alert: %s (from frame %p)\n", message.utf8().data(), frame);
+{		
+	OWB_PRINTF_FORMATTED("Javascript Alert: %s (from frame %p)\n", message.utf8().data(), frame);	    
 }
 
 bool WebChromeClient::runJavaScriptConfirm(Frame *frame, const String& message)
 {
-    //OWB_PRINTF("Javascript Confirm: %s (from frame %p), answer is 'false' by default.\n", message.utf8().data(), frame);
-    return false;
+	OWB_PRINTF_FORMATTED("Javascript Confirm: %s (from frame %p), answer is 'false' by default.\n", message.utf8().data(), frame);    
+	return false;
 }
 
 bool WebChromeClient::runJavaScriptPrompt(Frame *frame, const String& message, const String& defaultValue, String& result)
 {
-    //OWB_PRINTF("Javascript Prompt: %s (from frame %p), answer is 'false' by default.\n", message.utf8().data(), frame);
+	OWB_PRINTF_FORMATTED("Javascript Prompt: %s (from frame %p), answer is 'false' by default.\n", message.utf8().data(), frame);	  
     return false;
 }
 
