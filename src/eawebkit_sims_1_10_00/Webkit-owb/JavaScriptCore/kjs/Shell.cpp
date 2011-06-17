@@ -76,8 +76,7 @@
 #endif
 
 #if PLATFORM(PS3)
-    #include <sys/sys_time.h>
-    #include <sys/time_util.h>
+
 #endif
 
 #if PLATFORM(QT)
@@ -208,9 +207,7 @@ void StopWatch::start()
     #elif PLATFORM(XBOX)
         m_startTime = GetTickCount();
     #elif PLATFORM(PS3)
-        uint64_t nTimeBase;
-        SYS_TIMEBASE_GET(nTimeBase);
-        m_startTime = (unsigned)(nTimeBase / (1000 * sys_time_get_timebase_frequency()));
+
     #else
         gettimeofday(&m_startTime, 0);
     #endif
@@ -226,9 +223,7 @@ void StopWatch::stop()
     #elif PLATFORM(XBOX)
         m_stopTime = GetTickCount();
     #elif PLATFORM(PS3)
-        uint64_t nTimeBase;
-        SYS_TIMEBASE_GET(nTimeBase);
-        m_stopTime = (unsigned)(nTimeBase / (1000 * sys_time_get_timebase_frequency()));
+
     #else
         gettimeofday(&m_stopTime, 0);
     #endif
