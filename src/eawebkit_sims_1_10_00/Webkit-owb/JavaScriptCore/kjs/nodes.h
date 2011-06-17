@@ -24,7 +24,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef NODES_H_
@@ -102,7 +102,8 @@ namespace KJS {
 
     struct DeclarationStacks {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -131,7 +132,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-        typedef Vector<Node*, 16> NodeStack;
+#endif //NO_MACRO_NEW
+typedef Vector<Node*, 16> NodeStack;
         enum { IsConstant = 1, HasInitializer = 2 } VarAttrs;
         typedef Vector<std::pair<Identifier, unsigned>, 16> VarStack;
         typedef Vector<RefPtr<FuncDeclNode>, 16> FunctionStack;
@@ -152,7 +154,8 @@ void operator delete[](void* p)
 
     class ParserRefCounted : Noncopyable {
 public:
-        // Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
         void* operator new(size_t, void* p) { return p; }
         void* operator new[](size_t, void* p) { return p; }
 
@@ -181,7 +184,8 @@ public:
             fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
             fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
         }
-    protected:
+#endif //NO_MACRO_NEW
+	protected:
         ParserRefCounted(JSGlobalData*) KJS_FAST_CALL;
 
         JSGlobalData* m_globalData;
@@ -2455,7 +2459,8 @@ public:
 
     struct ElementList {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -2484,13 +2489,15 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-        ElementNode* head;
+#endif //NO_MACRO_NEW
+ElementNode* head;
         ElementNode* tail;
     };
 
     struct PropertyList {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -2519,13 +2526,15 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-        PropertyListNode* head;
+#endif //NO_MACRO_NEW
+PropertyListNode* head;
         PropertyListNode* tail;
     };
 
     struct ArgumentList {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -2554,13 +2563,15 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-        ArgumentListNode* head;
+#endif //NO_MACRO_NEW
+ArgumentListNode* head;
         ArgumentListNode* tail;
     };
 
     struct ConstDeclList {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -2589,13 +2600,15 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-        ConstDeclNode* head;
+#endif //NO_MACRO_NEW
+ConstDeclNode* head;
         ConstDeclNode* tail;
     };
 
     struct ParameterList {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -2624,13 +2637,15 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-        ParameterNode* head;
+#endif //NO_MACRO_NEW
+ParameterNode* head;
         ParameterNode* tail;
     };
 
     struct ClauseList {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -2659,7 +2674,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-        ClauseListNode* head;
+#endif //NO_MACRO_NEW
+ClauseListNode* head;
         ClauseListNode* tail;
     };
 

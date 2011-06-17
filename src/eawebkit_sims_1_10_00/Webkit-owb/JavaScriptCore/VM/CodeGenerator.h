@@ -29,7 +29,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef CodeGenerator_h
@@ -69,12 +69,12 @@ namespace KJS {
         RegisterID* retAddrDst;
     };
 
-    struct ControlFlowContext: public WTF::FastAllocBase {
+    struct ControlFlowContext/*: public WTF::FastAllocBase*/ {
         bool isFinallyBlock;
         FinallyContext finallyContext;
     };
 
-    class CodeGenerator: public WTF::FastAllocBase {
+    class CodeGenerator/*: public WTF::FastAllocBase*/ {
     public:
         typedef DeclarationStacks::VarStack VarStack;
         typedef DeclarationStacks::FunctionStack FunctionStack;
@@ -306,7 +306,7 @@ namespace KJS {
 
         typedef HashMap<JSValue*, unsigned, DefaultHash<JSValue*>::Hash, JSValueHashTraits> JSValueMap;
 
-        struct IdentifierMapIndexHashTraits: public WTF::FastAllocBase {
+        struct IdentifierMapIndexHashTraits/*: public WTF::FastAllocBase*/ {
             typedef int TraitType;
             typedef IdentifierMapIndexHashTraits StorageTraits;
             static int emptyValue() { return std::numeric_limits<int>::max(); }

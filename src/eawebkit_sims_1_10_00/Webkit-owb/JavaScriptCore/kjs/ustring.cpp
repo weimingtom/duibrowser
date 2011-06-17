@@ -22,7 +22,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -70,7 +70,7 @@ namespace KJS {
         ASSERT(length);
         if (length > maxUChars())
             return 0;
-        return static_cast<UChar*>(fastMalloc(sizeof(UChar) * length));
+		return static_cast<UChar*>(fastMalloc(sizeof(UChar) * length,0,"UString::allocChars"));
     }
 
     static inline UChar* reallocChars(UChar* buffer, size_t length)
@@ -86,14 +86,14 @@ namespace KJS {
     CString::CString(const char *c)
     {
         length = strlen(c);
-        data = WTF::fastNewArray<char>(length+1);
+		data = EAWEBKIT_NEW("CString") char[length+1];//WTF::fastNewArray<char>(length+1);
         memcpy(data, c, length + 1);
     }
 
     CString::CString(const char *c, size_t len)
     {
         length = len;
-        data = WTF::fastNewArray<char>(len+1);
+        data = EAWEBKIT_NEW("CString") char[len+1];// WTF::fastNewArray<char>(len+1);
         memcpy(data, c, len);
         data[len] = 0;
     }
@@ -102,7 +102,7 @@ namespace KJS {
     {
         length = b.length;
         if (b.data) {
-            data = WTF::fastNewArray<char>(length+1);
+			data = EAWEBKIT_NEW("CString") char[length+1]; //WTF::fastNewArray<char>(length+1);
             memcpy(data, b.data, length + 1);
         }
         else
@@ -111,7 +111,7 @@ namespace KJS {
 
     CString::~CString()
     {
-        WTF::fastDeleteArray<char>(data);
+        EAWEBKIT_DELETE[] data;//WTF::fastDeleteArray<char>(data);
     }
 
     CString CString::adopt(char* c, size_t len)
@@ -126,7 +126,7 @@ namespace KJS {
     CString &CString::append(const CString &t)
     {
         char *n;
-        n = WTF::fastNewArray<char>(length+t.length+1);
+		n = EAWEBKIT_NEW("CString") char[length+t.length+1];//WTF::fastNewArray<char>(length+t.length+1);
         if (length)
             memcpy(n, data, length);
         if (t.length)
@@ -134,7 +134,7 @@ namespace KJS {
         length += t.length;
         n[length] = 0;
 
-        WTF::fastDeleteArray<char> (data);
+        EAWEBKIT_DELETE[] data;//WTF::fastDeleteArray<char> (data);
         data = n;
 
         return *this;
@@ -143,9 +143,9 @@ namespace KJS {
     CString &CString::operator=(const char *c)
     {
         if (data)
-            WTF::fastDeleteArray<char> (data);
+            EAWEBKIT_DELETE[] data;//WTF::fastDeleteArray<char> (data);
         length = strlen(c);
-        data = WTF::fastNewArray<char>(length+1);
+		data = EAWEBKIT_NEW("CString") char[length+1]; //WTF::fastNewArray<char>(length+1);
         memcpy(data, c, length + 1);
 
         return *this;
@@ -157,10 +157,10 @@ namespace KJS {
             return *this;
 
         if (data)
-            WTF::fastDeleteArray<char> (data);
+            EAWEBKIT_DELETE[] data; //WTF::fastDeleteArray<char> (data);
         length = str.length;
         if (str.data) {
-            data = WTF::fastNewArray<char>(length + 1);
+			data = EAWEBKIT_NEW("CString") char[length+1]; //WTF::fastNewArray<char>(length + 1);
             memcpy(data, str.data, length + 1);
         }
         else
@@ -950,8 +950,8 @@ char *UString::ascii() const
 {
   int length = size();
   int neededSize = length + 1;
-  WTF::fastDeleteArray<char>( statBuffer);
-  statBuffer = WTF::fastNewArray<char> (neededSize);
+  EAWEBKIT_DELETE[] statBuffer;//WTF::fastDeleteArray<char>( statBuffer);
+  statBuffer = EAWEBKIT_NEW("UStringAscii") char[neededSize];// WTF::fastNewArray<char> (neededSize);
   
   const UChar *p = data();
   char *q = statBuffer;

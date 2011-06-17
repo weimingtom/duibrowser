@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef JSGlobalData_h
@@ -61,7 +61,8 @@ namespace KJS {
     // JavaScriptCore clients, which all share a single JSGlobalData, and thus cannot run concurrently.
     struct JSGlobalData : Noncopyable {
 public:
-        // Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
         void* operator new(size_t, void* p) { return p; }
         void* operator new[](size_t, void* p) { return p; }
 
@@ -90,7 +91,8 @@ public:
             fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
             fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
         }
-        static JSGlobalData& threadInstance();
+#endif //NO_MACRO_NEW
+		static JSGlobalData& threadInstance();
         static JSGlobalData& sharedInstance();
 
         Machine* machine;

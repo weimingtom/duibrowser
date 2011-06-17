@@ -39,7 +39,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef DateMath_h
@@ -103,7 +103,7 @@ struct GregorianDateTime : Noncopyable {
 
     ~GregorianDateTime()
     {
-        WTF::fastDeleteArray<char> (timeZone);
+        EAWEBKIT_DELETE[] timeZone;//WTF::fastDeleteArray<char> (timeZone);
     }
 
     GregorianDateTime(const tm& inTm)
@@ -117,11 +117,11 @@ struct GregorianDateTime : Noncopyable {
         , year(inTm.tm_year)
         , isDST(inTm.tm_isdst)
     {
-#if !PLATFORM(WIN_OS) && !PLATFORM(SOLARIS) 
+#if !PLATFORM(WIN_OS) && !PLATFORM(SOLARIS) && !PLATFORM(XBOX) && !PLATFORM(PS3) 
         utcOffset = static_cast<int>(inTm.tm_gmtoff);
 
         int inZoneSize = strlen(inTm.tm_zone) + 1;
-        timeZone = WTF::fastNewArray<char>(inZoneSize);
+        timeZone = EAWEBKIT_NEW("DateTime") char[inZoneSize];//WTF::fastNewArray<char>(inZoneSize);
         strncpy(timeZone, inTm.tm_zone, inZoneSize);
 #else
         utcOffset = static_cast<int>(getUTCOffset() / msPerSecond + (isDST ? secondsPerHour : 0));
@@ -144,7 +144,7 @@ struct GregorianDateTime : Noncopyable {
         ret.tm_year  =  year;
         ret.tm_isdst =  isDST;
 
-#if !PLATFORM(WIN_OS) && !PLATFORM(SOLARIS) 
+#if !PLATFORM(WIN_OS) && !PLATFORM(SOLARIS) && !PLATFORM(XBOX) && !PLATFORM(PS3) 
         ret.tm_gmtoff = static_cast<long>(utcOffset);
         ret.tm_zone = timeZone;
 #endif
@@ -166,7 +166,7 @@ struct GregorianDateTime : Noncopyable {
         utcOffset = rhs.utcOffset;
         if (rhs.timeZone) {
             int inZoneSize = strlen(rhs.timeZone) + 1;
-            timeZone = WTF::fastNewArray<char>(inZoneSize);
+            timeZone = EAWEBKIT_NEW("DateMath") char[inZoneSize];//WTF::fastNewArray<char>(inZoneSize);
             strncpy(timeZone, rhs.timeZone, inZoneSize);
         } else
             timeZone = 0;

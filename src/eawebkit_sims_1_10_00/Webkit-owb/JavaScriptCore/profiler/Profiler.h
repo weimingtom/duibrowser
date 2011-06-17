@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Profiler_h
@@ -42,7 +42,7 @@ namespace KJS {
     class ExecState;
     class JSObject;
 
-    class Profiler: public WTF::FastAllocBase {
+    class Profiler/*: public WTF::FastAllocBase*/ {
     public:
         static Profiler** enabledProfilerReference()
         {
@@ -69,7 +69,7 @@ namespace KJS {
         static Profiler* s_sharedEnabledProfilerReference;
     };
 
-    class ProfilerClient: public WTF::FastAllocBase {
+    class ProfilerClient/*: public WTF::FastAllocBase*/ {
     public:
         virtual void finishedProfiling(PassRefPtr<Profile>) = 0;
 

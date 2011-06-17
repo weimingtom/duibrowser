@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 /////////////////////////////////////////////////////////////////////////////
@@ -40,12 +40,12 @@
 
 namespace WTF {
 
-    void *fastMalloc(size_t n);
-    void *fastMallocAligned(size_t n, size_t alignment);
-    void *fastZeroedMalloc(size_t n);
-    void *fastCalloc(size_t n_elements, size_t element_size);
+    void *fastMalloc(size_t n, int flags = 0, const char* pName = "EAWebKit fastMalloc");
+    void *fastMallocAligned(size_t n, size_t alignment, size_t offset = 0, int flags = 0, const char* pName = "EAWebKit fastMallocAligned");
+    void *fastZeroedMalloc(size_t n,int flags = 0, const char* pName = "EAWebKit fastZeroedMalloc");
+    void *fastCalloc(size_t n_elements, size_t element_size, int flags = 0, const char* pName = "EAWebKit fastCalloc");
     void  fastFree(void* p);
-    void *fastRealloc(void* p, size_t n);
+    void *fastRealloc(void* p, size_t n, int flags = 0);
 
 #ifndef NDEBUG    
     void fastMallocForbid();

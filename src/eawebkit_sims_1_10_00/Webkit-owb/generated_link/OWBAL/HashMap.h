@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WTF_HashMap_h
@@ -35,7 +35,7 @@ namespace WTF {
 
     template<typename KeyArg, typename MappedArg, typename HashArg = typename DefaultHash<KeyArg>::Hash,
         typename KeyTraitsArg = HashTraits<KeyArg>, typename MappedTraitsArg = HashTraits<MappedArg> >
-    class HashMap: public WTF::FastAllocBase {
+    class HashMap/*: public WTF::FastAllocBase*/ {
     private:
         typedef KeyTraitsArg KeyTraits;
         typedef MappedTraitsArg MappedTraits;
@@ -95,12 +95,12 @@ namespace WTF {
         HashTableType m_impl;
     };
 
-    template<typename PairType> struct PairFirstExtractor: public WTF::FastAllocBase {
+    template<typename PairType> struct PairFirstExtractor/*: public WTF::FastAllocBase*/ {
         static const typename PairType::first_type& extract(const PairType& p) { return p.first; }
     };
 
     template<typename ValueType, typename ValueTraits, typename HashFunctions>
-    struct HashMapTranslator: public WTF::FastAllocBase {
+    struct HashMapTranslator/*: public WTF::FastAllocBase*/ {
         typedef typename ValueType::first_type KeyType;
         typedef typename ValueType::second_type MappedType;
 

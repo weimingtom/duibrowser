@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WTF_HashTable_h
@@ -46,7 +46,7 @@ namespace WTF {
 
 #if DUMP_HASHTABLE_STATS
 
-    struct HashTableStats: public WTF::FastAllocBase {
+    struct HashTableStats/*: public WTF::FastAllocBase*/ {
         ~HashTableStats();
         static int numAccesses;
         static int numCollisions;
@@ -88,7 +88,7 @@ namespace WTF {
     typedef enum { HashItemKnownGood } HashItemKnownGoodTag;
 
     template<typename Key, typename Value, typename Extractor, typename HashFunctions, typename Traits, typename KeyTraits>
-    class HashTableConstIterator: public WTF::FastAllocBase {
+    class HashTableConstIterator/*: public WTF::FastAllocBase*/ {
     private:
         typedef HashTable<Key, Value, Extractor, HashFunctions, Traits, KeyTraits> HashTableType;
         typedef HashTableIterator<Key, Value, Extractor, HashFunctions, Traits, KeyTraits> iterator;
@@ -214,7 +214,7 @@ namespace WTF {
     };
 
     template<typename Key, typename Value, typename Extractor, typename HashFunctions, typename Traits, typename KeyTraits>
-    class HashTableIterator: public WTF::FastAllocBase {
+    class HashTableIterator/*: public WTF::FastAllocBase*/ {
     private:
         typedef HashTable<Key, Value, Extractor, HashFunctions, Traits, KeyTraits> HashTableType;
         typedef HashTableIterator<Key, Value, Extractor, HashFunctions, Traits, KeyTraits> iterator;
@@ -268,7 +268,7 @@ namespace WTF {
     template<typename T> struct Mover<T, true> { static void move(T& from, T& to) { swap(from, to); } };
     template<typename T> struct Mover<T, false> { static void move(T& from, T& to) { to = from; } };
 
-    template<typename Key, typename Value, typename HashFunctions> class IdentityHashTranslator: public WTF::FastAllocBase {
+    template<typename Key, typename Value, typename HashFunctions> class IdentityHashTranslator/*: public WTF::FastAllocBase*/ {
     public:
         static unsigned hash(const Key& key) { return HashFunctions::hash(key); }
         static bool equal(const Key& a, const Key& b) { return HashFunctions::equal(a, b); }
@@ -276,7 +276,7 @@ namespace WTF {
     };
 
     template<typename Key, typename Value, typename Extractor, typename HashFunctions, typename Traits, typename KeyTraits>
-    class HashTable: public WTF::FastAllocBase {
+    class HashTable/*: public WTF::FastAllocBase*/ {
     public:
         typedef HashTableIterator<Key, Value, Extractor, HashFunctions, Traits, KeyTraits> iterator;
         typedef HashTableConstIterator<Key, Value, Extractor, HashFunctions, Traits, KeyTraits> const_iterator;
@@ -1083,7 +1083,7 @@ namespace WTF {
 
     // iterator adapters
 
-    template<typename HashTableType, typename ValueType> struct HashTableConstIteratorAdapter: public WTF::FastAllocBase {
+    template<typename HashTableType, typename ValueType> struct HashTableConstIteratorAdapter/*: public WTF::FastAllocBase*/ {
         HashTableConstIteratorAdapter(const typename HashTableType::const_iterator& impl) : m_impl(impl) {}
 
         const ValueType* get() const { return (const ValueType*)m_impl.get(); }
@@ -1096,7 +1096,7 @@ namespace WTF {
         typename HashTableType::const_iterator m_impl;
     };
 
-    template<typename HashTableType, typename ValueType> struct HashTableIteratorAdapter: public WTF::FastAllocBase {
+    template<typename HashTableType, typename ValueType> struct HashTableIteratorAdapter/*: public WTF::FastAllocBase*/ {
         HashTableIteratorAdapter(const typename HashTableType::iterator& impl) : m_impl(impl) {}
 
         ValueType* get() const { return (ValueType*)m_impl.get(); }

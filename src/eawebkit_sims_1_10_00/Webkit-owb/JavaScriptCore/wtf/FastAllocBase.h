@@ -29,11 +29,16 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WTF_FastAllocBase_h
 #define WTF_FastAllocBase_h
+
+#include <EAWebKit/EAWebKitConfig.h>
+#if EAWEBKIT_THROW_BUILD_ERROR
+#error This file should be included only in a dll build
+#endif
 
 // Provides customizable overrides of fastMalloc/fastFree and operator new/delete
 //
@@ -89,11 +94,15 @@
 #include <wtf/FastMalloc.h>
 #include <wtf/TypeTraits.h>
 
+//Include this here(This header is pretty clean) so that don't need to change too much(as we rework the memory patch)
+//This may also provide us with easier merge in the future.
+#include <EAWebKit/internal/EAWebKitNewDelete.h> 
 namespace WTF {
 
     class FastAllocBase {
     public:
-        // Placement operator new.
+#if 0
+		// Placement operator new.
         void* operator new(size_t, void* p) { return p; }
         void* operator new[](size_t, void* p) { return p; }
 
@@ -122,6 +131,7 @@ namespace WTF {
             fastMallocMatchValidateFree(p, Internal::AllocTypeClassNewArray);
             fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
         }
+#endif
     };
 
     // fastNew / fastDelete

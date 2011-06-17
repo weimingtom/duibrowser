@@ -85,7 +85,8 @@ PropertyMapStatisticsExitLogger::~PropertyMapStatisticsExitLogger()
 
 struct PropertyMapEntry {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -114,7 +115,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    UString::Rep* key;
+#endif //NO_MACRO_NEW
+UString::Rep* key;
     JSValue* value;
     unsigned attributes;
     unsigned index;
@@ -131,7 +133,8 @@ void operator delete[](void* p)
 // browsers' JavaScript implementations.
 struct PropertyMapHashTable {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -160,7 +163,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    unsigned sizeMask;
+#endif //NO_MACRO_NEW
+unsigned sizeMask;
     unsigned size;
     unsigned keyCount;
     unsigned deletedSentinelCount;

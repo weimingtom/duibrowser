@@ -19,7 +19,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WTF_TypeTraits_h
@@ -37,9 +37,9 @@
 #include <type_traits>
 
 namespace WTF {
-    using std::is_integral;
-    using std::has_trivial_constructor;
-    using std::has_trivial_destructor;
+	using std::tr1::is_integral;
+    using std::tr1::has_trivial_constructor;
+    using std::tr1::has_trivial_destructor;
 }
 
 #else

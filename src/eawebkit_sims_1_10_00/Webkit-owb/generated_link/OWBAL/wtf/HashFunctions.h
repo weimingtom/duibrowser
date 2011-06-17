@@ -20,7 +20,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WTF_HashFunctions_h
@@ -92,13 +92,13 @@ namespace WTF {
         return static_cast<unsigned>(key);
     }
 
-    template<typename T> struct IntHash: public WTF::FastAllocBase {
+    template<typename T> struct IntHash/*: public WTF::FastAllocBase*/ {
         static unsigned hash(T key) { return intHash(static_cast<typename IntTypes<sizeof(T)>::UnsignedType>(key)); }
         static bool equal(T a, T b) { return a == b; }
         static const bool safeToCompareToEmptyOrDeleted = true;
     };
 
-    template<typename T> struct FloatHash: public WTF::FastAllocBase {
+    template<typename T> struct FloatHash/*: public WTF::FastAllocBase*/ {
         static unsigned hash(T key) { return intHash(*reinterpret_cast<typename IntTypes<sizeof(T)>::UnsignedType*>(&key)); }
         static bool equal(T a, T b) { return a == b; }
         static const bool safeToCompareToEmptyOrDeleted = true;
@@ -106,7 +106,7 @@ namespace WTF {
 
     // pointer identity hash function
 
-    template<typename T> struct PtrHash: public WTF::FastAllocBase {
+    template<typename T> struct PtrHash/*: public WTF::FastAllocBase*/ {
         static unsigned hash(T key)
         {
 #if COMPILER(MSVC)
@@ -134,7 +134,7 @@ namespace WTF {
 
     template<typename T> struct DefaultHash;
 
-    template<typename T, typename U> struct PairHash: public WTF::FastAllocBase {
+    template<typename T, typename U> struct PairHash/*: public WTF::FastAllocBase*/ {
         static unsigned hash(const std::pair<T, U>& p)
         {
             return intHash((static_cast<uint64_t>(DefaultHash<T>::Hash::hash(p.first)) << 32 | DefaultHash<U>::Hash::hash(p.second)));

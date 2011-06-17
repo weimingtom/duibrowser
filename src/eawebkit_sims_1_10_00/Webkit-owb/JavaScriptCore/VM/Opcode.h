@@ -28,7 +28,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Opcodes_h
@@ -150,7 +150,7 @@ namespace KJS {
 
 #if DUMP_OPCODE_STATS
 
-    struct OpcodeStats: public WTF::FastAllocBase {
+    struct OpcodeStats/*: public WTF::FastAllocBase*/ {
         OpcodeStats();
         ~OpcodeStats();
         static long long opcodeCounts[numOpcodeIDs];

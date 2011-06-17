@@ -40,7 +40,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -298,7 +298,7 @@ double getCurrentUTCTimeWithMicroseconds()
     // Note by Paul Pediana: We should fix these implementations to work better 
     // on non-Unix platforms.
 
-    #if PLATFORM(WIN_OS) 
+    #if PLATFORM(WIN_OS) || PLATFORM(XBOX)
         // FIXME: the implementation for Windows is only millisecond resolution.
         #if COMPILER(BORLAND)
             struct timeb timebuffer;
@@ -325,6 +325,10 @@ double getCurrentUTCTimeWithMicroseconds()
         double utc = (double)li.QuadPart;
         */
 
+    #elif PLATFORM(PS3) 
+       
+        double utc = OWBAL::currentTime() * msPerSecond; 
+
     #else
         struct timeval tv;
         gettimeofday(&tv, 0);
@@ -342,8 +346,8 @@ void getLocalTime(const time_t* localTime, struct tm* localTM)
             #error Mulitple threads are currently not supported in the Qt/mingw build
         #endif
         *localTM = *localtime(localTime);
-    #elif PLATFORM(WIN_OS) 
-        #if COMPILER(MSVC7) 
+    #elif PLATFORM(WIN_OS) || PLATFORM(XBOX) || PLATFORM(PS3) 
+        #if COMPILER(MSVC7) || PLATFORM(PS3) 
             *localTM = *localtime(localTime);
         #else
             localtime_s(localTM, localTime);

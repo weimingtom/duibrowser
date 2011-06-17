@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef ProfileNode_h
@@ -45,7 +45,7 @@ namespace KJS {
     typedef Vector<RefPtr<ProfileNode> >::const_iterator StackIterator;
     typedef HashCountedSet<UString::Rep*> FunctionCallHashCount;
 
-    struct CallIdentifier: public WTF::FastAllocBase {
+    struct CallIdentifier/*: public WTF::FastAllocBase*/ {
         UString name;
         UString url;
         unsigned lineNumber;

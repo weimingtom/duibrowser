@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef MallocZoneSupport_h
@@ -38,7 +38,7 @@
 
 namespace WTF {
 
-class RemoteMemoryReader: public WTF::FastAllocBase {
+class RemoteMemoryReader/*: public WTF::FastAllocBase*/ {
     task_t m_task;
     memory_reader_t* m_reader;
 

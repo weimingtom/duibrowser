@@ -28,7 +28,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef CodeBlock_h
@@ -60,7 +60,7 @@ namespace KJS {
         int lineNumber;
     };
 
-    struct CodeBlock: public WTF::FastAllocBase {
+    struct CodeBlock/*: public WTF::FastAllocBase*/ {
         CodeBlock(ScopeNode* ownerNode_, CodeType codeType_)
             : ownerNode(ownerNode_)
             , numTemporaries(0)

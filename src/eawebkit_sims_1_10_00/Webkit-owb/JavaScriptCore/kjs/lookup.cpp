@@ -18,7 +18,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -62,9 +62,9 @@ void AddHashTable(const HashTable* pHashTable)
         else
             allHashTablesCapacity += 32;
 
-        HashTable** pNew = WTF::fastNewArray<HashTable*>(allHashTablesCapacity);
+        HashTable** pNew = EAWEBKIT_NEW("AddHashTable") HashTable*[allHashTablesCapacity];//WTF::fastNewArray<HashTable*>(allHashTablesCapacity);
         memcpy(pNew, allHashTables, allHashTablesCount * sizeof(HashTable*));
-        WTF::fastDeleteArray(allHashTables);
+        EAWEBKIT_DELETE[] allHashTables;//WTF::fastDeleteArray(allHashTables);
         allHashTables = pNew;
     }
 
@@ -99,7 +99,7 @@ void FreeHashTables()
 
     // 4/01/09 CSidhall - Added delete for leak fix
     if(allHashTables) {
-        WTF::fastDeleteArray(allHashTables);
+        EAWEBKIT_DELETE[] allHashTables;//WTF::fastDeleteArray(allHashTables);
         allHashTablesCapacity = 0;
 		allHashTables = NULL;
     }

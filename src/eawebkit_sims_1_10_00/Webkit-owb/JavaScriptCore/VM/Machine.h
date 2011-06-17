@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef Machine_h
@@ -64,7 +64,7 @@ namespace KJS {
 
     enum { MaxReentryDepth = 128 };
 
-    class Machine: public WTF::FastAllocBase {
+    class Machine/*: public WTF::FastAllocBase*/ {
     public:
         Machine();
         

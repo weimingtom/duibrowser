@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WTF_Deque_h
@@ -48,7 +48,7 @@ namespace WTF {
     template<typename T> class DequeConstReverseIterator;
 
     template<typename T>
-    class Deque: public WTF::FastAllocBase {
+    class Deque/*: public WTF::FastAllocBase*/ {
     public:
         typedef DequeIterator<T> iterator;
         typedef DequeConstIterator<T> const_iterator;
@@ -106,7 +106,7 @@ namespace WTF {
     };
 
     template<typename T>
-    class DequeIteratorBase: public WTF::FastAllocBase {
+    class DequeIteratorBase/*: public WTF::FastAllocBase*/ {
     private:
         typedef DequeIteratorBase<T> Base;
 

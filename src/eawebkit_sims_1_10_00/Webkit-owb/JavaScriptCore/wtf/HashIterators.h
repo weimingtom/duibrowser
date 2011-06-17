@@ -25,7 +25,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef WTF_HashIterators_h
@@ -88,7 +88,7 @@ namespace WTF {
         typename HashTableType::iterator m_impl;
     };
 
-    template<typename HashTableType, typename KeyType, typename MappedType> struct HashTableConstKeysIterator: public WTF::FastAllocBase {
+    template<typename HashTableType, typename KeyType, typename MappedType> struct HashTableConstKeysIterator/*: public WTF::FastAllocBase*/ {
     private:
         typedef HashTableConstIteratorAdapter<HashTableType, std::pair<KeyType, MappedType> > ConstIterator;
 
@@ -105,7 +105,7 @@ namespace WTF {
         ConstIterator m_impl;
     };
 
-    template<typename HashTableType, typename KeyType, typename MappedType> struct HashTableConstValuesIterator: public WTF::FastAllocBase {
+    template<typename HashTableType, typename KeyType, typename MappedType> struct HashTableConstValuesIterator/*: public WTF::FastAllocBase*/ {
     private:
         typedef HashTableConstIteratorAdapter<HashTableType, std::pair<KeyType, MappedType> > ConstIterator;
 
@@ -122,7 +122,7 @@ namespace WTF {
         ConstIterator m_impl;
     };
 
-    template<typename HashTableType, typename KeyType, typename MappedType> struct HashTableKeysIterator: public WTF::FastAllocBase {
+    template<typename HashTableType, typename KeyType, typename MappedType> struct HashTableKeysIterator/*: public WTF::FastAllocBase*/ {
     private:
         typedef HashTableIteratorAdapter<HashTableType, std::pair<KeyType, MappedType> > Iterator;
         typedef HashTableConstIteratorAdapter<HashTableType, std::pair<KeyType, MappedType> > ConstIterator;
@@ -145,7 +145,7 @@ namespace WTF {
         Iterator m_impl;
     };
 
-    template<typename HashTableType, typename KeyType, typename MappedType> struct HashTableValuesIterator: public WTF::FastAllocBase {
+    template<typename HashTableType, typename KeyType, typename MappedType> struct HashTableValuesIterator/*: public WTF::FastAllocBase*/ {
     private:
         typedef HashTableIteratorAdapter<HashTableType, std::pair<KeyType, MappedType> > Iterator;
         typedef HashTableConstIteratorAdapter<HashTableType, std::pair<KeyType, MappedType> > ConstIterator;

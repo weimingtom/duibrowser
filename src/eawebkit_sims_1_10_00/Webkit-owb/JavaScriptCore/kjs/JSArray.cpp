@@ -21,7 +21,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -43,7 +43,8 @@ typedef HashMap<unsigned, JSValue*> SparseArrayValueMap;
 
 struct ArrayStorage {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -72,7 +73,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    unsigned m_vectorLength;
+#endif //NO_MACRO_NEW
+unsigned m_vectorLength;
     unsigned m_numValuesInVector;
     SparseArrayValueMap* m_sparseValueMap;
     void* lazyCreationData; // An JSArray subclass can use this to fill the vector lazily.
@@ -592,7 +594,8 @@ void JSArray::sort(ExecState* exec)
 
 struct AVLTreeNodeForArrayCompare {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -621,7 +624,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    JSValue* value;
+#endif //NO_MACRO_NEW
+JSValue* value;
 
     // Child pointers.  The high bit of gt is robbed and used as the
     // balance factor sign.  The high bit of lt is robbed and used as
@@ -632,7 +636,8 @@ void operator delete[](void* p)
 
 struct AVLTreeAbstractorForArrayCompare {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -661,7 +666,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    typedef int32_t handle; // Handle is an index into m_nodes vector.
+#endif //NO_MACRO_NEW
+typedef int32_t handle; // Handle is an index into m_nodes vector.
     typedef JSValue* key;
     typedef int32_t size;
 

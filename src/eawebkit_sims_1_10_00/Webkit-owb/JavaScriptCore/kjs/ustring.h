@@ -21,7 +21,7 @@
 */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef _KJS_USTRING_H_
@@ -60,7 +60,8 @@ namespace KJS {
     */
   class CString {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -89,7 +90,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    public:
+#endif //NO_MACRO_NEW
+  public:
         CString() : data(0), length(0) { }
         CString(const char *c);
         CString(const char *c, size_t len);
@@ -118,7 +120,8 @@ void operator delete[](void* p)
     */
     class UString {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -147,7 +150,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-        friend bool operator==(const UString&, const UString&);
+#endif //NO_MACRO_NEW
+friend bool operator==(const UString&, const UString&);
 
     public:
         /**
@@ -156,7 +160,8 @@ void operator delete[](void* p)
         struct Rep {
 
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -185,7 +190,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    public:
+#endif //NO_MACRO_NEW
+		public:
             static PassRefPtr<Rep> create(UChar *d, int l);
             static PassRefPtr<Rep> createCopying(const UChar *d, int l);
             static PassRefPtr<Rep> create(PassRefPtr<Rep> base, int offset, int length);
@@ -303,7 +309,8 @@ void operator delete[](void* p)
 
         struct Range {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -332,7 +339,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-    public:
+#endif //NO_MACRO_NEW
+		public:
             Range(int pos, int len) : position(pos), length(len) {}
             Range() {}
             int position;

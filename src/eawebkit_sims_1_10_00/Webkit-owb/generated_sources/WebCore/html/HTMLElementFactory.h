@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef HTMLELEMENTFACTORY_H
@@ -48,7 +48,7 @@ namespace WebCore
 
     // The idea behind this class is that there will eventually be a mapping from namespace URIs to ElementFactories that can dispense
     // elements.  In a compound document world, the generic createElement function (will end up being virtual) will be called.
-    class HTMLElementFactory: public WTF::FastAllocBase
+    class HTMLElementFactory/*: public WTF::FastAllocBase*/
     {
     public:
         WebCore::Element* createElement(const WebCore::QualifiedName& qName, WebCore::Document* doc, bool createdByParser = true);

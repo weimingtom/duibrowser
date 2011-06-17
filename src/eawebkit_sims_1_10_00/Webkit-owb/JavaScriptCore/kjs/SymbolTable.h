@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef SymbolTable_h
@@ -52,7 +52,8 @@ namespace KJS {
 
     struct SymbolTableEntry {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -81,7 +82,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-        SymbolTableEntry()
+#endif //NO_MACRO_NEW
+SymbolTableEntry()
             : rawValue(0)
         {
         }
@@ -153,7 +155,8 @@ void operator delete[](void* p)
 
     struct SymbolTableIndexHashTraits {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -182,7 +185,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-        typedef SymbolTableEntry TraitType;
+#endif //NO_MACRO_NEW
+typedef SymbolTableEntry TraitType;
         static SymbolTableEntry emptyValue() { return SymbolTableEntry(); }
         static const bool emptyValueIsZero = false;
         static const bool needsDestruction = false;

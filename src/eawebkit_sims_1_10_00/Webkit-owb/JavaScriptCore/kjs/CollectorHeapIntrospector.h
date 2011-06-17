@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #ifndef CollectorHeapIntrospector_h
@@ -43,7 +43,8 @@ struct CollectorHeap;
     
 class CollectorHeapIntrospector {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -72,6 +73,7 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
+#endif //NO_MACRO_NEW
 public:
     static void init(CollectorHeap*, CollectorHeap*);
     static kern_return_t enumerate(task_t, void* context, unsigned typeMask, vm_address_t zoneAddress, memory_reader_t, vm_range_recorder_t);

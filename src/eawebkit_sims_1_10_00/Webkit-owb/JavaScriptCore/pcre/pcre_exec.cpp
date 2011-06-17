@@ -78,7 +78,7 @@ typedef void* ReturnLocation;
 
 #if !REGEXP_HISTOGRAM
 
-class HistogramTimeLogger: public WTF::FastAllocBase {
+class HistogramTimeLogger/*: public WTF::FastAllocBase*/ {
 public:
     HistogramTimeLogger(const JSRegExp*) { }
 };
@@ -87,7 +87,7 @@ public:
 
 using namespace KJS;
 
-class Histogram: public WTF::FastAllocBase {
+class Histogram/*: public WTF::FastAllocBase*/ {
 public:
     ~Histogram();
     void add(const JSRegExp*, double);
@@ -97,7 +97,7 @@ private:
     Map times;
 };
 
-class HistogramTimeLogger: public WTF::FastAllocBase {
+class HistogramTimeLogger/*: public WTF::FastAllocBase*/ {
 public:
     HistogramTimeLogger(const JSRegExp*);
     ~HistogramTimeLogger();
@@ -112,12 +112,12 @@ private:
 /* Structure for building a chain of data for holding the values of
 the subject pointer at the start of each bracket, used to detect when
 an empty string has been matched by a bracket to break infinite loops. */ 
-struct BracketChainNode: public WTF::FastAllocBase {
+struct BracketChainNode/*: public WTF::FastAllocBase*/ {
     BracketChainNode* previousBracket;
     const UChar* bracketStart;
 };
 
-struct MatchFrame: public WTF::FastAllocBase {
+struct MatchFrame/*: public WTF::FastAllocBase*/ {
     ReturnLocation returnLocation;
     struct MatchFrame* previousFrame;
     
@@ -159,7 +159,7 @@ struct MatchFrame: public WTF::FastAllocBase {
 /* Structure for passing "static" information around between the functions
 doing traditional NFA matching, so that they are thread-safe. */
 
-struct MatchData: public WTF::FastAllocBase {
+struct MatchData/*: public WTF::FastAllocBase*/ {
   int*   offsetVector;         /* Offset vector */
   int    offsetEnd;            /* One past the end */
   int    offsetMax;            /* The maximum usable for return data */
@@ -338,7 +338,7 @@ Returns:       1 if matched          )  these values are >= 0
 
 static const unsigned numFramesOnStack = 16;
 
-struct MatchStack: public WTF::FastAllocBase {
+struct MatchStack/*: public WTF::FastAllocBase*/ {
     MatchStack()
         : framesEnd(frames + numFramesOnStack)
         , currentFrame(frames)
@@ -1987,7 +1987,7 @@ int jsRegExpExecute(const JSRegExp* re,
     bool usingTemporaryOffsets = false;
     if (re->topBackref > 0 && re->topBackref >= ocount/3) {
         ocount = re->topBackref * 3 + 3;
-        matchBlock.offsetVector = WTF::fastNewArray<int> (ocount);
+		matchBlock.offsetVector = EAWEBKIT_NEW("jsRegExpExecute") int[ocount];//WTF::fastNewArray<int> (ocount);
         if (!matchBlock.offsetVector)
             return JSRegExpErrorNoMemory;
         usingTemporaryOffsets = true;
@@ -2100,7 +2100,7 @@ int jsRegExpExecute(const JSRegExp* re,
                 matchBlock.offsetOverflow = true;
             
             DPRINTF(("Freeing temporary memory\n"));
-            WTF::fastDeleteArray<int> (matchBlock.offsetVector);
+			EAWEBKIT_DELETE[] (matchBlock.offsetVector);//WTF::fastDeleteArray<int> (matchBlock.offsetVector);
         }
         
         returnCode = matchBlock.offsetOverflow ? 0 : matchBlock.endOffsetTop / 2;
@@ -2127,7 +2127,7 @@ int jsRegExpExecute(const JSRegExp* re,
 
 #if REGEXP_HISTOGRAM
 
-class CompareHistogramEntries: public WTF::FastAllocBase {
+class CompareHistogramEntries/*: public WTF::FastAllocBase*/ {
 public:
     bool operator()(const pair<UString, double>& a, const pair<UString, double>& b)
     {

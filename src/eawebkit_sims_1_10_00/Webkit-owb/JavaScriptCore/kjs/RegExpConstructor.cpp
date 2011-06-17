@@ -19,7 +19,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009
+* This file was modified by Electronic Arts Inc Copyright © 2009-2010
 */
 
 #include "config.h"
@@ -67,7 +67,8 @@ const ClassInfo RegExpConstructor::info = { "Function", &InternalFunction::info,
 
 struct RegExpConstructorPrivate {
 public:
-// Placement operator new.
+#if NO_MACRO_NEW
+	// Placement operator new.
 void* operator new(size_t, void* p) { return p; }
 void* operator new[](size_t, void* p) { return p; }
  
@@ -96,7 +97,8 @@ void operator delete[](void* p)
      fastMallocMatchValidateFree(p, WTF::Internal::AllocTypeClassNewArray);
      fastFree(p);  // We don't need to check for a null pointer; the compiler does this.
 }
-  // Global search cache / settings
+#endif //NO_MACRO_NEW
+//Global search cache / settings
   RegExpConstructorPrivate() : lastNumSubPatterns(0), multiline(false) { }
   UString lastInput;
   OwnArrayPtr<int> lastOvector;
@@ -163,7 +165,7 @@ RegExpMatchesArray::RegExpMatchesArray(ExecState* exec, RegExpConstructorPrivate
     d->lastInput = data->lastInput;
     d->lastNumSubPatterns = data->lastNumSubPatterns;
     unsigned offsetVectorSize = (data->lastNumSubPatterns + 1) * 2; // only copying the result part of the vector
-    d->lastOvector.set(WTF::fastNewArray<int> (offsetVectorSize));
+    d->lastOvector.set(EAWEBKIT_NEW("RegEx Match") int[offsetVectorSize]);//WTF::fastNewArray<int> (offsetVectorSize));
     memcpy(d->lastOvector.get(), data->lastOvector.get(), offsetVectorSize * sizeof(int));
     // d->multiline is not needed, and remains uninitialized
 
