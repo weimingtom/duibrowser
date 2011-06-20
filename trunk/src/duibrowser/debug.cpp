@@ -170,7 +170,7 @@ int		g_iDebugLevel	=	DBG_ERROR;
 
 bool	g_bSaveLogFile	=	false;
 
-TCHAR	g_bLogSavePath[MAX_PATH] = _T("\\storage card\\hwsys");
+TCHAR	g_bLogSavePath[MAX_PATH] = _T("C:\\log");
 
 static	TCHAR			s_szLogFile[MAX_PATH] = {0};
 static	bool			s_bLogPathInit = false;
