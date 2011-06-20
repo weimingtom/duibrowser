@@ -52,7 +52,7 @@ public:
 	virtual void DoPaint(void* ctx, const RECT& rcPaint);
 	virtual void SetPos(RECT rc);
 
-	bool LayoutChanged();
+	bool LayoutChanged(RECT rc);
 
 protected:
 	void RestoreSurfaceBuffer();

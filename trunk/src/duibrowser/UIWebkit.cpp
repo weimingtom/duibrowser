@@ -38,10 +38,19 @@ CWebkitUI::~CWebkitUI()
 		delete[] bitmap_bits_;
 }
 
-bool CWebkitUI::LayoutChanged()
+bool CWebkitUI::LayoutChanged(RECT rc)
 {
 	did_first_layout_ = true;
-	Invalidate();
+
+	CRect invalidateRect = m_rcItem;
+	if (!invalidateRect.IsRectEmpty())
+	{
+		invalidateRect.left += rc.left;
+		invalidateRect.top += rc.top;
+		invalidateRect.right = invalidateRect.left + rc.right - rc.left;
+		invalidateRect.bottom = invalidateRect.top + rc.bottom - rc.top;
+		InvalidateRect(GetManager()->GetPaintWindow(), &invalidateRect, TRUE);
+	}
 
 	return did_first_layout_;
 }
@@ -207,8 +216,8 @@ void CWebkitUI::DoEvent(TEventUI& event)
 		int uLineDelta = 3;
 		SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &uLineDelta, 0);
 
-        if( LOWORD(event.wParam) == SB_LINEUP ) mouseEvent.mLineDelta = uLineDelta;
-        else mouseEvent.mLineDelta = -uLineDelta;
+        if( LOWORD(event.wParam) == SB_LINEUP ) mouseEvent.mLineDelta = static_cast<float>(uLineDelta);
+        else mouseEvent.mLineDelta = static_cast<float>(-uLineDelta);
         mouseEvent.mbShift = ((event.wKeyState & MK_SHIFT) != 0);
         mouseEvent.mbControl = ((event.wKeyState & MK_CONTROL) != 0);
         mouseEvent.mbAlt = ((event.wKeyState & MK_ALT) != 0);

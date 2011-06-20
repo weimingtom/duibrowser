@@ -27,6 +27,7 @@
 #include "win_impl_base.hpp"
 #include "UIWebkit.hpp"
 #include "frame.hpp"
+#include "debug.hpp"
 
 #if !defined(UNDER_CE) && defined(_DEBUG)
 #define new   new(_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -68,7 +69,7 @@ using namespace EA::TextWrapper;
 //};
 
 const int kViewTickTimerId = 1001;
-const int kViewTickTimerElapse = 70;
+const int kViewTickTimerElapse = 75;
 const int kDefaultFontSize = 18;
 const int kMiniFontSize = 12;
 const int kPageTimeoutSeconds = 30;
@@ -383,7 +384,7 @@ void MainFrame::Init()
 		//uint32_t nCount = font_server_->AddDirectory(L"./", L"*.tt?");
 
 		font_style_ = font_server_->CreateTextStyle();
-		font_style_->SetSize(kDefaultFontSize);
+		font_style_->SetSize(static_cast<float>(kDefaultFontSize));
 		font_style_->SetSmooth(kSmoothEnabled);
 		
 		nCount = font_server_->EnumerateFonts(NULL, 0);
@@ -598,8 +599,12 @@ void MainFrame::Notify(TNotifyUI& msg)
 bool MainFrame::ViewUpdate(ViewUpdateInfo& view_update_info)
 {
 	CWebkitUI* webkit_control = static_cast<CWebkitUI*>(paint_manager_.FindControl(kWebkitControlName));
-	if (webkit_control != NULL)
-		webkit_control->LayoutChanged();
+	if ((webkit_control != NULL) && (view_update_info.mDrawEvent == ViewUpdateInfo::kViewDrawEnd))
+	{
+		CRect invalidateRect(view_update_info.mX, view_update_info.mY, view_update_info.mW, view_update_info.mH);
+		webkit_control->LayoutChanged(invalidateRect);
+	}
+	VERBOSE(_T("view_update_info.mDrawEvent = %d, view_update_info.mX = %d, view_update_info.mY = %d, view_update_info.mW = %d, view_update_info.mH = %d.\n"), view_update_info.mDrawEvent, view_update_info.mX, view_update_info.mY, view_update_info.mW, view_update_info.mH);
 	return true;
 }
 
