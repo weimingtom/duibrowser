@@ -68,7 +68,7 @@ using namespace EA::TextWrapper;
 //};
 
 const int kViewTickTimerId = 1001;
-const int kViewTickTimerElapse = 500;
+const int kViewTickTimerElapse = 70;
 const int kDefaultFontSize = 18;
 const int kMiniFontSize = 12;
 const int kPageTimeoutSeconds = 30;
