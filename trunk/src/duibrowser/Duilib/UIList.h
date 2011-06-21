@@ -1,36 +1,7 @@
-//
-//
-// DirectUI - UI Library
-//
-// Written by Bjarke Viksoe (bjarke@viksoe.dk)
-// Copyright (c) 2006-2007 Bjarke Viksoe.
-//
-// This code may be used in compiled form in any way you desire. These
-// source files may be redistributed by any means PROVIDING it is 
-// not sold for profit without the authors written consent, and 
-// providing that this notice and the authors name is included. 
-//
-// This file is provided "as is" with no expressed or implied warranty.
-// The author accepts no liability if it causes any damage to you or your
-// computer whatsoever. It's free, so don't hassle me about it.
-//
-////
-// Acknowledgements :
-// Bjarke Viksoe (http://www.viksoe.dk/code/windowless1.htm)
-//
-//
-//
-// Beware of bugs.
-//
-//
-//
-////////////////////////////////////////////////////////
 #ifndef __UILIST_H__
 #define __UILIST_H__
 
-#ifdef _MSC_VER
 #pragma once
-#endif
 
 namespace DuiLib {
 /////////////////////////////////////////////////////////////////////////////////////
@@ -79,8 +50,7 @@ class IListOwnerUI
 public:
     virtual TListInfoUI* GetListInfo() = 0;
     virtual int GetCurSel() const = 0;
-    virtual bool SelectItem(int iIndex, bool bSendNofitied = true) = 0;
-	virtual bool Activate() = 0;
+    virtual bool SelectItem(int iIndex) = 0;
     virtual void DoEvent(TEventUI& event) = 0;
 };
 
@@ -106,7 +76,7 @@ public:
     virtual bool Select(bool bSelect = true) = 0;
     virtual bool IsExpanded() const = 0;
     virtual bool Expand(bool bExpand = true) = 0;
-    virtual void DrawItemText(void* ctx, const RECT& rcItem) = 0;
+    virtual void DrawItemText(HDC hDC, const RECT& rcItem) = 0;
 };
 
 
@@ -128,8 +98,7 @@ public:
     bool GetScrollSelect();
     void SetScrollSelect(bool bScrollSelect);
     int GetCurSel() const;
-    bool SelectItem(int iIndex, bool bSendNofitied = true);
-	bool Activate();
+    bool SelectItem(int iIndex);
 
     CListHeaderUI* GetHeader() const;  
     CContainerUI* GetList() const;
@@ -232,12 +201,9 @@ class UILIB_API CListBodyUI : public CVerticalLayoutUI
 public:
     CListBodyUI(CListUI* pOwner);
 
-	UINT GetControlFlags() const;
-
     void SetScrollPos(SIZE szPos);
     void SetPos(RECT rc);
-
-    virtual void DoEvent(TEventUI& event);
+    void DoEvent(TEventUI& event);
 
 protected:
     CListUI* m_pOwner;
@@ -255,8 +221,6 @@ public:
     LPVOID GetInterface(LPCTSTR pstrName);
 
     SIZE EstimateSize(SIZE szAvailable);
-
-	virtual void DoEvent(TEventUI& event);
 };
 
 
@@ -303,8 +267,8 @@ public:
     void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
     RECT GetThumbRect() const;
 
-    void PaintText(void* ctx);
-    void PaintStatusImage(void* ctx);
+    void PaintText(HDC hDC);
+    void PaintStatusImage(HDC hDC);
 
 protected:
     POINT ptLastMouse;
@@ -357,7 +321,8 @@ public:
     void DoEvent(TEventUI& event);
     void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 
-    void DrawItemBk(void* ctx, const RECT& rcItem);
+    void DrawItemBk(HDC hDC, const RECT& rcItem);
+
 protected:
     int m_iIndex;
     bool m_bSelected;
@@ -368,7 +333,7 @@ protected:
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
-// List列表中的文字元素元素（不支持多列）
+
 class UILIB_API CListLabelElementUI : public CListElementUI
 {
 public:
@@ -379,15 +344,15 @@ public:
 
     void DoEvent(TEventUI& event);
     SIZE EstimateSize(SIZE szAvailable);
-    void DoPaint(void* ctx, const RECT& rcPaint);
+    void DoPaint(HDC hDC, const RECT& rcPaint);
 
-    void DrawItemText(void* ctx, const RECT& rcItem);
+    void DrawItemText(HDC hDC, const RECT& rcItem);
 };
 
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
-// List列表中的文字元素元素（支持多列），但必须提供IListCallbackUI接口来提供对应各行各列上的文字
+
 class UILIB_API CListTextElementUI : public CListLabelElementUI
 {
 public:
@@ -407,7 +372,7 @@ public:
     void DoEvent(TEventUI& event);
     SIZE EstimateSize(SIZE szAvailable);
 
-    void DrawItemText(void* ctx, const RECT& rcItem);
+    void DrawItemText(HDC hDC, const RECT& rcItem);
 
 protected:
     enum { MAX_LINK = 8 };
@@ -422,7 +387,7 @@ protected:
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
-// 继承自CListTextElementUI，可以包含子controlUI,也可以进行子控件的展开和隐藏
+
 class UILIB_API CListExpandElementUI : public CListTextElementUI
 {
 public:
@@ -439,7 +404,7 @@ public:
     void SetPos(RECT rc);
     void DoEvent(TEventUI& event);
     SIZE EstimateSize(SIZE szAvailable);
-    void DoPaint(void* ctx, const RECT& rcPaint);
+    void DoPaint(HDC hDC, const RECT& rcPaint);
 
     void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 
@@ -454,7 +419,7 @@ public:
     void SetExpanderRect(RECT rc);
     void SetExpandItem(CControlUI* pControl);
 
-    void DrawItemText(void* ctx, const RECT& rcItem);
+    void DrawItemText(HDC hDC, const RECT& rcItem);
 
 protected:
     bool m_bExpanded;
@@ -494,11 +459,11 @@ public:
 
     void DoEvent(TEventUI& event);
     void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
-    void DoPaint(void* ctx, const RECT& rcPaint);
+    void DoPaint(HDC hDC, const RECT& rcPaint);
 
-    void DrawItemText(void* ctx, const RECT& rcItem);    
+    void DrawItemText(HDC hDC, const RECT& rcItem);    
+    void DrawItemBk(HDC hDC, const RECT& rcItem);
 
-	void DrawItemBk(void* ctx, const RECT& rcItem);
 protected:
     int m_iIndex;
     bool m_bSelected;

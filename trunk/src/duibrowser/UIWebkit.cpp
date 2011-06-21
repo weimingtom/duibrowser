@@ -15,6 +15,7 @@
 //
 // Beware of bugs.
 //
+#include "stdafx.h"
 #include <EAWebKit/EAWebKit.h>
 #include <EAWebKit/EAWebkitSTLWrapper.h>
 #include "UIlib.h"
@@ -43,7 +44,7 @@ bool CWebkitUI::LayoutChanged(RECT rc)
 	did_first_layout_ = true;
 
 	CRect invalidateRect = m_rcItem;
-	if (!invalidateRect.IsRectEmpty())
+	if (!invalidateRect.IsNull())
 	{
 		invalidateRect.left += rc.left;
 		invalidateRect.top += rc.top;
@@ -226,14 +227,12 @@ void CWebkitUI::DoEvent(TEventUI& event)
     }
 }
 
-void CWebkitUI::DoPaint(void* ctx, const RECT& rcPaint)
+void CWebkitUI::DoPaint(HDC hDC, const RECT& rcPaint)
 {
-	if ((ctx == NULL) || (raster_ == NULL) || (bitmap_bits_ == NULL))
+	if ((hDC == NULL) || (raster_ == NULL) || (bitmap_bits_ == NULL))
 		return;
 
     if( !::IntersectRect(&m_rcPaint, &rcPaint, &m_rcItem) ) return;
-
-	HDC hDC = (HDC)ctx;
 
 	if (did_first_layout_ && bitmap_bits_ != NULL)
 	{

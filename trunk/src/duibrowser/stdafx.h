@@ -85,7 +85,27 @@
 #include <objbase.h>
 #endif
 
+#include <vector>
+#include <string>
+#include <map>
+#include <windows.h>
+#include <commctrl.h>
+#include <tchar.h>
+#include <shlwapi.h>
+#include <list>
+
 #include "UIlib.h"
+
+// Automatically include the DirectUI namespace
+// define NO_USING_DUILIB_NAMESPACE to skip this step
+namespace DuiLib {
+// tString is a TCHAR std::string
+typedef std::basic_string<TCHAR> tString;
+}
+#ifndef NO_USING_DUILIB_NAMESPACE
+	using namespace DuiLib;
+	using namespace std;
+#endif
 
 #define USE_ZIP_SKIN 1
 

@@ -1,12 +1,11 @@
 //
+// string_convertor.hpp
+// ~~~~~~~~~~~~~~~~~~~~
 //
-// DirectUI - UI Library
+// Copyright (c) 2011 achellies (achellies at 163 dot com)
 //
-// Written by Bjarke Viksoe (bjarke@viksoe.dk)
-// Copyright (c) 2006-2007 Bjarke Viksoe.
-//
-// This code may be used in compiled form in any way you desire. These
-// source files may be redistributed by any means PROVIDING it is 
+// This code may be used in compiled form in any way you desire. This
+// source file may be redistributed by any means PROVIDING it is 
 // not sold for profit without the authors written consent, and 
 // providing that this notice and the authors name is included. 
 //
@@ -14,19 +13,10 @@
 // The author accepts no liability if it causes any damage to you or your
 // computer whatsoever. It's free, so don't hassle me about it.
 //
-////
-// Acknowledgements :
-// Bjarke Viksoe (http://www.viksoe.dk/code/windowless1.htm)
-//
-//
-//
 // Beware of bugs.
 //
-//
-//
-////////////////////////////////////////////////////////
-#ifndef __UIUTIL_H__
-#define __UIUTIL_H__
+#ifndef _STRING_CONVERTOR_HPP
+#define _STRING_CONVERTOR_HPP
 
 #ifdef _MSC_VER
 #pragma once
@@ -36,15 +26,15 @@ namespace StringConvertor {
 
 #pragma warning(disable: 4996)
 
-UILIB_API LPSTR  WideToAnsi(LPCWSTR str, int len = -1);
-UILIB_API LPSTR  WideToUtf8(LPCWSTR str, int len = -1);
-UILIB_API LPWSTR WideStrDup(LPCWSTR str, int len = -1);
+LPSTR  WideToAnsi(LPCWSTR str, int len = -1);
+LPSTR  WideToUtf8(LPCWSTR str, int len = -1);
+LPWSTR WideStrDup(LPCWSTR str, int len = -1);
 
-UILIB_API LPWSTR AnsiToWide(LPCSTR  str, int len = -1);
+LPWSTR AnsiToWide(LPCSTR  str, int len = -1);
 __declspec(deprecated) LPSTR  AnsiToUtf8(LPCSTR  str, int len = -1);
 __declspec(deprecated) LPSTR  AnsiStrDup(LPCSTR  str, int len = -1);
 
-UILIB_API LPWSTR Utf8ToWide(LPCSTR  str, int len = -1);
+LPWSTR Utf8ToWide(LPCSTR  str, int len = -1);
 __declspec(deprecated) LPSTR  Utf8ToAnsi(LPCSTR  str, int len = -1);
 static __inline LPSTR Utf8StrDup(LPCSTR str, int len = -1)    { return AnsiStrDup(str, len); }
 
@@ -81,4 +71,4 @@ static __declspec(deprecated) __inline LPTSTR StringAlloc(size_t  len)          
 
 } // namespace StringConvertor
 
-#endif //__UIUTIL_H__
+#endif //_STRING_CONVERTOR_HPP

@@ -1,41 +1,9 @@
-//
-//
-// DirectUI - UI Library
-//
-// Written by Bjarke Viksoe (bjarke@viksoe.dk)
-// Copyright (c) 2006-2007 Bjarke Viksoe.
-//
-// This code may be used in compiled form in any way you desire. These
-// source files may be redistributed by any means PROVIDING it is 
-// not sold for profit without the authors written consent, and 
-// providing that this notice and the authors name is included. 
-//
-// This file is provided "as is" with no expressed or implied warranty.
-// The author accepts no liability if it causes any damage to you or your
-// computer whatsoever. It's free, so don't hassle me about it.
-//
-////
-// Acknowledgements :
-// Bjarke Viksoe (http://www.viksoe.dk/code/windowless1.htm)
-//
-//
-//
-// Beware of bugs.
-//
-//
-//
-////////////////////////////////////////////////////////
-
 #ifndef __UIACTIVEX_H__
 #define __UIACTIVEX_H__
 
-#ifdef _MSC_VER
 #pragma once
-#endif
 
-#if defined(UI_BUILD_FOR_WIN32) && !defined(UI_BUILD_FOR_WINCE)
-
-#include <olectl.h>
+struct IOleObject;
 
 namespace DuiLib {
 /////////////////////////////////////////////////////////////////////////////////////
@@ -64,7 +32,7 @@ public:
     virtual ~CActiveXUI();
 
     LPCTSTR GetClass() const;
-	LPVOID GetInterface(LPCTSTR pstrName);	
+	LPVOID GetInterface(LPCTSTR pstrName);
 
     HWND GetHostWindow() const;
 
@@ -81,11 +49,11 @@ public:
     void SetVisible(bool bVisible = true);
     void SetInternVisible(bool bVisible = true);
     void SetPos(RECT rc);
-    void DoPaint(void* ctx, const RECT& rcPaint);
+    void DoPaint(HDC hDC, const RECT& rcPaint);
 
     void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 
-    LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+    LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool& bHandled);
 
 protected:
     void ReleaseControl();
@@ -102,7 +70,5 @@ protected:
 };
 
 } // namespace DuiLib
-
-#endif
 
 #endif // __UIACTIVEX_H__

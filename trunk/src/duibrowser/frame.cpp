@@ -24,6 +24,7 @@
 //#include <PPMalloc/EAStackAllocator.h>
 #include <stdlib.h>  // malloc / new
 
+#include "string_convertor.hpp"
 #include "win_impl_base.hpp"
 #include "UIWebkit.hpp"
 #include "frame.hpp"
@@ -107,7 +108,7 @@ MainFrame::MainFrame()
 , is_loading_(false)
 {
 	//allocator_ = new MyAllocator();
-#if defined(UI_BUILD_FOR_WINCE)
+#if defined(UNDER_CE)
 	sprintf(application_name_, "DuiBrowser");
 	sprintf(user_agent_, GetUserAgent().c_str());
 #else
@@ -154,7 +155,7 @@ std::string MainFrame::GetUserAgent()
 	else if (versionInfo.dwPlatformId == VER_PLATFORM_WIN32_NT)
 	{
 		char szBuf[MAX_PATH] = {0};
-#if defined(UI_BUILD_FOR_WINCE)
+#if defined(UNDER_CE)
 		sprintf(szBuf, "Windows NT %d.%d", versionInfo.dwMajorVersion, versionInfo.dwMinorVersion);
 #else
 		sprintf_s(szBuf, MAX_PATH, "Windows NT %d.%d", versionInfo.dwMajorVersion, versionInfo.dwMinorVersion);
@@ -165,7 +166,7 @@ std::string MainFrame::GetUserAgent()
 	if (osVersion.empty())
 	{
 		char szBuf[MAX_PATH] = {0};
-#if defined(UI_BUILD_FOR_WINCE)
+#if defined(UNDER_CE)
 		sprintf(szBuf, "Windows %d.%d", versionInfo.dwMajorVersion, versionInfo.dwMinorVersion);
 #else
 		sprintf_s(szBuf, MAX_PATH, "Windows %d.%d", versionInfo.dwMajorVersion, versionInfo.dwMinorVersion);
@@ -177,7 +178,7 @@ std::string MainFrame::GetUserAgent()
 #endif
 
 	char szBuf[MAX_PATH] = {0};
-#if defined(UI_BUILD_FOR_WINCE)
+#if defined(UNDER_CE)
 	sprintf(szBuf, "Mozilla/5.0 (%s; U; %s; zh-cn) AppleWebKit/525.1 (KHTML, like Gecko) EAWebKit/1.0.0 %s",   
 		kPlatformName,
 		osVersion.c_str(),
@@ -197,7 +198,7 @@ LPCTSTR MainFrame::GetWindowClassName() const
 	return _T("DuiBrowserMainFrame");
 }
 
-CControlUI* MainFrame::CreateControl(LPCTSTR pstrClass, CPaintManagerUI* pManager)
+CControlUI* MainFrame::CreateControl(LPCTSTR pstrClass)
 {
 	if (_tcsicmp(pstrClass, _T("Webkit")) == 0)
 		return new CWebkitUI();
@@ -238,7 +239,7 @@ tString MainFrame::GetSkinFile()
 
 LRESULT MainFrame::OnSysCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-#if defined(UI_BUILD_FOR_WIN32) && !defined(UI_BUILD_FOR_WINCE)
+#if defined(WIN32) && !defined(UNDER_CE)
 	BOOL bZoomed = ::IsZoomed(m_hWnd);
 	LRESULT lRes = CWindowWnd::HandleMessage(uMsg, wParam, lParam);
 	if( ::IsZoomed(m_hWnd) != bZoomed ) 
@@ -316,7 +317,7 @@ void MainFrame::OnTimer(TNotifyUI& msg)
 			{
 				TCHAR szBuf[MAX_PATH] = {0};
 
-#if defined(UI_BUILD_FOR_WINCE)
+#if defined(UNDER_CE)
 				_stprintf(szBuf, _T(""));
 #else
 				_stprintf_s(szBuf, MAX_PATH - 1, _T("file='$logo.png' source='%d,0,%d,64'"), logo_image_index * 64, (logo_image_index + 1) * 64);
@@ -340,7 +341,7 @@ void MainFrame::OnTimer(TNotifyUI& msg)
 	}
 }
 
-LRESULT MainFrame::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+LRESULT MainFrame::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool& bHandled)
 {
 	return __super::MessageHandler(uMsg, wParam, lParam, bHandled);
 }
@@ -357,7 +358,7 @@ void MainFrame::Init()
 
 	webkit_dll_ = LoadLibrary(_T("EAWebkit.dll"));
 	if (webkit_dll_ != NULL)
-#if defined(UI_BUILD_FOR_WINCE)
+#if defined(UNDER_CE)
 		create_webkit_instance = reinterpret_cast<PF_CreateEAWebkitInstance>(GetProcAddress(webkit_dll_, _T("CreateEAWebkitInstance")));
 #else
 		create_webkit_instance = reinterpret_cast<PF_CreateEAWebkitInstance>(GetProcAddress(webkit_dll_, "CreateEAWebkitInstance"));
@@ -375,7 +376,7 @@ void MainFrame::Init()
 		wchar_t szWindowsDir[MAX_PATH] = {0};
 		GetWindowsDirectoryW(szWindowsDir, MAX_PATH);
 		wchar_t szFontDir[MAX_PATH] = {0};
-#if defined(UI_BUILD_FOR_WINCE)
+#if defined(UNDER_CE)
 		swprintf(szFontDir, L"%s\\Fonts", szWindowsDir);
 #else
 		swprintf_s(szFontDir, MAX_PATH - 1, L"%s\\Fonts", szWindowsDir);
@@ -501,11 +502,11 @@ void MainFrame::UpdateNavigatingButtonStatus()
 
 void MainFrame::Notify(TNotifyUI& msg)
 {
-	if (_tcsicmp(msg.sType, DuiLib::kWindowInit) == 0)
+	if (_tcsicmp(msg.sType, _T("windowinit")) == 0)
 	{
 		OnPrepare(msg);
 	}
-	else if (_tcsicmp(msg.sType, DuiLib::kReturn) == 0)
+	else if (_tcsicmp(msg.sType, _T("return")) == 0)
 	{
 		CEditUI* address_edit = static_cast<CEditUI*>(paint_manager_.FindControl(kAddressControlName));
 		if ((view_ != NULL) && (address_edit != NULL) && _tcslen(address_edit->GetText()) > 0)
@@ -520,7 +521,7 @@ void MainFrame::Notify(TNotifyUI& msg)
 			view_->SetURI(StringConvertor::WideToUtf8(input_url.c_str()));
 		}
 	}
-	else if (_tcsicmp(msg.sType, DuiLib::kClick) == 0)
+	else if (_tcsicmp(msg.sType, _T("click")) == 0)
 	{
 		if (_tcsicmp(msg.pSender->GetName(), kCloseButtonControlName) == 0)
 		{
@@ -528,7 +529,7 @@ void MainFrame::Notify(TNotifyUI& msg)
 		}
 		else if (_tcsicmp(msg.pSender->GetName(), kMinButtonControlName) == 0)
 		{
-#if defined(UI_BUILD_FOR_WINCE)
+#if defined(UNDER_CE)
 			::ShowWindow(m_hWnd, SW_MINIMIZE);
 #else
 			SendMessage(WM_SYSCOMMAND, SC_MINIMIZE, 0);
@@ -536,7 +537,7 @@ void MainFrame::Notify(TNotifyUI& msg)
 		}
 		else if (_tcsicmp(msg.pSender->GetName(), kMaxButtonControlName) == 0)
 		{
-#if defined(UI_BUILD_FOR_WINCE)
+#if defined(UNDER_CE)
 			::ShowWindow(m_hWnd, SW_MAXIMIZE);
 			CControlUI* pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kMaxButtonControlName));
 			if( pControl ) pControl->SetVisible(false);
@@ -548,7 +549,7 @@ void MainFrame::Notify(TNotifyUI& msg)
 		}
 		else if (_tcsicmp(msg.pSender->GetName(), kRestoreButtonControlName) == 0)
 		{
-#if defined(UI_BUILD_FOR_WINCE)
+#if defined(UNDER_CE)
 			::ShowWindow(m_hWnd, SW_RESTORE);
 			CControlUI* pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kMaxButtonControlName));
 			if( pControl ) pControl->SetVisible(true);
@@ -590,7 +591,7 @@ void MainFrame::Notify(TNotifyUI& msg)
 				view_->CancelLoad();
 		}
 	}
-	else if (_tcsicmp(msg.sType, DuiLib::kTimer) == 0)
+	else if (_tcsicmp(msg.sType, _T("timer")) == 0)
 	{
 		return OnTimer(msg);
 	}

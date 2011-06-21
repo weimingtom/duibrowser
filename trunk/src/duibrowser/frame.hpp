@@ -85,9 +85,9 @@ public:
 
 	virtual tString GetSkinFile();
 
-	virtual CControlUI* CreateControl(LPCTSTR pstrClass, CPaintManagerUI* pManager);
+	virtual CControlUI* CreateControl(LPCTSTR pstrClass);
 
-	virtual LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	virtual LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool& bHandled);
 
 	virtual LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
 

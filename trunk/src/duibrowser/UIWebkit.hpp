@@ -49,7 +49,7 @@ public:
 	void SetEARasterAndView(IEARaster* raster, View* view);
 
     virtual void DoEvent(TEventUI& event);
-	virtual void DoPaint(void* ctx, const RECT& rcPaint);
+	virtual void DoPaint(HDC hDC, const RECT& rcPaint);
 	virtual void SetPos(RECT rc);
 
 	bool LayoutChanged(RECT rc);
