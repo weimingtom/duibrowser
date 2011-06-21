@@ -48,8 +48,8 @@ bool CWebkitUI::LayoutChanged(RECT rc)
 	{
 		invalidateRect.left += rc.left;
 		invalidateRect.top += rc.top;
-		invalidateRect.right = invalidateRect.left + rc.right - rc.left;
-		invalidateRect.bottom = invalidateRect.top + rc.bottom - rc.top;
+		invalidateRect.right = invalidateRect.left + rc.right;
+		invalidateRect.bottom = invalidateRect.top + rc.bottom;
 		InvalidateRect(GetManager()->GetPaintWindow(), &invalidateRect, TRUE);
 	}
 
