@@ -1,38 +1,7 @@
-//
-//
-// DirectUI - UI Library
-//
-// Written by Bjarke Viksoe (bjarke@viksoe.dk)
-// Copyright (c) 2006-2007 Bjarke Viksoe.
-//
-// This code may be used in compiled form in any way you desire. These
-// source files may be redistributed by any means PROVIDING it is 
-// not sold for profit without the authors written consent, and 
-// providing that this notice and the authors name is included. 
-//
-// This file is provided "as is" with no expressed or implied warranty.
-// The author accepts no liability if it causes any damage to you or your
-// computer whatsoever. It's free, so don't hassle me about it.
-//
-////
-// Acknowledgements :
-// Bjarke Viksoe (http://www.viksoe.dk/code/windowless1.htm)
-//
-//
-//
-// Beware of bugs.
-//
-//
-//
-////////////////////////////////////////////////////////
 #ifndef __UIRICHEDIT_H__
 #define __UIRICHEDIT_H__
 
-#ifdef _MSC_VER
 #pragma once
-#endif
-
-#ifdef SUPPORT_RICHEDIT
 
 namespace DuiLib {
 
@@ -148,11 +117,11 @@ public:
     SIZE EstimateSize(SIZE szAvailable);
     void SetPos(RECT rc);
     void DoEvent(TEventUI& event);
-    void DoPaint(void* ctx, const RECT& rcPaint);
+    void DoPaint(HDC hDC, const RECT& rcPaint);
 
     void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 
-    LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+    LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool& bHandled);
 
 protected:
     CTxtWinHost* m_pTwh;
@@ -172,5 +141,3 @@ protected:
 } // namespace DuiLib
 
 #endif // __UIRICHEDIT_H__
-
-#endif // #ifdef SUPPORT_RICHEDIT

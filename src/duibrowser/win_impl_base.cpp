@@ -65,7 +65,7 @@ LRESULT WindowImplBase::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPa
 	return 0;
 }
 
-#if defined(UI_BUILD_FOR_WIN32) && !defined(UI_BUILD_FOR_WINCE)
+#if defined(WIN32) && !defined(UNDER_CE)
 LRESULT WindowImplBase::OnNcActivate(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
 {
 	if( ::IsIconic(*this) ) bHandled = FALSE;
@@ -168,7 +168,7 @@ LRESULT WindowImplBase::OnKillFocus(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*l
 LRESULT WindowImplBase::OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
 	SIZE szRoundCorner = paint_manager_.GetRoundCorner();
-#if defined(UI_BUILD_FOR_WIN32) && !defined(UI_BUILD_FOR_WINCE)
+#if defined(WIN32) && !defined(UNDER_CE)
 	if( !::IsIconic(*this) && (szRoundCorner.cx != 0 || szRoundCorner.cy != 0) ) {
 		CRect rcWnd;
 		::GetWindowRect(*this, &rcWnd);
@@ -190,7 +190,7 @@ LRESULT WindowImplBase::OnSysCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BO
 		bHandled = TRUE;
 		return 0;
 	}
-#if defined(UI_BUILD_FOR_WIN32) && !defined(UI_BUILD_FOR_WINCE)
+#if defined(WIN32) && !defined(UNDER_CE)
 	BOOL bZoomed = ::IsZoomed(*this);
 	LRESULT lRes = CWindowWnd::HandleMessage(uMsg, wParam, lParam);
 	if( ::IsZoomed(*this) != bZoomed ){
@@ -204,7 +204,7 @@ LRESULT WindowImplBase::OnSysCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BO
 
 tString WindowImplBase::GetSkinFolder()
 {
-	return tString(CPaintManagerUI::GetInstancePath()) + _T("Skins\\");
+	return tString(CPaintManagerUI::GetInstancePath()) + _T("\\Skins\\");
 }
 
 LRESULT WindowImplBase::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
@@ -226,7 +226,7 @@ LRESULT WindowImplBase::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& 
 
 #if USE(ZIP_SKIN)
 
-#if defined(UI_BUILD_FOR_WINCE)
+#if defined(UNDER_CE)
 	static bool resource_unzipped = false;
 	if (!resource_unzipped)
 	{
@@ -269,7 +269,7 @@ LRESULT WindowImplBase::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_CREATE:			lRes = OnCreate(uMsg, wParam, lParam, bHandled); break;
 	case WM_CLOSE:			lRes = OnClose(uMsg, wParam, lParam, bHandled); break;
 	case WM_DESTROY:		lRes = OnDestroy(uMsg, wParam, lParam, bHandled); break;
-#if defined(UI_BUILD_FOR_WIN32) && !defined(UI_BUILD_FOR_WINCE)
+#if defined(WIN32) && !defined(UNDER_CE)
 	case WM_NCACTIVATE:		lRes = OnNcActivate(uMsg, wParam, lParam, bHandled); break;
 	case WM_NCCALCSIZE:		lRes = OnNcCalcSize(uMsg, wParam, lParam, bHandled); break;
 	case WM_NCPAINT:		lRes = OnNcPaint(uMsg, wParam, lParam, bHandled); break;
@@ -296,7 +296,7 @@ LRESULT WindowImplBase::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return CWindowWnd::HandleMessage(uMsg, wParam, lParam);
 }
 
-LRESULT WindowImplBase::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/)
+LRESULT WindowImplBase::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM /*lParam*/, bool& /*bHandled*/)
 {
 	if (uMsg == WM_KEYDOWN)
 	{

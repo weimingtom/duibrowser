@@ -36,32 +36,32 @@
 #define new   new(_NORMAL_BLOCK, __FILE__, __LINE__)
 #endif
 
-#if defined(UI_BUILD_FOR_WIN32) && !defined(UI_BUILD_FOR_WINCE)
+#if defined(WIN32) && !defined(UNDER_CE)
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPSTR /*lpCmdLine*/, int nCmdShow)
 #else
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lpCmdLine, int nCmdShow)
 #endif
 {
-//#if defined(UI_BUILD_FOR_WIN32)
+//#if defined(WIN32)
 //	EnableMemLeakCheck();
 //#endif
 
 	CPaintManagerUI::SetInstance(hInstance);
 
-#if defined(UI_BUILD_FOR_WIN32) && !defined(UI_BUILD_FOR_WINCE)
+#if defined(WIN32) && !defined(UNDER_CE)
 	HRESULT Hr = ::CoInitialize(NULL);
 #else
 	HRESULT Hr = ::CoInitializeEx(NULL, COINIT_MULTITHREADED);
 #endif
 	if( FAILED(Hr) ) return 0;
 
-#if defined(UI_BUILD_FOR_WINCE)
+#if defined(UNDER_CE)
 	RSS::GlobalVariable::g_operaBrowserStartPath = lpCmdLine;
 #endif
 
 	MainFrame* pFrame = new MainFrame();
 	if( pFrame == NULL ) return 0;
-#if defined(UI_BUILD_FOR_WIN32) && !defined(UI_BUILD_FOR_WINCE)
+#if defined(WIN32) && !defined(UNDER_CE)
 	pFrame->Create(NULL, _T("DuiBrowser"), UI_WNDSTYLE_FRAME, WS_EX_STATICEDGE | WS_EX_APPWINDOW, 0, 0, 600, 800);
 #else
 	pFrame->Create(NULL, _T("DuiBrowser"), UI_WNDSTYLE_FRAME, WS_EX_TOPMOST, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
@@ -71,11 +71,9 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 
 	CPaintManagerUI::MessageLoop();
 
-	CPaintManagerUI::ShutDown();
-
 	::CoUninitialize();
 
-//#if defined(UI_BUILD_FOR_WIN32)
+//#if defined(WIN32)
 //	_CrtDumpMemoryLeaks();
 //#endif
 	return 0;

@@ -1,41 +1,7 @@
-//
-//
-// DirectUI - UI Library
-//
-// Written by Bjarke Viksoe (bjarke@viksoe.dk)
-// Copyright (c) 2006-2007 Bjarke Viksoe.
-//
-// This code may be used in compiled form in any way you desire. These
-// source files may be redistributed by any means PROVIDING it is 
-// not sold for profit without the authors written consent, and 
-// providing that this notice and the authors name is included. 
-//
-// This file is provided "as is" with no expressed or implied warranty.
-// The author accepts no liability if it causes any damage to you or your
-// computer whatsoever. It's free, so don't hassle me about it.
-//
-////
-// Acknowledgements :
-// Bjarke Viksoe (http://www.viksoe.dk/code/windowless1.htm)
-//
-//
-//
-// Beware of bugs.
-//
-//
-//
-////////////////////////////////////////////////////////
-
 #ifndef __UIMANAGER_H__
 #define __UIMANAGER_H__
 
-#ifdef _MSC_VER
 #pragma once
-#endif
-
-#ifdef UI_BUILD_FOR_SKIA
-struct SkWinWindow;
-#endif
 
 namespace DuiLib {
 /////////////////////////////////////////////////////////////////////////////////////
@@ -185,7 +151,7 @@ public:
 class IMessageFilterUI
 {
 public:
-    virtual LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) = 0;
+    virtual LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool& bHandled) = 0;
 };
 
 
@@ -217,30 +183,26 @@ public:
     void SetCaptionRect(RECT& rcCaption);
     SIZE GetRoundCorner() const;
     void SetRoundCorner(int cx, int cy);
-	SIZE GetMinInfo() const;
+    SIZE GetMinInfo() const;
     void SetMinInfo(int cx, int cy);
     SIZE GetMaxInfo() const;
     void SetMaxInfo(int cx, int cy);
-	void SetBackgroundTransparent(bool bTrans);
-	bool IsBackgroundTransparent() const;
-	bool IsShowUpdateRect() const;
+    void SetTransparent(int nOpacity);
+    void SetBackgroundTransparent(bool bTrans);
+    bool IsShowUpdateRect() const;
     void SetShowUpdateRect(bool show);
 
-	bool IsOpacity() const;
-	void SetOpacity(bool bOpacity);
-	BYTE GetTransparency() const;
-	void SetTransparency(BYTE transparency);
-
     static HINSTANCE GetInstance();
-	static CStdString GetInstancePath();
-	HINSTANCE GetResourceDll();    
-	CStdString GetResourcePath();
-	const CStdString& GetResourceZip();
-	static void SetInstance(HINSTANCE hInst);	   
-    void SetResourceDll(HINSTANCE hInst);
-	void SetResourcePath(LPCTSTR pStrPath); 
-    void SetResourceZip(LPCTSTR pStrZip);
-	void UnzipResource();
+    static CStdString GetInstancePath();
+    static CStdString GetCurrentPath();
+    static HINSTANCE GetResourceDll();
+    static const CStdString& GetResourcePath();
+    static const CStdString& GetResourceZip();
+    static void SetInstance(HINSTANCE hInst);
+    static void SetCurrentPath(LPCTSTR pStrPath);
+    static void SetResourceDll(HINSTANCE hInst);
+    static void SetResourcePath(LPCTSTR pStrPath);
+    static void SetResourceZip(LPCTSTR pStrZip);
 
     bool UseParentResource(CPaintManagerUI* pm);
     CPaintManagerUI* GetParentResource() const;
@@ -268,31 +230,22 @@ public:
     int GetFontIndex(LPCTSTR pStrFontName, int nSize, bool bBold, bool bUnderline, bool bItalic);
     bool RemoveFont(HFONT hFont);
     bool RemoveFontAt(int index);
-#ifdef UI_BUILD_FOR_DESIGNER
-	void RemoveAllFonts();
-#else
-    static void RemoveAllFonts();
-#endif
+    void RemoveAllFonts();
     TFontInfo* GetFontInfo(int index);
     TFontInfo* GetFontInfo(HFONT hFont);
 
-	const TImageInfo* GetImage(LPCTSTR bitmap);
-	const TImageInfo* GetImageEx(LPCTSTR bitmap, CControlUI* pControl, LPCTSTR type = NULL, DWORD mask = 0);
-	const TImageInfo* AddImage(LPCTSTR bitmap, HBITMAP hBitmap, int iWidth, int iHeight, bool bAlpha);	
-	const TImageInfo* AddImage(LPCTSTR bitmap, CControlUI* pControl, LPCTSTR type = NULL, DWORD mask = 0);
-	const TImageInfo* AddImage(LPCTSTR bitmap, LPCTSTR type = NULL, DWORD mask = 0);
-	bool RemoveImage(LPCTSTR bitmap);
-	void RemoveAllImages();
+    const TImageInfo* GetImage(LPCTSTR bitmap);
+    const TImageInfo* GetImageEx(LPCTSTR bitmap, LPCTSTR type = NULL, DWORD mask = 0);
+    const TImageInfo* AddImage(LPCTSTR bitmap, LPCTSTR type = NULL, DWORD mask = 0);
+    const TImageInfo* AddImage(LPCTSTR bitmap, HBITMAP hBitmap, int iWidth, int iHeight, bool bAlpha);
+    bool RemoveImage(LPCTSTR bitmap);
+    void RemoveAllImages();
 
     void AddDefaultAttributeList(LPCTSTR pStrControlName, LPCTSTR pStrControlAttrList);
     LPCTSTR GetDefaultAttributeList(LPCTSTR pStrControlName) const;
     bool RemoveDefaultAttributeList(LPCTSTR pStrControlName);
-	const CStdStringPtrMap& GetDefaultAttribultes() const;
-#ifdef UI_BUILD_FOR_DESIGNER
-	void RemoveAllDefaultAttributeList();
-#else
-    static void RemoveAllDefaultAttributeList();
-#endif
+    const CStdStringPtrMap& GetDefaultAttribultes() const;
+    void RemoveAllDefaultAttributeList();
 
     bool AttachDialog(CControlUI* pControl);
     bool InitControls(CControlUI* pControl, CControlUI* pParent = NULL);
@@ -337,39 +290,15 @@ public:
 
     CControlUI* GetRoot() const;
     CControlUI* FindControl(POINT pt) const;
-	CControlUI* FindControl(CControlUI* pParent, POINT pt) const;
+    CControlUI* FindControl(CControlUI* pParent, POINT pt) const;
     CControlUI* FindControl(LPCTSTR pstrName);
-	CControlUI* FindControl(CControlUI* pParent, LPCTSTR pstrName);
-
-#ifdef UI_BUILD_FOR_DESIGNER
-	CControlUI* FindPitchUponControl();
-	int FindPitchUponControlCount();
-	bool FinAllPitchUponControl(CStdPtrArray* pControls);
-#endif
+    CControlUI* FindControl(CControlUI* pParent, LPCTSTR pstrName);
 
     static void MessageLoop();
     static bool TranslateMessage(const LPMSG pMsg);
-	static void ShutDown();
 
     bool MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lRes);
     bool PreMessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lRes);
-
-#ifdef UI_BUILD_FOR_DESIGNER
-	bool IsUsedAsUIDesigner();
-	void SetUsedAsUIDesigner(bool bUIDesigner = false);
-
-	void RemoveAllPitchUpon(bool bOnlyRemovePitchUponTwice = false);
-
-	void MoveAllPitchUponControls(LONG xOffset, LONG yOffset);
-	
-	bool IsAssertWhenCustomDefinedNull() const;
-	void SetAssertWhenCustomDefinedNull(bool bAsert = true);
-#endif
-
-#ifdef UI_BUILD_FOR_SKIA
-	SkWinWindow* GetSkiaContext() const;
-	void SetSkiaContext(SkWinWindow* ctx);
-#endif
 
 private:
     static CControlUI* CALLBACK __FindControlFromNameHash(CControlUI* pThis, LPVOID pData);
@@ -378,28 +307,15 @@ private:
     static CControlUI* CALLBACK __FindControlFromTab(CControlUI* pThis, LPVOID pData);
     static CControlUI* CALLBACK __FindControlFromShortcut(CControlUI* pThis, LPVOID pData);
     static CControlUI* CALLBACK __FindControlFromUpdate(CControlUI* pThis, LPVOID pData);
-	static CControlUI* CALLBACK __FindControlFromName(CControlUI* pThis, LPVOID pData);
-
-#ifdef UI_BUILD_FOR_DESIGNER
-	// 查找被选中的控件
-	static CControlUI* CALLBACK __FindSinglePitchUponControl(CControlUI* pThis, LPVOID pData);
-
-	// 查找被选中控件的数目
-	static CControlUI* CALLBACK __FindCountOfPitchUponControl(CControlUI* pThis, LPVOID pData);
-
-	// 查找被选中控件的列表
-	static CControlUI* CALLBACK __FindAllPitchUponControl(CControlUI* pThis, LPVOID pData);
-#endif
+    static CControlUI* CALLBACK __FindControlFromName(CControlUI* pThis, LPVOID pData);
 
 private:
     HWND m_hWndPaint;
     HDC m_hDcPaint;
-#ifdef UI_BUILD_FOR_WINGDI
     HDC m_hDcOffscreen;
-	HDC m_hDcBackground;
-	HBITMAP m_hbmpOffscreen;
-	HBITMAP m_hbmpBackground;
-#endif
+    HDC m_hDcBackground;
+    HBITMAP m_hbmpOffscreen;
+    HBITMAP m_hbmpBackground;
     HWND m_hwndTooltip;
     TOOLINFO m_ToolTip;
     bool m_bShowUpdateRect;
@@ -425,13 +341,6 @@ private:
     bool m_bAlphaBackground;
     bool m_bMouseTracking;
     bool m_bMouseCapture;
-#ifdef UI_BUILD_FOR_DESIGNER
-	bool m_bUsedAsUIDesigner;
-	bool m_bAssertWhenCustomDefinedNull;
-#endif
-	// 是否不透明
-	bool m_bOpacity;
-	BYTE m_transparency;
     //
     CStdPtrArray m_aNotifiers;
     CStdPtrArray m_aTimers;
@@ -441,19 +350,9 @@ private:
     CStdPtrArray m_aDelayedCleanup;
     CStdPtrArray m_aAsyncNotify;
     CStdStringPtrMap m_mNameHash;
-	CStdStringPtrMap m_mOptionGroup;
-
-	CStdString	m_pStrResourcePath;
-    HINSTANCE	m_hResourceInstance;
-    CStdString	m_pStrResourceZip;
+    CStdStringPtrMap m_mOptionGroup;
     //
     CPaintManagerUI* m_pParentResourcePM;
-
-#ifdef UI_BUILD_FOR_SKIA
-	SkWinWindow*	fWinWindow;
-#endif
-
-#ifdef UI_BUILD_FOR_DESIGNER
     DWORD m_dwDefalutDisabledColor;
     DWORD m_dwDefalutFontColor;
     DWORD m_dwDefalutLinkFontColor;
@@ -464,20 +363,11 @@ private:
 
     CStdStringPtrMap m_mImageHash;
     CStdStringPtrMap m_DefaultAttrHash;
-#else
-    static DWORD m_dwDefalutDisabledColor;
-    static DWORD m_dwDefalutFontColor;
-    static DWORD m_dwDefalutLinkFontColor;
-    static DWORD m_dwDefalutLinkHoverFontColor;
-    static DWORD m_dwDefalutSelectedBkColor;
-    static TFontInfo m_DefaultFontInfo;
-    static CStdPtrArray m_aCustomFonts;
-
-    CStdStringPtrMap m_mImageHash;
-    static CStdStringPtrMap m_DefaultAttrHash;
-#endif
     //
-    static HINSTANCE	m_hInstance;	
+    static HINSTANCE m_hInstance;
+    static HINSTANCE m_hResourceInstance;
+    static CStdString m_pStrResourcePath;
+    static CStdString m_pStrResourceZip;
     static CStdPtrArray m_aPreMessages;
 };
 

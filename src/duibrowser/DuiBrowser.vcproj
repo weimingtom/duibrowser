@@ -61,7 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="DirectUI.lib"
+				AdditionalDependencies="DuiLib_ud.lib"
 				OutputFile="$(OutDir)\obj\$(ProjectName)\$(ProjectName).exe"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="$(SolutionDir)Bin\$(ConfigurationName)\$(PlatformName)"
@@ -139,7 +139,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="DirectUI.lib"
+				AdditionalDependencies="DuiLib_u.lib"
 				OutputFile="$(OutDir)\obj\$(ProjectName)\$(ProjectName).exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="$(SolutionDir)Bin\$(ConfigurationName)\$(PlatformName)"
@@ -201,6 +201,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\string_convertor.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\UIWebkit.cpp"
 				>
 			</File>
@@ -231,6 +235,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\string_convertor.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\UIWebkit.hpp"
 				>
 			</File>
@@ -257,14 +265,6 @@
 			Name="Duilib"
 			>
 			<File
-				RelativePath=".\Duilib\PostConfig.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Duilib\PreConfig.h"
-				>
-			</File>
-			<File
 				RelativePath=".\Duilib\UIActiveX.h"
 				>
 			</File>
@@ -289,27 +289,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Duilib\UICrack.h"
-				>
-			</File>
-			<File
 				RelativePath=".\Duilib\UIDelegate.h"
 				>
 			</File>
 			<File
 				RelativePath=".\Duilib\UIDlgBuilder.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Duilib\UIEdit.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Duilib\UIGdi.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Duilib\UIGDIWindow_Win.h"
 				>
 			</File>
 			<File
@@ -334,26 +318,6 @@
 			</File>
 			<File
 				RelativePath=".\Duilib\UIRichEdit.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Duilib\UISkWindow_Win.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Duilib\UIUtil.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Duilib\unzip.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Duilib\wcestddef.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Duilib\zip.h"
 				>
 			</File>
 		</Filter>

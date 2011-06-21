@@ -1,45 +1,15 @@
-//
-//
-// DirectUI - UI Library
-//
-// Written by Bjarke Viksoe (bjarke@viksoe.dk)
-// Copyright (c) 2006-2007 Bjarke Viksoe.
-//
-// This code may be used in compiled form in any way you desire. These
-// source files may be redistributed by any means PROVIDING it is 
-// not sold for profit without the authors written consent, and 
-// providing that this notice and the authors name is included. 
-//
-// This file is provided "as is" with no expressed or implied warranty.
-// The author accepts no liability if it causes any damage to you or your
-// computer whatsoever. It's free, so don't hassle me about it.
-//
-////
-// Acknowledgements :
-// Bjarke Viksoe (http://www.viksoe.dk/code/windowless1.htm)
-//
-//
-//
-// Beware of bugs.
-//
-//
-//
-////////////////////////////////////////////////////////
 #ifndef __UIMARKUP_H__
 #define __UIMARKUP_H__
 
-#ifdef _MSC_VER
 #pragma once
-#endif
 
 namespace DuiLib {
 
 enum
 {
-	XMLFILE_ENCODING_AUTODETECT = 0,
-    XMLFILE_ENCODING_UTF8 = 1,
-    XMLFILE_ENCODING_UNICODE = 2,
-    XMLFILE_ENCODING_ASNI = 3,
+    XMLFILE_ENCODING_UTF8 = 0,
+    XMLFILE_ENCODING_UNICODE = 1,
+    XMLFILE_ENCODING_ASNI = 2,
 };
 
 class CMarkup;
@@ -54,8 +24,8 @@ public:
     ~CMarkup();
 
     bool Load(LPCTSTR pstrXML);
-    bool LoadFromMem(BYTE* pByte, DWORD dwSize, int encoding = XMLFILE_ENCODING_AUTODETECT);
-    bool LoadFromFile(LPCTSTR pstrFilename, CPaintManagerUI* pManager, int encoding = XMLFILE_ENCODING_AUTODETECT);
+    bool LoadFromMem(BYTE* pByte, DWORD dwSize, int encoding = XMLFILE_ENCODING_UTF8);
+    bool LoadFromFile(LPCTSTR pstrFilename, int encoding = XMLFILE_ENCODING_UTF8);
     void Release();
     bool IsValid() const;
 

@@ -1,36 +1,7 @@
-//
-//
-// DirectUI - UI Library
-//
-// Written by Bjarke Viksoe (bjarke@viksoe.dk)
-// Copyright (c) 2006-2007 Bjarke Viksoe.
-//
-// This code may be used in compiled form in any way you desire. These
-// source files may be redistributed by any means PROVIDING it is 
-// not sold for profit without the authors written consent, and 
-// providing that this notice and the authors name is included. 
-//
-// This file is provided "as is" with no expressed or implied warranty.
-// The author accepts no liability if it causes any damage to you or your
-// computer whatsoever. It's free, so don't hassle me about it.
-//
-////
-// Acknowledgements :
-// Bjarke Viksoe (http://www.viksoe.dk/code/windowless1.htm)
-//
-//
-//
-// Beware of bugs.
-//
-//
-//
-////////////////////////////////////////////////////////
 #ifndef __UICOMMONCONTROLS_H__
 #define __UICOMMONCONTROLS_H__
 
-#ifdef _MSC_VER
 #pragma once
-#endif
 
 namespace DuiLib {
 /////////////////////////////////////////////////////////////////////////////////////
@@ -44,32 +15,16 @@ public:
     LPCTSTR GetClass() const;
     LPVOID GetInterface(LPCTSTR pstrName);
 
-	// 字体的样式
-	// #define DT_TOP                      0x00000000
-	// #define DT_LEFT                     0x00000000
-	// #define DT_CENTER                   0x00000001
-	// #define DT_RIGHT                    0x00000002
-	// #define DT_VCENTER                  0x00000004
-	// #define DT_BOTTOM                   0x00000008
-	// #define DT_WORDBREAK                0x00000010
-	// #define DT_SINGLELINE               0x00000020
     void SetTextStyle(UINT uStyle);
 	UINT GetTextStyle() const;
-	// 字体的颜色
     void SetTextColor(DWORD dwTextColor);
 	DWORD GetTextColor() const;
     void SetDisabledTextColor(DWORD dwTextColor);
 	DWORD GetDisabledTextColor() const;
-
-	// 字体大小
     void SetFont(int index);
 	int GetFont() const;
-	// 文字显示的左右边距
     RECT GetTextPadding() const;
     void SetTextPadding(RECT rc);
-
-	// 是否按照类html格式类型显示，如果按照html格式显示，只能采用默认的字体，默认字体可以通过来设定
-	//  <Font name="微软雅黑" size="18" bold="false" default = "true"/>
     bool IsShowHtml();
     void SetShowHtml(bool bShowHtml = true);
 
@@ -77,7 +32,7 @@ public:
     void DoEvent(TEventUI& event);
     void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 
-    virtual void PaintText(void* ctx);
+    void PaintText(HDC hDC);
 
 protected:
     DWORD m_dwTextColor;
@@ -114,8 +69,6 @@ public:
     void SetFocusedImage(LPCTSTR pStrImage);
     LPCTSTR GetDisabledImage();
     void SetDisabledImage(LPCTSTR pStrImage);
-	LPCTSTR GetForeImage();
-	void SetForeImage(LPCTSTR pStrImage);
 
     void SetHotTextColor(DWORD dwColor);
 	DWORD GetHotTextColor() const;
@@ -123,16 +76,11 @@ public:
 	DWORD GetPushedTextColor() const;
     void SetFocusedTextColor(DWORD dwColor);
 	DWORD GetFocusedTextColor() const;
-
     SIZE EstimateSize(SIZE szAvailable);
     void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 
-	virtual void PaintText(void* ctx);
-    virtual void PaintStatusImage(void* ctx);
-	virtual void PaintBorder(void* ctx);
-
-protected:
-	void PaintForeImage(void* ctx);
+	void PaintText(HDC hDC);
+    void PaintStatusImage(HDC hDC);
 
 protected:
     UINT m_uButtonState;
@@ -146,7 +94,6 @@ protected:
     CStdString m_sPushedImage;
     CStdString m_sFocusedImage;
     CStdString m_sDisabledImage;
-	CStdString m_sForeImage;
 };
 
 
@@ -169,19 +116,23 @@ public:
 
     LPCTSTR GetSelectedImage();
     void SetSelectedImage(LPCTSTR pStrImage);
+	
 	void SetSelectedTextColor(DWORD dwTextColor);
 	DWORD GetSelectedTextColor();
+		
+	LPCTSTR GetForeImage();
+	void SetForeImage(LPCTSTR pStrImage);
 
     LPCTSTR GetGroup() const;
     void SetGroup(LPCTSTR pStrGroupName = NULL);
     bool IsSelected() const;
-    void Selected(bool bSelected);	
+    void Selected(bool bSelected);
 
     SIZE EstimateSize(SIZE szAvailable);
     void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 
-    void PaintStatusImage(void* ctx);
-	void PaintText(void* ctx);
+    void PaintStatusImage(HDC hDC);
+	void PaintText(HDC hDC);
 
 protected:
     bool m_bSelected;
@@ -190,6 +141,7 @@ protected:
 	DWORD m_dwSelectedTextColor;
 
     CStdString m_sSelectedImage;
+	CStdString m_sForeImage;
 };
 
 
@@ -211,7 +163,7 @@ public:
     void DoEvent(TEventUI& event);
     SIZE EstimateSize(SIZE szAvailable);
 
-    void PaintText(void* ctx);
+    void PaintText(HDC hDC);
 
 protected:
     enum { MAX_LINK = 8 };
@@ -245,7 +197,7 @@ public:
     void SetFgImage(LPCTSTR pStrImage);
 
     void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
-    void PaintStatusImage(void* ctx);
+    void PaintStatusImage(HDC hDC);
 
 protected:
     bool m_bHorizontal;
@@ -272,7 +224,7 @@ public:
 
     void SetEnabled(bool bEnable = true);
 
-    int GetChangeStep() const;
+    int GetChangeStep();
     void SetChangeStep(int step);
     void SetThumbSize(SIZE szXY);
     RECT GetThumbRect() const;
@@ -285,7 +237,7 @@ public:
 
     void DoEvent(TEventUI& event);
     void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
-    void PaintStatusImage(void* ctx);
+    void PaintStatusImage(HDC hDC);
 
 protected:
     SIZE m_szThumb;
@@ -301,94 +253,29 @@ protected:
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
-class IEditUI
-{
-public:
-	virtual LPCTSTR GetEditClass() const = 0;
-	virtual CRect GetEditPos() = 0;
-	virtual RECT GetEditTextPadding() const = 0;
-	virtual DWORD GetEditTextColor() = 0;
-	virtual bool IsPasswordMode() const = 0;
-	virtual TCHAR GetPasswordChar() const = 0;
-	virtual CPaintManagerUI* GetManager() const = 0;
-	virtual UINT GetMaxChar() = 0;
-	virtual CStdString GetText() const = 0;
-	virtual void SetText(LPCTSTR pstrText) = 0;
-	virtual bool IsEnabled() const = 0;
-	virtual bool IsReadOnly() const = 0;
-	virtual CStdString GetName() const = 0;
-	virtual void SetEidtWndNull() = 0;
-	virtual bool IsMultiLine() const = 0;
-#if(WINVER >= 0x0400)
-	virtual bool IsDigitalNumber() const = 0;
-#endif
-	virtual DWORD GetBkColor() const = 0;
-	virtual CControlUI* const GetHostedControl() = 0;
-};
 
-class CEditUI;
+class CEditWnd;
 
-#if defined(UI_BUILD_FOR_WINGDI)
-class CEditWnd : public CWindowWnd
-#elif defined(UI_BUILD_FOR_SKIA)
-class CEditWnd : public CSkUIWindow
-#endif
-{
-#if defined(UI_BUILD_FOR_SKIA)
-	typedef CSkUIWindow INHERITED;
-#endif
-public:
-    CEditWnd();
-
-    void Init(IEditUI* pOwner);
-	RECT CalPos();
-	void SetEditWndText(LPCTSTR lpsText,bool bSelect=true);
-	void MoveEditWnd(RECT rc);
-
-    LPCTSTR GetWindowClassName() const;
-    LPCTSTR GetSuperClassName() const;
-    void OnFinalMessage(HWND hWnd);
-
-#if defined(UI_BUILD_FOR_WINGDI)
-    LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
-#elif defined(UI_BUILD_FOR_SKIA)
-	LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-	LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-#endif
-    LRESULT OnKillFocus(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-    LRESULT OnEditChanged(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-
-	void BreakLinkage();
-
-	DWORD GetBkColor();
-	DWORD GetEditTextColor();
-
-protected:
-    IEditUI* m_pOwner;
-	HBRUSH m_hBkBrush;
-};
-
-class UILIB_API CEditUI : public IEditUI, public CLabelUI
+class UILIB_API CEditUI : public CLabelUI
 {
     friend CEditWnd;
 public:
     CEditUI();
-	~CEditUI();
 
     LPCTSTR GetClass() const;
     LPVOID GetInterface(LPCTSTR pstrName);
     UINT GetControlFlags() const;
 
     void SetEnabled(bool bEnable = true);
+    void SetText(LPCTSTR pstrText);
     void SetMaxChar(UINT uMax);
+    UINT GetMaxChar();
     void SetReadOnly(bool bReadOnly);
+    bool IsReadOnly() const;
     void SetPasswordMode(bool bPasswordMode);
+    bool IsPasswordMode() const;
     void SetPasswordChar(TCHAR cPasswordChar);
-	void SetMultiLine(bool bMultiLine);
-#if(WINVER >= 0x0400)
-	bool IsDigitalNumber() const;
-	void SetDigitalNumber(bool bDigitalNumber);
-#endif
+    TCHAR GetPasswordChar() const;
 
     LPCTSTR GetNormalImage();
     void SetNormalImage(LPCTSTR pStrImage);
@@ -398,6 +285,8 @@ public:
     void SetFocusedImage(LPCTSTR pStrImage);
     LPCTSTR GetDisabledImage();
     void SetDisabledImage(LPCTSTR pStrImage);
+    void SetNativeEditBkColor(DWORD dwBkColor);
+    DWORD GetNativeEditBkColor() const;
 
     void SetPos(RECT rc);
     void SetVisible(bool bVisible = true);
@@ -406,29 +295,8 @@ public:
     void DoEvent(TEventUI& event);
     void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 
-    void PaintStatusImage(void* ctx);
-    void PaintText(void* ctx);
-
-	//Parent IEditUI
-	virtual CControlUI* const GetHostedControl();
-	virtual LPCTSTR GetEditClass() const;
-	virtual CRect GetEditPos();
-	virtual RECT GetEditTextPadding() const;
-	virtual DWORD GetEditTextColor();
-	virtual bool IsPasswordMode() const;
-	virtual TCHAR GetPasswordChar() const;
-	virtual CPaintManagerUI* GetManager() const;
-	virtual UINT GetMaxChar();
-	virtual CStdString GetText() const;
-	virtual void SetText(LPCTSTR pstrText);
-	virtual bool IsMultiLine() const;
-	virtual bool IsEnabled() const;
-	virtual bool IsReadOnly() const;
-	virtual CStdString GetName() const;
-	virtual void SetEidtWndNull();
-	virtual DWORD GetBkColor() const;
-
-	HWND GetNativeHWND();
+    void PaintStatusImage(HDC hDC);
+    void PaintText(HDC hDC);
 
 protected:
     CEditWnd* m_pWindow;
@@ -436,16 +304,13 @@ protected:
     UINT m_uMaxChar;
     bool m_bReadOnly;
     bool m_bPasswordMode;
-	bool m_bMultiLine;
-#if(WINVER >= 0x0400)
-	bool m_bDigitalNumber;
-#endif
     TCHAR m_cPasswordChar;
     UINT m_uButtonState;
     CStdString m_sNormalImage;
     CStdString m_sHotImage;
     CStdString m_sFocusedImage;
     CStdString m_sDisabledImage;
+    DWORD m_dwEditbkColor;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -454,7 +319,7 @@ protected:
 class UILIB_API CScrollBarUI : public CControlUI
 {
 public:
-    CScrollBarUI(bool bHorizontal = false);
+    CScrollBarUI();
 
     LPCTSTR GetClass() const;
     LPVOID GetInterface(LPCTSTR pstrName);
@@ -463,7 +328,7 @@ public:
     void SetOwner(CContainerUI* pOwner);
 
     void SetEnabled(bool bEnable = true);
-	void SetFocus();
+    void SetFocus();
 
     bool IsHorizontal();
     void SetHorizontal(bool bHorizontal = true);
@@ -527,13 +392,13 @@ public:
     void DoEvent(TEventUI& event);
     void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 
-    void DoPaint(void* ctx, const RECT& rcPaint);
+    void DoPaint(HDC hDC, const RECT& rcPaint);
 
-    void PaintBk(void* ctx);
-    void PaintButton1(void* ctx);
-    void PaintButton2(void* ctx);
-    void PaintThumb(void* ctx);
-    void PaintRail(void* ctx);
+    void PaintBk(HDC hDC);
+    void PaintButton1(HDC hDC);
+    void PaintButton2(HDC hDC);
+    void PaintThumb(HDC hDC);
+    void PaintRail(HDC hDC);
 
 protected:
 
@@ -557,7 +422,7 @@ protected:
     CStdString m_sBkPushedImage;
     CStdString m_sBkDisabledImage;
 
-	bool m_bShowButton1;
+    bool m_bShowButton1;
     RECT m_rcButton1;
     UINT m_uButton1State;
     CStdString m_sButton1NormalImage;
@@ -565,7 +430,7 @@ protected:
     CStdString m_sButton1PushedImage;
     CStdString m_sButton1DisabledImage;
 
-	bool m_bShowButton2;
+    bool m_bShowButton2;
     RECT m_rcButton2;
     UINT m_uButton2State;
     CStdString m_sButton2NormalImage;

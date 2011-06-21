@@ -1,38 +1,7 @@
-//
-//
-// DirectUI - UI Library
-//
-// Written by Bjarke Viksoe (bjarke@viksoe.dk)
-// Copyright (c) 2006-2007 Bjarke Viksoe.
-//
-// This code may be used in compiled form in any way you desire. These
-// source files may be redistributed by any means PROVIDING it is 
-// not sold for profit without the authors written consent, and 
-// providing that this notice and the authors name is included. 
-//
-// This file is provided "as is" with no expressed or implied warranty.
-// The author accepts no liability if it causes any damage to you or your
-// computer whatsoever. It's free, so don't hassle me about it.
-//
-////
-// Acknowledgements :
-// Bjarke Viksoe (http://www.viksoe.dk/code/windowless1.htm)
-//
-//
-//
-// Beware of bugs.
-//
-//
-//
-////////////////////////////////////////////////////////
 #ifndef __UICONTAINER_H__
 #define __UICONTAINER_H__
 
-#ifdef _MSC_VER
 #pragma once
-#endif
-
-// todo：布局应该有Dialog,Vertical,Horizontal,Stream,Tile,Grid,Tab,Proxy
 
 namespace DuiLib {
 /////////////////////////////////////////////////////////////////////////////////////
@@ -96,7 +65,7 @@ public:
     virtual int FindSelectable(int iIndex, bool bForward = true) const;
 
     void SetPos(RECT rc);
-    void DoPaint(void* ctx, const RECT& rcPaint);
+    void DoPaint(HDC hDC, const RECT& rcPaint);
 
     void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 
@@ -122,11 +91,6 @@ public:
     virtual CScrollBarUI* GetVerticalScrollBar() const;
     virtual CScrollBarUI* GetHorizontalScrollBar() const;
 
-#ifdef UI_BUILD_FOR_DESIGNER
-	virtual void SetPitchUpon(bool bPitchUpon = true);
-	virtual void SetPitchUponContinousTwice(bool bPitchUponContinousTwice = true);
-	virtual void Move(LONG xOffset, LONG yOffset);
-#endif
 protected:
     virtual void SetFloatPos(int iIndex);
     virtual void ProcessScrollBar(RECT rc, int cxRequired, int cyRequired);
@@ -153,7 +117,7 @@ public:
     CVerticalLayoutUI();
 
     LPCTSTR GetClass() const;
-	LPVOID GetInterface(LPCTSTR pstrName);	
+    LPVOID GetInterface(LPCTSTR pstrName);
     UINT GetControlFlags() const;
 
     void SetSepHeight(int iHeight);
@@ -197,7 +161,7 @@ public:
     void DoEvent(TEventUI& event);
 
     void SetPos(RECT rc);
-    void DoPostPaint(void* ctx, const RECT& rcPaint);
+    void DoPostPaint(HDC hDC, const RECT& rcPaint);
 
     RECT GetThumbRect(bool bUseNew = false) const;
 
@@ -248,7 +212,8 @@ public:
 
     void SetPos(RECT rc);
     SIZE EstimateSize(SIZE szAvailable);
-    RECT RecalcArea();
+    RECT RecalcArea();   
+
 protected:  
     typedef struct 
     {

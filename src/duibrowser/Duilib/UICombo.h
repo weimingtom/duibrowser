@@ -1,81 +1,36 @@
-//
-//
-// DirectUI - UI Library
-//
-// Written by Bjarke Viksoe (bjarke@viksoe.dk)
-// Copyright (c) 2006-2007 Bjarke Viksoe.
-//
-// This code may be used in compiled form in any way you desire. These
-// source files may be redistributed by any means PROVIDING it is 
-// not sold for profit without the authors written consent, and 
-// providing that this notice and the authors name is included. 
-//
-// This file is provided "as is" with no expressed or implied warranty.
-// The author accepts no liability if it causes any damage to you or your
-// computer whatsoever. It's free, so don't hassle me about it.
-//
-////
-// Acknowledgements :
-// Bjarke Viksoe (http://www.viksoe.dk/code/windowless1.htm)
-//
-//
-//
-// Beware of bugs.
-//
-//
-//
-////////////////////////////////////////////////////////
 #ifndef __UICOMBO_H__
 #define __UICOMBO_H__
 
-#ifdef _MSC_VER
 #pragma once
-#endif
-#include "UICommonControls.h"
 
 namespace DuiLib {
 /////////////////////////////////////////////////////////////////////////////////////
 //
 
 class CComboWnd;
-class CEditWnd;
 
-class UILIB_API CComboUI : public CContainerUI, public IEditUI, public IListOwnerUI
+class UILIB_API CComboUI : public CContainerUI, public IListOwnerUI
 {
     friend CComboWnd;
 public:
-	typedef enum enumComboDropType
-	{
-		COMBODROP_SIMPLE = 1,
-		COMBODROP_DOWN   = 2,
-		COMBODROP_LIST   = 3
-	};
-
-	enum eDropBoxAlign
-	{
-		DROPBOXALIGN_LEFT	= 0x00000001,
-		DROPBOXALIGN_RIGHT	= 0x00000002,
-		DROPBOXALIGN_TOP	= 0x00000004,
-		DROPBOXALIGN_BOTTOM	= 0x00000008,
-	};
-
     CComboUI();
-
-	~CComboUI();
 
     LPCTSTR GetClass() const;
     LPVOID GetInterface(LPCTSTR pstrName);
+
     void DoInit();
     UINT GetControlFlags() const;
 
+    CStdString GetText() const;
     void SetEnabled(bool bEnable = true);
 
     CStdString GetDropBoxAttributeList();
     void SetDropBoxAttributeList(LPCTSTR pstrList);
     SIZE GetDropBoxSize() const;
     void SetDropBoxSize(SIZE szDropBox);
-	UINT GetDropType() const;
-	void SetDropType(UINT uDropType);
+
+    int GetCurSel() const;  
+    bool SelectItem(int iIndex);
 
     bool SetItemIndex(CControlUI* pControl, int iIndex);
     bool Add(CControlUI* pControl);
@@ -84,11 +39,9 @@ public:
     bool RemoveAt(int iIndex);
     void RemoveAll();
 
-    bool ActivateDropWnd();
+    bool Activate();
 
-	UINT GetDropBoxAlign() const;
-	void SetDropBoxAlign(UINT align);
-	RECT GetTextPadding() const;
+    RECT GetTextPadding() const;
     void SetTextPadding(RECT rc);
     LPCTSTR GetNormalImage() const;
     void SetNormalImage(LPCTSTR pStrImage);
@@ -100,9 +53,8 @@ public:
     void SetFocusedImage(LPCTSTR pStrImage);
     LPCTSTR GetDisabledImage() const;
     void SetDisabledImage(LPCTSTR pStrImage);
-	LPCTSTR GetDropBtnImage() const;
-	void SetDropBtnImage(LPCTSTR pStrImage);
 
+    TListInfoUI* GetListInfo();
     void SetItemFont(int index);
     void SetItemTextStyle(UINT uStyle);
 	RECT GetItemTextPadding() const;
@@ -137,55 +89,21 @@ public:
     void SetItemShowHtml(bool bShowHtml = true);
 
     SIZE EstimateSize(SIZE szAvailable);
-
     void SetPos(RECT rc);
     void DoEvent(TEventUI& event);
     void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
     
-    void DoPaint(void* ctx, const RECT& rcPaint);
-    void PaintText(void* ctx);
-    void PaintStatusImage(void* ctx);
-	void PaintBorder(void* ctx);
-	void PaintDropdownButton(void* ctx);
+    void DoPaint(HDC hDC, const RECT& rcPaint);
+    void PaintText(HDC hDC);
+    void PaintStatusImage(HDC hDC);
 
-	//Parent IEditUI
-	virtual CControlUI* const GetHostedControl();
-	virtual LPCTSTR GetEditClass() const;
-	virtual CRect GetEditPos();
-	virtual RECT GetEditTextPadding() const;
-	virtual DWORD GetEditTextColor();
-	virtual bool IsPasswordMode() const;
-	virtual TCHAR GetPasswordChar() const;
-	virtual CPaintManagerUI* GetManager() const;
-	virtual UINT GetMaxChar();
-	virtual CStdString GetText() const;
-	virtual void SetText(LPCTSTR pstrText);
-	virtual bool IsEnabled() const;
-	virtual bool IsReadOnly() const;
-	virtual CStdString GetName() const;
-	virtual void SetEidtWndNull();
-	virtual bool IsMultiLine() const;
-#if(WINVER >= 0x0400)
-	virtual bool IsDigitalNumber() const;
-#endif
-	virtual DWORD GetBkColor() const;
-
-	//Parent IListOwnerUI
-	virtual TListInfoUI* GetListInfo();
-	virtual int GetCurSel() const;  
-	virtual bool SelectItem(int iIndex, bool bSendNofitied = true);
-	virtual bool Activate();
 protected:
     CComboWnd* m_pWindow;
-	CEditWnd* m_pEditWnd;
 
-	UINT m_uDropBoxAlign;
-	UINT m_uDropType;
     int m_iCurSel;
     RECT m_rcTextPadding;
     CStdString m_sDropBoxAttributes;
     SIZE m_szDropBox;
-	RECT m_rcDropBtn;
     UINT m_uButtonState;
 
     CStdString m_sNormalImage;
@@ -193,7 +111,6 @@ protected:
     CStdString m_sPushedImage;
     CStdString m_sFocusedImage;
     CStdString m_sDisabledImage;
-	CStdString m_sDropBtnImage;
 
     TListInfoUI m_ListInfo;
 };
