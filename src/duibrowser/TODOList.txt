@@ -1,3 +1,2 @@
-1. 添加URL encode支持包含中文空格的url；
-2. 查看字体设置相关代码解决中文显示乱码问题；
-3. 开启showdirty后好像不对。
+1. 查看字体设置相关代码解决中文显示乱码问题；
+2. 浏览EAWebkit中Resource Loader相关代码；
