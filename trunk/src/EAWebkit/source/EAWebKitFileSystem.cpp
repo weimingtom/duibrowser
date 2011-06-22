@@ -36,6 +36,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <EAWebKit/internal/EAWebKitAssert.h>
 #include <string.h>
 
+#include "PlatformString.h"
+using namespace OWBAL;
+
 #if EAWEBKIT_DEFAULT_FILE_SYSTEM_ENABLED
     #include <stdio.h>
 
@@ -151,7 +154,21 @@ bool FileSystemDefault::OpenFile(FileObject fileObject, const char* path, int op
 	//b Open in binary (untranslated) mode; translations involving carriage-return and linefeed characters are suppressed. 
 
 #ifdef _MSC_VER
-	pFileInfo->mpFile = fopen(path, openFlags & kWrite ? "wb" : "rb");
+	String fileName = String::fromUTF8(path);
+
+	ULONG cchWideChar = static_cast<ULONG>(fileName.length());
+	ULONG cbMultiByte = WideCharToMultiByte(CP_ACP, 0, fileName.charactersWithNullTermination(), cchWideChar, NULL, 0, NULL, NULL);
+
+	char* ansiFileName = new char[cbMultiByte+1];
+	EAW_ASSERT(!ansiFileName);
+	
+	ULONG cchSize = WideCharToMultiByte(CP_ACP, 0, fileName.charactersWithNullTermination(), cchWideChar, ansiFileName, cbMultiByte, NULL, NULL);
+	ansiFileName[cbMultiByte] = '\0';
+
+	pFileInfo->mpFile = fopen(ansiFileName, openFlags & kWrite ? "wb" : "rb");
+
+	delete[] ansiFileName;
+	ansiFileName = NULL;
 #else
 	pFileInfo->mpFile = fopen(path, openFlags & kWrite ? "w" : "r");
 #endif
