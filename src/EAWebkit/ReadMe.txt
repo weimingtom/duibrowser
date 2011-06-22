@@ -1,4 +1,33 @@
+2011年6月22日 改动
+
+1. Source\EAWebKitFileSystem.cpp
+Line 39: 
+#include "PlatformString.h"
+using namespace OWBAL;
+
+Line 156:
+由：
+pFileInfo->mpFile = fopen(path, openFlags & kWrite ? "wb" : "rb");
+修改为：
+文件的路径是utf8编码的，并且经过url encode的，所以这里需要把ut8转成ansi
+	String fileName = String::fromUTF8(path);
+
+	ULONG cchWideChar = static_cast<ULONG>(fileName.length());
+	ULONG cbMultiByte = WideCharToMultiByte(CP_ACP, 0, fileName.charactersWithNullTermination(), cchWideChar, NULL, 0, NULL, NULL);
+
+	char* ansiFileName = new char[cbMultiByte+1];
+	EAW_ASSERT(!ansiFileName);
+	
+	ULONG cchSize = WideCharToMultiByte(CP_ACP, 0, fileName.charactersWithNullTermination(), cchWideChar, ansiFileName, cbMultiByte, NULL, NULL);
+	ansiFileName[cbMultiByte] = '\0';
+
+	pFileInfo->mpFile = fopen(ansiFileName, openFlags & kWrite ? "wb" : "rb");
+
+	delete[] ansiFileName;
+	ansiFileName = NULL;
+
 ***********************************************************************
+************************** EAWebkit 1.21.00 ***************************
 ***********************************************************************
 2011年6月17日：
 
@@ -64,6 +93,7 @@
 
 
 ***********************************************************************
+************************** EAWebkit 1.41.01 ***************************
 ***********************************************************************
 2011年6月16日：
 
