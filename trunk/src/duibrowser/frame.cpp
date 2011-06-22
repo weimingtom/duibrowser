@@ -71,6 +71,10 @@ using namespace EA::TextWrapper;
 
 const int kViewTickTimerId = 1001;
 const int kViewTickTimerElapse = 75;
+
+const int kStartupTimerId = 1002;
+const int kStartupTimerElapse = 500;
+
 const int kDefaultFontSize = 18;
 const int kMiniFontSize = 12;
 const int kPageTimeoutSeconds = 30;
@@ -362,6 +366,25 @@ void MainFrame::OnTimer(TNotifyUI& msg)
 {
 	switch (msg.wParam)
 	{
+	case kStartupTimerId:
+		{
+			paint_manager_.KillTimer(msg.pSender, kStartupTimerId);
+
+			CControlUI* app_title = paint_manager_.FindControl(kTitleControlName);
+			CWebkitUI* webkit_control = static_cast<CWebkitUI*>(paint_manager_.FindControl(kWebkitControlName));
+			if ((webkit_control != NULL) && (app_title != NULL))
+			{
+				InitEAWebkit();
+
+				paint_manager_.SetTimer(app_title, kViewTickTimerId, kViewTickTimerElapse);
+				if (view_ != NULL)
+				{
+					webkit_control->SetEARasterAndView(raster_, view_);
+					view_->SetURI(kHomeUrl);
+				}
+			}
+		}
+		break;
 	case kViewTickTimerId:
 		{
 			if (view_ != NULL)
@@ -425,6 +448,9 @@ void MainFrame::OnExit(TNotifyUI& msg)
 }
 
 void MainFrame::Init()
+{}
+
+void MainFrame::InitEAWebkit()
 {
 	typedef EA::WebKit::IEAWebkit* (* PF_CreateEAWebkitInstance)(void);
 	PF_CreateEAWebkitInstance create_webkit_instance = NULL;
@@ -521,12 +547,9 @@ void MainFrame::OnPrepare(TNotifyUI& msg)
 	}
 
 	CControlUI* app_title = paint_manager_.FindControl(kTitleControlName);
-	CWebkitUI* webkit_control = static_cast<CWebkitUI*>(paint_manager_.FindControl(kWebkitControlName));
-	if ((webkit_control != NULL) && (app_title != NULL))
+	if (app_title != NULL)
 	{
-		paint_manager_.SetTimer(app_title, kViewTickTimerId, kViewTickTimerElapse);
-		webkit_control->SetEARasterAndView(raster_, view_);
-		view_->SetURI(kHomeUrl);
+		paint_manager_.SetTimer(app_title, kStartupTimerId, kStartupTimerElapse);
 	}
 }
 
