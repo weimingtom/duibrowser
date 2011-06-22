@@ -110,6 +110,8 @@ protected:
 	std::string UrlEncode(const std::string& szToEncode);
 	std::string UrlDecode(const std::string& szToDecode);
 
+	void InitEAWebkit();
+
 private:
 	HINSTANCE		webkit_dll_;	
 	IEAWebkit*		webkit_;
