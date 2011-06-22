@@ -53,8 +53,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,0,1,2
- PRODUCTVERSION 0,0,1,2
+ FILEVERSION 1,0,0,0
+ PRODUCTVERSION 1,0,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -69,14 +69,16 @@ BEGIN
     BEGIN
         BLOCK "080404b0"
         BEGIN
-            VALUE "Comments", "Based EAWebKit 1.14.01"
+            VALUE "Comments", "Based EAWebKit(1.21.00) and Duilib(1.0) open source libraries. Author:achellies"
+            VALUE "CompanyName", "Duilib Develop Group, Inc."
             VALUE "FileDescription", "DuiBrowser"
-            VALUE "FileVersion", "0, 0, 1, 2"
+            VALUE "FileVersion", "1, 0, 0, 0"
             VALUE "InternalName", "DuiBrowser"
-            VALUE "LegalCopyright", "Copyright (C) 2011 Duilib Develop Group"
+            VALUE "LegalCopyright", "Copyright (C) 2011 Duilib Develop Group, Inc.  All rights reserved."
+            VALUE "LegalTrademarks", "Duilib"
             VALUE "OriginalFilename", "DuiBrowser"
             VALUE "ProductName", "DuiBrowser"
-            VALUE "ProductVersion", "0, 0, 1, 2"
+            VALUE "ProductVersion", "1, 0, 0, 0"
         END
     END
     BLOCK "VarFileInfo"
