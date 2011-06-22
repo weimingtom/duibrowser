@@ -1,6 +1,8 @@
 2011年6月22日 改动
 
-1. Source\EAWebKitFileSystem.cpp
+***********************************************************************
+************1. Source\EAWebKitFileSystem.cpp
+***********************************************************************
 Line 39: 
 #include "PlatformString.h"
 using namespace OWBAL;
@@ -25,6 +27,27 @@ pFileInfo->mpFile = fopen(path, openFlags & kWrite ? "wb" : "rb");
 
 	delete[] ansiFileName;
 	ansiFileName = NULL;
+
+***********************************************************************
+************2. EAWebKitSupportPackages\EATextEAWebKit\local\source\EATextOutlineFont.cpp
+***********************************************************************
+Line 1368:
+添加了下面代码：
+// 主要解决了在设置FontFamilyStandard、FontFamilySerif、FontFamilySansSerif、FontFamilyMonospace、FontFamilyCursive、FamilyFantasy等字体设置成Simsun时个别中文字体显示不正确的，而当设置成带有"True Type Outlines"的标志的字体（如：宋体-方正超大字符集，微软雅黑）等字体时显示正确的问题, 这里主要是根据通过freetype中FT_Render_Glyph函数获取的FT_GlyphSlot::bitmap.pixel_mode类型来设置位图的格式，原来程序是这样设置的：mGlyphBitmap.mBitmapFormat  = (mFontDescription.mSmooth == kSmoothEnabled) ? kBFGrayscale : kBFMonochrome;
+
+switch (static_cast<FT_Pixel_Mode>(pGlyphSlot->bitmap.pixel_mode))
+{
+case FT_PIXEL_MODE_MONO:
+	mGlyphBitmap.mBitmapFormat = kBFMonochrome;
+	break;
+case FT_PIXEL_MODE_GRAY:
+	mGlyphBitmap.mBitmapFormat = kBFGrayscale;
+	break;
+case FT_PIXEL_MODE_LCD:
+case FT_PIXEL_MODE_LCD_V:
+	mGlyphBitmap.mBitmapFormat = kBFGrayscale;
+	break;
+}
 
 ***********************************************************************
 ************************** EAWebkit 1.21.00 ***************************
