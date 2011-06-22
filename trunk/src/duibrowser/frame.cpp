@@ -315,9 +315,9 @@ LRESULT MainFrame::OnSysCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& b
 #if defined(WIN32) && !defined(UNDER_CE)
 	BOOL bZoomed = ::IsZoomed(m_hWnd);
 	LRESULT lRes = CWindowWnd::HandleMessage(uMsg, wParam, lParam);
-	if( ::IsZoomed(m_hWnd) != bZoomed ) 
+	if (::IsZoomed(m_hWnd) != bZoomed) 
 	{
-		if( !bZoomed ) 
+		if (!bZoomed)
 		{
 			CControlUI* pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kMaxButtonControlName));
 			if( pControl ) pControl->SetVisible(false);
@@ -482,35 +482,26 @@ void MainFrame::Init()
 		//param.mColors[kColorActiveSelectionBack] = Color::MAGENTA;
 		//param.mColors[kColorActiveSelectionFore] = Color::BLUE;
 
-//		// default "en-us"
-//		param.mpLocale = "zh-cn";
-//
+		// default "en-us"
+		param.mpLocale = "zh-cn";
+
 		param.mDefaultFontSize = kDefaultFontSize;
 		param.mDefaultMonospaceFontSize = kDefaultFontSize;
 		param.mMinimumFontSize = kMiniFontSize;
 		param.mMinimumLogicalFontSize = kMiniFontSize;
 
 		param.mEnableSmoothText = true;
-		param.mFontSmoothingEnabled = true;
 
 		param.mSystemFontDescription.mSize = kDefaultFontSize;
 		sprintf_s(param.mSystemFontDescription.mFamilies, sizeof(param.mSystemFontDescription.mFamilies) / sizeof(param.mSystemFontDescription.mFamilies[0]),\
-			"Arial Unicode MS");
-#if 1
-		sprintf_s(param.mFontFamilyStandard, sizeof(param.mFontFamilyStandard) / sizeof(param.mFontFamilyStandard[0]), "Arial Unicode MS");
-		sprintf_s(param.mFontFamilySerif, sizeof(param.mFontFamilySerif) / sizeof(param.mFontFamilySerif[0]), "Times New Roman");
-		sprintf_s(param.mFontFamilySansSerif, sizeof(param.mFontFamilySansSerif) / sizeof(param.mFontFamilySansSerif[0]), "Arial Unicode MS");
-		sprintf_s(param.mFontFamilyMonospace, sizeof(param.mFontFamilyMonospace) / sizeof(param.mFontFamilyMonospace[0]), "MS Courier New");
-		sprintf_s(param.mFontFamilyCursive, sizeof(param.mFontFamilyCursive) / sizeof(param.mFontFamilyCursive[0]), "Times New Roman");
-		sprintf_s(param.mFontFamilyFantasy, sizeof(param.mFontFamilyFantasy) / sizeof(param.mFontFamilyFantasy[0]), "System");
-#else
-		//iFonts.default_font = _strdup("Bitstream Vera Sans");
-		//iFonts.cursive_font = _strdup("Times New Roman");
-		//iFonts.fantasy_font = _strdup("System");
-		//iFonts.monospace_font = _strdup("Bitstream Vera Sans Mono");
-		//iFonts.sans_serif_font = _strdup("Tahoma");
-		//iFonts.serif_font = _strdup("Bitstream Vera Serif");
-#endif
+			"Arial,Microsoft Yahei,Simsun,sans-serif");
+		sprintf_s(param.mFontFamilyStandard, sizeof(param.mFontFamilyStandard) / sizeof(param.mFontFamilyStandard[0]), "Simsun");
+		sprintf_s(param.mFontFamilySerif, sizeof(param.mFontFamilySerif) / sizeof(param.mFontFamilySerif[0]), "Simsun");
+		sprintf_s(param.mFontFamilySansSerif, sizeof(param.mFontFamilySansSerif) / sizeof(param.mFontFamilySansSerif[0]), "NSimsun");
+		sprintf_s(param.mFontFamilyMonospace, sizeof(param.mFontFamilyMonospace) / sizeof(param.mFontFamilyMonospace[0]), "Simsun");
+		sprintf_s(param.mFontFamilyCursive, sizeof(param.mFontFamilyCursive) / sizeof(param.mFontFamilyCursive[0]), "Simsun");
+		sprintf_s(param.mFontFamilyFantasy, sizeof(param.mFontFamilyFantasy) / sizeof(param.mFontFamilyFantasy[0]), "Comic Sans MS");
+
 		webkit_->SetParameters(param);
 
 		view_ = webkit_->CreateView();
