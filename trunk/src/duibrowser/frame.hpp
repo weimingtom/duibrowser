@@ -93,6 +93,8 @@ public:
 
 	virtual LRESULT OnSysCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
+	virtual LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+
 protected:	
 	void Notify(TNotifyUI& msg);
 	void OnPrepare(TNotifyUI& msg);

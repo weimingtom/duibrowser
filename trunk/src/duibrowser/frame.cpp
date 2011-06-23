@@ -18,6 +18,9 @@
 
 #include "stdafx.h"
 #include <windows.h>
+#if !defined(UNDER_CE)
+#include <shellapi.h>
+#endif
 #include <EAWebKit/EAWebKit.h>
 #include <EAWebkit/EAWebkitAllocator.h>
 #include <EAWebKit/EAWebKitTextInterface.h>
@@ -448,7 +451,11 @@ void MainFrame::OnExit(TNotifyUI& msg)
 }
 
 void MainFrame::Init()
-{}
+{
+#if !defined(UNDER_CE)
+	DragAcceptFiles(m_hWnd, TRUE);
+#endif
+}
 
 void MainFrame::InitEAWebkit()
 {
@@ -599,7 +606,7 @@ void MainFrame::Notify(TNotifyUI& msg)
 			tString input_url = address_edit->GetText();			
 			view_->ResetForNewLoad();
 			view_->CancelLoad();
-			if (input_url.find(_T("file://")) != tString::npos)
+			if (input_url.find(_T("file:///")) != tString::npos)
 			{}
 			else if ((input_url.find(_T("http://")) == tString::npos) && (input_url.find(_T("https://")) == tString::npos))
 				input_url = _T("http://") + input_url;
@@ -725,4 +732,37 @@ bool MainFrame::LoadUpdate(LoadInfo& load_info)
 		is_loading_ = false;
 
 	return true;
+}
+
+LRESULT MainFrame::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+	switch (uMsg)
+	{
+#if !defined(UNDER_CE)
+	case WM_DROPFILES:
+		{
+			TCHAR szFile[MAX_PATH] = {0};
+			HDROP hDrop = reinterpret_cast<HDROP>(wParam);
+
+			UINT uFilesCount = DragQueryFile(hDrop, 0xFFFFFFFF, szFile, MAX_PATH);
+			if ((uFilesCount == 1) && (DragQueryFile(hDrop, 0, szFile, MAX_PATH) > 0) && (view_ != NULL))
+			{
+				for (int i = 0; i < _tcslen(szFile); ++i)
+					if (szFile[i] == _T('\\'))
+						szFile[i] = _T('/');
+
+				tString dropFileName(_T("file:///"));
+				dropFileName += szFile;
+
+				std::string encode_url = UrlEncode(StringConvertor::WideToUtf8(dropFileName.c_str()));
+				view_->SetURI(encode_url.c_str());
+			}
+			DragFinish(hDrop);
+		}
+		break;
+#endif
+	default:
+		break;
+	}
+	return 0;
 }
