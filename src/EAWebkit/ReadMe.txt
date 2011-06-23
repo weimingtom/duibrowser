@@ -1,3 +1,29 @@
+2011年6月23日改动
+***********************************************************************
+************1. E:\Webkit\Codes\DuiBrowser\src\EAWebkit\Webkit-owb\WebKit\OrigynWebBrowser\WebCoreSupport\WebFrameLoaderClient.cpp
+***********************************************************************
+Line 421：
+修正ViewNotification接收不到网页标题的bug
+增加以下代码：
+    EA::WebKit::View* pView = EA::WebKit::GetView(m_webFrame->webView());
+
+    if(pView)
+    {
+        EA::WebKit::LoadInfo& loadInfo = pView->GetLoadInfo();
+        loadInfo.mpView = pView;
+        loadInfo.mLET   = EA::WebKit::kLETTitleReceived;
+
+		WebCore::KURL kurl(title);
+		if(kurl.string().length() != 0)
+		{			
+			GetFixedString(loadInfo.mPageTitle)->assign(kurl.string().characters(), kurl.string().length());
+		}
+
+        EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();
+        if(pViewNotification)
+            pViewNotification->LoadUpdate(loadInfo);
+    }
+
 2011年6月22日 改动
 
 ***********************************************************************

@@ -27,7 +27,7 @@
  */
 
 /*
-* This file was modified by Electronic Arts Inc Copyright © 2009-2010
+* This file was modified by Electronic Arts Inc Copyright ?2009-2010
 */
 
 /////////////////////////////////////////////////////////////////////////////
@@ -424,6 +424,24 @@ void WebFrameLoaderClient::dispatchDidReceiveTitle(const String& title)
     COMPtr<IWebFrameLoadDelegate> frameLoadDelegate;
     if (SUCCEEDED(webView->frameLoadDelegate(&frameLoadDelegate)))
         frameLoadDelegate->didReceiveTitle(webView, BString(title), m_webFrame);*/
+    EA::WebKit::View* pView = EA::WebKit::GetView(m_webFrame->webView());
+
+    if(pView)
+    {
+        EA::WebKit::LoadInfo& loadInfo = pView->GetLoadInfo();
+        loadInfo.mpView = pView;
+        loadInfo.mLET   = EA::WebKit::kLETTitleReceived;
+
+		WebCore::KURL kurl(title);
+		if(kurl.string().length() != 0)
+		{			
+			GetFixedString(loadInfo.mPageTitle)->assign(kurl.string().characters(), kurl.string().length());
+		}
+
+        EA::WebKit::ViewNotification* const pViewNotification = EA::WebKit::GetViewNotification();
+        if(pViewNotification)
+            pViewNotification->LoadUpdate(loadInfo);
+    }
 }
 
 void WebFrameLoaderClient::dispatchDidCommitLoad()
