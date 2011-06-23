@@ -29,6 +29,7 @@
 
 #include "string_convertor.hpp"
 #include "win_impl_base.hpp"
+#include "popup_menu.hpp"
 #include "UIWebkit.hpp"
 #include "frame.hpp"
 #include "debug.hpp"
@@ -100,6 +101,22 @@ const TCHAR* const kToolButtonControlName = _T("toolbtn");
 const TCHAR* const kLogoControlName = _T("logo");
 
 const char* const kHomeUrl = "http://www.baidu.com/";
+
+enum MenuItem
+{
+	// system menu item
+	kSysetemMenuItem = 0,
+
+	kNew,
+	kOpen,
+	kSave,
+
+	kPrintDoc,
+
+	kAbout,
+
+	kExit,
+};
 
 MainFrame::MainFrame()
 : webkit_dll_(NULL)
@@ -450,6 +467,31 @@ void MainFrame::OnExit(TNotifyUI& msg)
 	Close();
 }
 
+void MainFrame::OnSystemMenu(TNotifyUI& msg)
+{
+	CControlUI* system_menu_button = paint_manager_.FindControl(kToolButtonControlName);
+	if (system_menu_button == NULL) return;
+
+	CRect pos = system_menu_button->GetPos();
+
+	POINT pt = {pos.left, pos.bottom};
+	::ClientToScreen(m_hWnd, &pt);
+	PopupMenu* system_menu = new PopupMenu();
+	if (system_menu == NULL) return;
+	system_menu->Init(m_hWnd);
+
+	system_menu->AddMenuItem(_T("打开"), kOpen, true, false, false, _T("Open.png"));
+	system_menu->AddMenuItem(_T("网页另保存..."), kSave, true, false, true, _T("Save.png"));
+
+	system_menu->AddMenuItem(_T("打印..."), kPrintDoc, true, false, true, _T("print.png"));	
+
+	system_menu->AddMenuItem(_T("关于..."), kAbout, true, false, true, _T("About.png"));
+
+	system_menu->AddMenuItem(_T("退出"), kExit, true, false, true, _T("Exit.png"));
+
+	system_menu->Popup(pt);
+}
+
 void MainFrame::Init()
 {
 #if !defined(UNDER_CE)
@@ -555,9 +597,7 @@ void MainFrame::OnPrepare(TNotifyUI& msg)
 
 	CControlUI* app_title = paint_manager_.FindControl(kTitleControlName);
 	if (app_title != NULL)
-	{
 		paint_manager_.SetTimer(app_title, kStartupTimerId, kStartupTimerElapse);
-	}
 }
 
 void MainFrame::UpdateNavigatingButtonStatus()
@@ -621,9 +661,7 @@ void MainFrame::Notify(TNotifyUI& msg)
 	else if (_tcsicmp(msg.sType, _T("click")) == 0)
 	{
 		if (_tcsicmp(msg.pSender->GetName(), kCloseButtonControlName) == 0)
-		{
 			OnExit(msg);
-		}
 		else if (_tcsicmp(msg.pSender->GetName(), kMinButtonControlName) == 0)
 		{
 #if defined(UNDER_CE)
@@ -657,7 +695,7 @@ void MainFrame::Notify(TNotifyUI& msg)
 #endif
 		}
 		else if (_tcsicmp(msg.pSender->GetName(), kToolButtonControlName) == 0)
-		{}
+			OnSystemMenu(msg);
 		else if (_tcsicmp(msg.pSender->GetName(), kHomeButtonControlName) == 0)
 		{
 			if (view_ != NULL)
@@ -668,30 +706,20 @@ void MainFrame::Notify(TNotifyUI& msg)
 			}
 		}
 		else if (_tcsicmp(msg.pSender->GetName(), kBackButtonControlName) == 0)
-		{
 			if (view_ != NULL)
 				view_->GoBack();
-		}
 		else if (_tcsicmp(msg.pSender->GetName(), kForwardButtonControlName) == 0)
-		{
 			if (view_ != NULL)
 				view_->GoForward();
-		}
 		else if (_tcsicmp(msg.pSender->GetName(), kRefreshButtonControlName) == 0)
-		{
 			if (view_ != NULL)
 				view_->Refresh();
-		}
 		else if (_tcsicmp(msg.pSender->GetName(), kStopButtonControlName) == 0)
-		{
 			if (view_ != NULL)
 				view_->CancelLoad();
-		}
 	}
 	else if (_tcsicmp(msg.sType, _T("timer")) == 0)
-	{
 		return OnTimer(msg);
-	}
 }
 
 bool MainFrame::ViewUpdate(ViewUpdateInfo& view_update_info)
@@ -716,9 +744,7 @@ bool MainFrame::LoadUpdate(LoadInfo& load_info)
 {
 	CControlUI* app_title = paint_manager_.FindControl(kTitleControlName);
 	if ((app_title != NULL) && (load_info.mLET == kLETTitleReceived) && _tcslen(webkit_->GetCharacters(load_info.mPageTitle)) > 0)
-	{
 		app_title->SetText(webkit_->GetCharacters(load_info.mPageTitle));
-	}
 
 	CEditUI* address_edit = static_cast<CEditUI*>(paint_manager_.FindControl(kAddressControlName));
 	if ((address_edit != NULL) && (kLETResponseReceived == load_info.mLET) && _tcslen(webkit_->GetCharacters(load_info.mURI)) > 0 &&
@@ -751,7 +777,7 @@ LRESULT MainFrame::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, 
 			UINT uFilesCount = DragQueryFile(hDrop, 0xFFFFFFFF, szFile, MAX_PATH);
 			if ((uFilesCount == 1) && (DragQueryFile(hDrop, 0, szFile, MAX_PATH) > 0) && (view_ != NULL))
 			{
-				for (int i = 0; i < _tcslen(szFile); ++i)
+				for (size_t i = 0; i < _tcslen(szFile); ++i)
 					if (szFile[i] == _T('\\'))
 						szFile[i] = _T('/');
 
@@ -765,6 +791,16 @@ LRESULT MainFrame::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, 
 		}
 		break;
 #endif
+	case WM_MENU:
+		{
+			switch (wParam)
+			{
+			case kExit:
+				Close();
+				break;
+			}
+		}
+		break;
 	default:
 		break;
 	}

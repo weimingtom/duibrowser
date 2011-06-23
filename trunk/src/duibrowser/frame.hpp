@@ -100,6 +100,7 @@ protected:
 	void OnPrepare(TNotifyUI& msg);
 	void OnExit(TNotifyUI& msg);
 	void OnTimer(TNotifyUI& msg);
+	void OnSystemMenu(TNotifyUI& msg);
 
 	void UpdateNavigatingButtonStatus();
 

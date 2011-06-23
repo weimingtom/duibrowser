@@ -94,20 +94,8 @@
 #include <shlwapi.h>
 #include <list>
 
+#include "common_define.hpp"
 #include "UIlib.h"
-
-// Automatically include the DirectUI namespace
-// define NO_USING_DUILIB_NAMESPACE to skip this step
-namespace DuiLib {
-// tString is a TCHAR std::string
-typedef std::basic_string<TCHAR> tString;
-}
-#ifndef NO_USING_DUILIB_NAMESPACE
-	using namespace DuiLib;
-	using namespace std;
-#endif
-
-#define USE_ZIP_SKIN 1
 
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.

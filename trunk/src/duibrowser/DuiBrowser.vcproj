@@ -197,6 +197,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\popup_menu.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\stdafx.cpp"
 				>
 			</File>
@@ -219,11 +223,19 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath=".\common_define.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\debug.hpp"
 				>
 			</File>
 			<File
 				RelativePath=".\frame.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\popup_menu.hpp"
 				>
 			</File>
 			<File

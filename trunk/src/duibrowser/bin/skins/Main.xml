@@ -8,7 +8,7 @@
     <HorizontalLayout name="header" height="36" bkcolor="#FF4775CC">
       <HorizontalLayout>
         <Container name="logo" float="true" pos="7,2,39,34" bkimage="file='$logo.png' source='0,0,64,64'"/>
-        <Label name="apptitle" text="Webkit" font="1" textcolor="#FFFFFFFF" float="true" pos="42,0,550,36" />
+        <Label name="apptitle" text="Duibrowser --- produced by Duilib Develop Group, Inc." font="1" textcolor="#FFFFFFFF" float="true" pos="42,0,550,36" />
       </HorizontalLayout>
       <HorizontalLayout height="25" width="96">
         <Button name="minbtn" tooltip="最小化" height="18" width="26" normalimage="file='minimize.png'" hotimage="file='minimize_h.png'" pushedimage="file='minimize_p.png'"/>
