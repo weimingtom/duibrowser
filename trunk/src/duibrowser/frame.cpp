@@ -607,7 +607,11 @@ void MainFrame::Notify(TNotifyUI& msg)
 			view_->ResetForNewLoad();
 			view_->CancelLoad();
 			if (input_url.find(_T("file:///")) != tString::npos)
-			{}
+			{
+				for (tString::size_type i = 0; i < input_url.length(); ++i)
+					if (input_url.at(i) == _T('\\'))
+						input_url.at(i) = _T('/');
+			}
 			else if ((input_url.find(_T("http://")) == tString::npos) && (input_url.find(_T("https://")) == tString::npos))
 				input_url = _T("http://") + input_url;
 			std::string encode_url = UrlEncode(StringConvertor::WideToUtf8(input_url.c_str()));			
