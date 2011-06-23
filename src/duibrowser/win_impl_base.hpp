@@ -38,7 +38,7 @@ public:
 
 	virtual void Init();
 
-	virtual CControlUI* CreateControl(LPCTSTR pstrClass, CPaintManagerUI* pManager);
+	virtual CControlUI* CreateControl(LPCTSTR pstrClass);
 
 	virtual LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool& bHandled);
 

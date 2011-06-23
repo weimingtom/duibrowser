@@ -38,7 +38,7 @@ UINT WindowImplBase::GetClassStyle() const
 	return CS_DBLCLKS;
 }
 
-CControlUI* WindowImplBase::CreateControl(LPCTSTR pstrClass, CPaintManagerUI* pManager)
+CControlUI* WindowImplBase::CreateControl(LPCTSTR pstrClass)
 {
 	return NULL;
 }
