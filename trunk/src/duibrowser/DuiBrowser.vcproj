@@ -216,6 +216,10 @@
 				RelativePath=".\win_impl_base.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\window_util.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -256,6 +260,10 @@
 			</File>
 			<File
 				RelativePath=".\win_impl_base.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\window_util.hpp"
 				>
 			</File>
 		</Filter>

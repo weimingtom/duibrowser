@@ -29,6 +29,7 @@
 
 #include "string_convertor.hpp"
 #include "win_impl_base.hpp"
+#include "window_util.hpp"
 #include "popup_menu.hpp"
 #include "UIWebkit.hpp"
 #include "frame.hpp"
@@ -597,7 +598,37 @@ void MainFrame::OnPrepare(TNotifyUI& msg)
 
 	CControlUI* app_title = paint_manager_.FindControl(kTitleControlName);
 	if (app_title != NULL)
+	{
 		paint_manager_.SetTimer(app_title, kStartupTimerId, kStartupTimerElapse);
+
+		TCHAR szTitle[MAX_PATH] = {0};
+		// Get version information from the application
+		TCHAR *szBuf = (TCHAR *)malloc(sizeof(TCHAR)*128*7);
+		if (szBuf != NULL) 
+		{
+			TCHAR *szComment = &(szBuf[128*0]);
+			TCHAR *szCompanyName = &(szBuf[128*1]); 
+			TCHAR *szFileDescription = &(szBuf[128*2]);
+			TCHAR *szFileVersion = &(szBuf[128*3]);
+			TCHAR *szLegalCopyright = &(szBuf[128*4]);
+			TCHAR *szProductName = &(szBuf[128*5]);
+			TCHAR *szProductVersion = &(szBuf[128*6]);
+			if (!GetVerString(128, szComment,
+				szCompanyName, szFileDescription, szFileVersion, szLegalCopyright,
+				szProductName, szProductVersion))
+			{
+				goto allDone;
+			}
+			_stprintf_s(szTitle, MAX_PATH, _T("Duibrowser(%s) --- produced by %s"), szProductVersion, szCompanyName);
+			app_title->SetText(szTitle);
+		}
+allDone:
+		if (szBuf != NULL)
+		{
+			free(szBuf);
+			szBuf = NULL;
+		}
+	}
 }
 
 void MainFrame::UpdateNavigatingButtonStatus()
@@ -743,7 +774,7 @@ bool MainFrame::UriHistoryChanged(UriHistoryChangedInfo&)
 bool MainFrame::LoadUpdate(LoadInfo& load_info)
 {
 	CControlUI* app_title = paint_manager_.FindControl(kTitleControlName);
-	if ((app_title != NULL) && (load_info.mLET == kLETTitleReceived) && _tcslen(webkit_->GetCharacters(load_info.mPageTitle)) > 0)
+	if ((app_title != NULL) && (load_info.mLET == kLETTitleReceived) && (load_info.mProgressEstimation == 0.0) && _tcslen(webkit_->GetCharacters(load_info.mPageTitle)) > 0)
 		app_title->SetText(webkit_->GetCharacters(load_info.mPageTitle));
 
 	CEditUI* address_edit = static_cast<CEditUI*>(paint_manager_.FindControl(kAddressControlName));
