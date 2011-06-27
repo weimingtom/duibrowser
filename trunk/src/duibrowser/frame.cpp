@@ -29,6 +29,7 @@
 
 #include "string_convertor.hpp"
 #include "win_impl_base.hpp"
+#include "input_dialog.hpp"
 #include "window_util.hpp"
 #include "popup_menu.hpp"
 #include "UIWebkit.hpp"
@@ -113,6 +114,8 @@ enum MenuItem
 	kSave,
 
 	kPrintDoc,
+
+	kRunJavascript,
 
 	kAbout,
 
@@ -484,7 +487,9 @@ void MainFrame::OnSystemMenu(TNotifyUI& msg)
 	system_menu->AddMenuItem(_T("打开"), kOpen, true, false, false, _T("Open.png"));
 	system_menu->AddMenuItem(_T("网页另保存..."), kSave, true, false, true, _T("Save.png"));
 
-	system_menu->AddMenuItem(_T("打印..."), kPrintDoc, true, false, true, _T("print.png"));	
+	system_menu->AddMenuItem(_T("打印..."), kPrintDoc, true, false, true, _T("print.png"));
+
+	system_menu->AddMenuItem(_T("运行Javascript..."), kRunJavascript, true, false, true, _T("Run.png"));	
 
 	system_menu->AddMenuItem(_T("关于..."), kAbout, true, false, true, _T("About.png"));
 
@@ -761,7 +766,7 @@ bool MainFrame::ViewUpdate(ViewUpdateInfo& view_update_info)
 		CRect invalidateRect(view_update_info.mX, view_update_info.mY, view_update_info.mW, view_update_info.mH);
 		webkit_control->LayoutChanged(invalidateRect);
 	}
-	VERBOSE(_T("view_update_info.mDrawEvent = %d, view_update_info.mX = %d, view_update_info.mY = %d, view_update_info.mW = %d, view_update_info.mH = %d.\n"), view_update_info.mDrawEvent, view_update_info.mX, view_update_info.mY, view_update_info.mW, view_update_info.mH);
+	//VERBOSE(_T("view_update_info.mDrawEvent = %d, view_update_info.mX = %d, view_update_info.mY = %d, view_update_info.mW = %d, view_update_info.mH = %d.\n"), view_update_info.mDrawEvent, view_update_info.mX, view_update_info.mY, view_update_info.mW, view_update_info.mH);
 	return true;
 }
 
@@ -828,6 +833,31 @@ LRESULT MainFrame::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, 
 			{
 			case kExit:
 				Close();
+				break;
+			case kRunJavascript:
+				{
+					InputDialog input_dialog;
+					input_dialog.Create(paint_manager_.GetPaintWindow(), NULL, WS_POPUP, WS_EX_TOOLWINDOW, CRect());
+					input_dialog.CenterWindow();
+					input_dialog.ShowModal();
+					tString java_scripts = input_dialog.GetInputString();
+					
+					if (!java_scripts.empty() && view_)
+					{
+						JavascriptValue* return_value = webkit_->CreateJavaScriptValue();
+						bool success = view_->EvaluateJavaScript(java_scripts.c_str(), java_scripts.length(), return_value);
+						
+						switch (return_value->GetType())
+						{
+						case JavascriptValueType_String:
+							EASTLFixedString16Wrapper& string_wrapper = return_value->GetStringValue();
+							wprintf(webkit_->GetCharacters(string_wrapper));
+							break;
+						}
+
+						webkit_->DestroyJavaScriptValue(return_value);
+					}
+				}
 				break;
 			}
 		}

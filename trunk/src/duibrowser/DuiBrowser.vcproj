@@ -193,6 +193,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\input_dialog.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\main.cpp"
 				>
 			</File>
@@ -236,6 +240,10 @@
 			</File>
 			<File
 				RelativePath=".\frame.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\input_dialog.hpp"
 				>
 			</File>
 			<File
