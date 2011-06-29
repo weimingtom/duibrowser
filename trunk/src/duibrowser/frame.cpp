@@ -369,7 +369,6 @@ LRESULT MainFrame::OnSysCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& b
 
 LRESULT MainFrame::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-
 	return __super::HandleMessage(uMsg, wParam, lParam);
 }
 
@@ -858,10 +857,42 @@ LRESULT MainFrame::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, 
 						
 						switch (return_value->GetType())
 						{
+						case JavascriptValueType_Number:
+							{
+								double fReturn = return_value->GetNumberValue();
+								VERBOSE(_T("EvaluateJavaScript return number value(%.2f).\n"), fReturn);
+							}
+							break;
 						case JavascriptValueType_String:
-							EASTLFixedString16Wrapper& string_wrapper = return_value->GetStringValue();
-							VERBOSE(_T("\nJavascript:\n\t%s\n"), java_scripts.c_str());
-							VERBOSE(_T("%s\n"), webkit_->GetCharacters(string_wrapper));
+							{
+								EASTLFixedString16Wrapper& string_wrapper = return_value->GetStringValue();
+								VERBOSE(_T("\nJavascript:\n\t%s\n"), java_scripts.c_str());
+								VERBOSE(_T("%s\n"), webkit_->GetCharacters(string_wrapper));
+							}
+							break;
+						case JavascriptValueType_Boolean:
+							{
+								bool bReturn = return_value->GetBooleanValue();
+								VERBOSE(_T("EvaluateJavaScript return boolean value(%d).\n"), bReturn);
+							}
+							break;
+						case JavascriptValueType_Array:
+							{
+								EASTLVectorJavaScriptValueWrapper& array_wrapper = return_value->GetArrayValue();
+								int nCount = 0;
+								JavascriptValue* array_value = webkit_->CreateJavaScriptValue();
+								if (array_value)
+								{									
+									webkit_->GetJavaScriptValues(array_wrapper, &array_value, &nCount);
+									for (int i = 0; i < nCount; ++i)
+									{}
+									webkit_->DestroyJavaScriptValue(array_value);
+								}
+							}
+							break;
+						case JavascriptValueType_Undefined:
+						default:
+							VERBOSE(_T("EvaluateJavaScript return undefined value type.\n"));
 							break;
 						}
 
