@@ -463,6 +463,17 @@ void MainFrame::OnTimer(TNotifyUI& msg)
 
 LRESULT MainFrame::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool& bHandled)
 {
+	if ((uMsg == WM_KEYDOWN) && (wParam == VK_TAB))
+	{
+		CWebkitUI* webkit_control = static_cast<CWebkitUI*>(paint_manager_.FindControl(kWebkitControlName));
+		if (view_ && webkit_control && paint_manager_.GetFocus() == webkit_control)
+		{
+			KeyboardEvent event;
+			view_->AdvanceFocus((GetKeyState(VK_SHIFT) < 0 ) ? FocusDirectionBackward : FocusDirectionForward, event);
+			bHandled = true;
+		}
+	}
+
 	return __super::MessageHandler(uMsg, wParam, lParam, bHandled);
 }
 
@@ -680,7 +691,6 @@ void MainFrame::Notify(TNotifyUI& msg)
 		if ((view_ != NULL) && (address_edit != NULL) && _tcslen(address_edit->GetText()) > 0)
 		{
 			tString input_url = address_edit->GetText();			
-			view_->ResetForNewLoad();
 			view_->CancelLoad();
 			if (input_url.find(_T("file:///")) != tString::npos)
 			{
@@ -736,7 +746,6 @@ void MainFrame::Notify(TNotifyUI& msg)
 		{
 			if (view_ != NULL)
 			{
-				view_->ResetForNewLoad();
 				view_->CancelLoad();
 				view_->SetURI(kHomeUrl);
 			}
@@ -851,7 +860,9 @@ LRESULT MainFrame::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, 
 						{
 						case JavascriptValueType_String:
 							EASTLFixedString16Wrapper& string_wrapper = return_value->GetStringValue();
-							wprintf(webkit_->GetCharacters(string_wrapper));
+							VERBOSE(_T("\nJavascript:\n\t%s\n"), java_scripts.c_str());
+							VERBOSE(webkit_->GetCharacters(string_wrapper));
+							VERBOSE(_T("\n"));
 							break;
 						}
 

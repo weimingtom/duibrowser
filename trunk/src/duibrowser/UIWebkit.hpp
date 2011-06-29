@@ -46,6 +46,8 @@ public:
 	CWebkitUI();
 	~CWebkitUI();
 
+	virtual UINT GetControlFlags() const;
+
 	void SetEARasterAndView(IEARaster* raster, View* view);
 
     virtual void DoEvent(TEventUI& event);

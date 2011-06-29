@@ -39,6 +39,11 @@ CWebkitUI::~CWebkitUI()
 		delete[] bitmap_bits_;
 }
 
+UINT CWebkitUI::GetControlFlags() const
+{
+	return UIFLAG_TABSTOP;
+}
+
 bool CWebkitUI::LayoutChanged(RECT rc)
 {
 	did_first_layout_ = true;
