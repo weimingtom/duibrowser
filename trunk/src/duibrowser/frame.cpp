@@ -788,7 +788,7 @@ bool MainFrame::UriHistoryChanged(UriHistoryChangedInfo&)
 bool MainFrame::LoadUpdate(LoadInfo& load_info)
 {
 	CControlUI* app_title = paint_manager_.FindControl(kTitleControlName);
-	if ((app_title != NULL) && (load_info.mLET == kLETTitleReceived) && (load_info.mProgressEstimation == 0.0) && _tcslen(webkit_->GetCharacters(load_info.mPageTitle)) > 0)
+	if ((app_title != NULL) && (load_info.mLET == kLETTitleReceived) && ((load_info.mProgressEstimation == 0.0) || (load_info.mProgressEstimation == 1.0)) && _tcslen(webkit_->GetCharacters(load_info.mPageTitle)) > 0)
 		app_title->SetText(webkit_->GetCharacters(load_info.mPageTitle));
 
 	CEditUI* address_edit = static_cast<CEditUI*>(paint_manager_.FindControl(kAddressControlName));
@@ -861,8 +861,7 @@ LRESULT MainFrame::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, 
 						case JavascriptValueType_String:
 							EASTLFixedString16Wrapper& string_wrapper = return_value->GetStringValue();
 							VERBOSE(_T("\nJavascript:\n\t%s\n"), java_scripts.c_str());
-							VERBOSE(webkit_->GetCharacters(string_wrapper));
-							VERBOSE(_T("\n"));
+							VERBOSE(_T("%s\n"), webkit_->GetCharacters(string_wrapper));
 							break;
 						}
 
