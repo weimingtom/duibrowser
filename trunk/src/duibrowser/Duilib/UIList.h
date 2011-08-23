@@ -20,7 +20,8 @@ typedef struct tagTListInfoUI
     RECT rcTextPadding;
     DWORD dwTextColor;
     DWORD dwBkColor;
-    CStdString sImage;
+    CStdString sBkImage;
+    bool bAlternateBk;
     DWORD dwSelectedTextColor;
     DWORD dwSelectedBkColor;
     CStdString sSelectedImage;
@@ -50,7 +51,7 @@ class IListOwnerUI
 public:
     virtual TListInfoUI* GetListInfo() = 0;
     virtual int GetCurSel() const = 0;
-    virtual bool SelectItem(int iIndex) = 0;
+    virtual bool SelectItem(int iIndex, bool bTakeFocus = false) = 0;
     virtual void DoEvent(TEventUI& event) = 0;
 };
 
@@ -98,7 +99,7 @@ public:
     bool GetScrollSelect();
     void SetScrollSelect(bool bScrollSelect);
     int GetCurSel() const;
-    bool SelectItem(int iIndex);
+    bool SelectItem(int iIndex, bool bTakeFocus = false);
 
     CListHeaderUI* GetHeader() const;  
     CContainerUI* GetList() const;
@@ -125,7 +126,8 @@ public:
     void SetItemTextPadding(RECT rc);
     void SetItemTextColor(DWORD dwTextColor);
     void SetItemBkColor(DWORD dwBkColor);
-    void SetItemImage(LPCTSTR pStrImage);
+    void SetItemBkImage(LPCTSTR pStrImage);
+    void SetAlternateBk(bool bAlternateBk);
     void SetSelectedItemTextColor(DWORD dwTextColor);
     void SetSelectedItemBkColor(DWORD dwBkColor);
     void SetSelectedItemImage(LPCTSTR pStrImage); 
@@ -141,7 +143,8 @@ public:
 	RECT GetItemTextPadding() const;
 	DWORD GetItemTextColor() const;
 	DWORD GetItemBkColor() const;
-	LPCTSTR GetItemImage() const;
+	LPCTSTR GetItemBkImage() const;
+    bool IsAlternateBk() const;
 	DWORD GetSelectedItemTextColor() const;
 	DWORD GetSelectedItemBkColor() const;
 	LPCTSTR GetSelectedItemImage() const;
@@ -383,51 +386,6 @@ protected:
     IListUI* m_pOwner;
     CStdPtrArray m_aTexts;
 };
-
-
-/////////////////////////////////////////////////////////////////////////////////////
-//
-
-class UILIB_API CListExpandElementUI : public CListTextElementUI
-{
-public:
-    CListExpandElementUI();
-    virtual ~CListExpandElementUI();
-
-    LPCTSTR GetClass() const;
-    LPVOID GetInterface(LPCTSTR pstrName);
-
-    void SetVisible(bool bVisible = true);
-    void SetInternVisible(bool bVisible = true);
-    void SetMouseEnabled(bool bEnable = true);
-
-    void SetPos(RECT rc);
-    void DoEvent(TEventUI& event);
-    SIZE EstimateSize(SIZE szAvailable);
-    void DoPaint(HDC hDC, const RECT& rcPaint);
-
-    void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
-
-    void SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit = true);
-    CControlUI* FindControl(FINDCONTROLPROC Proc, LPVOID pData, UINT uFlags);
-
-    bool IsExpanded() const;
-    bool Expand(bool bExpand = true);
-    bool GetExpandHideSelf() const;
-    void SetExpandHideSelf(bool bHideSelf);
-    RECT GetExpanderRect() const;
-    void SetExpanderRect(RECT rc);
-    void SetExpandItem(CControlUI* pControl);
-
-    void DrawItemText(HDC hDC, const RECT& rcItem);
-
-protected:
-    bool m_bExpanded;
-    bool m_bHideSelf;
-    RECT m_rcExpander;
-    CControlUI* m_pSubControl;
-};
-
 
 /////////////////////////////////////////////////////////////////////////////////////
 //

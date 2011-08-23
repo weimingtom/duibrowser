@@ -18,6 +18,7 @@
 
 #include "stdafx.h"
 #include "win_impl_base.hpp"
+#include "resource.h"
 
 #if !defined(UNDER_CE) && defined(_DEBUG)
 #define new   new(_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -26,6 +27,8 @@
 #if USE(ZIP_SKIN)
 static const TCHAR* const kResourceSkinZipFileName = _T("skins.zip");
 #endif
+
+LPBYTE WindowImplBase::resource_zip_buffer_ = NULL;
 
 WindowImplBase::WindowImplBase()
 {}
@@ -89,6 +92,22 @@ LRESULT WindowImplBase::OnNcHitTest(UINT uMsg, WPARAM wParam, LPARAM lParam, BOO
 
 	RECT rcClient;
 	::GetClientRect(*this, &rcClient);
+
+	if( !::IsZoomed(*this) ) {
+		RECT rcSizeBox = paint_manager_.GetSizeBox();
+		if( pt.y < rcClient.top + rcSizeBox.top ) {
+			if( pt.x < rcClient.left + rcSizeBox.left ) return HTTOPLEFT;
+			if( pt.x > rcClient.right - rcSizeBox.right ) return HTTOPRIGHT;
+			return HTTOP;
+		}
+		else if( pt.y > rcClient.bottom - rcSizeBox.bottom ) {
+			if( pt.x < rcClient.left + rcSizeBox.left ) return HTBOTTOMLEFT;
+			if( pt.x > rcClient.right - rcSizeBox.right ) return HTBOTTOMRIGHT;
+			return HTBOTTOM;
+		}
+		if( pt.x < rcClient.left + rcSizeBox.left ) return HTLEFT;
+		if( pt.x > rcClient.right - rcSizeBox.right ) return HTRIGHT;
+	}
 
 	RECT rcCaption = paint_manager_.GetCaptionRect();
 	if( pt.x >= rcClient.left + rcCaption.left && pt.x < rcClient.right - rcCaption.right \
@@ -204,7 +223,7 @@ LRESULT WindowImplBase::OnSysCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BO
 
 tString WindowImplBase::GetSkinFolder()
 {
-	return tString(CPaintManagerUI::GetInstancePath()) + _T("\\Skins\\");
+	return tString(CPaintManagerUI::GetInstancePath()) + _T("skin\\");
 }
 
 LRESULT WindowImplBase::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
@@ -225,27 +244,43 @@ LRESULT WindowImplBase::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& 
 	paint_manager_.SetResourcePath(GetSkinFolder().c_str());
 
 #if USE(ZIP_SKIN)
-
-#if defined(UNDER_CE)
-	static bool resource_unzipped = false;
-	if (!resource_unzipped)
-	{
-		resource_unzipped = true;
-		paint_manager_.SetResourceZip(kResourceSkinZipFileName);
-		paint_manager_.UnzipResource();
-		paint_manager_.SetResourceZip(_T(""));
-	}
-	tString tstrSkin = paint_manager_.GetResourcePath();
-	tstrSkin += GetSkinFile();
-#else
-	paint_manager_.SetResourceZip(kResourceSkinZipFileName);
 	tString tstrSkin = GetSkinFile();
+	if (paint_manager_.GetResourceZip().IsEmpty())
+	{
+#if USE(EMBEDED_RESOURCE)
+		HRSRC hResource = ::FindResource(paint_manager_.GetResourceDll(), MAKEINTRESOURCE(IDR_ZIPRES_SKIN), _T("ZIPRES"));
+		if( hResource == NULL )
+			return 0L;
+		DWORD dwSize = 0;
+		HGLOBAL hGlobal = ::LoadResource(paint_manager_.GetResourceDll(), hResource);
+		if( hGlobal == NULL ) {
+#if defined(WIN32) && !defined(UNDER_CE)
+			FreeResource(hResource);
 #endif
+			return 0L;
+		}
+		dwSize = ::SizeofResource(paint_manager_.GetResourceDll(), hResource);
+		if( dwSize == 0 )
+			return 0L;
+		resource_zip_buffer_ = new BYTE[ dwSize ];
+		if (resource_zip_buffer_ != NULL)
+		{
+			::CopyMemory(resource_zip_buffer_, (LPBYTE)::LockResource(hGlobal), dwSize);
+		}
+#if defined(WIN32) && !defined(UNDER_CE)
+		::FreeResource(hResource);
+#endif
+		paint_manager_.SetResourceZip(resource_zip_buffer_, dwSize);
+#else
+		paint_manager_.SetResourceZip(kResourceSkinZipFileName, true);
+#endif
+	}
 
 #else
 	tString tstrSkin = paint_manager_.GetResourcePath();
 	tstrSkin += GetSkinFile();
 #endif
+
 	CControlUI* pRoot = builder.Create(tstrSkin.c_str(), (UINT)0, this, &paint_manager_);
 	paint_manager_.AttachDialog(pRoot);
 	paint_manager_.AddNotifier(this);
@@ -325,4 +360,13 @@ LRESULT WindowImplBase::ResponseDefaultKeyEvent(WPARAM wParam)
 	}
 
 	return FALSE;
+}
+
+void WindowImplBase::Cleanup()
+{
+	if (resource_zip_buffer_ != NULL)
+	{
+		delete[] resource_zip_buffer_;
+		resource_zip_buffer_ = NULL;
+	}
 }
