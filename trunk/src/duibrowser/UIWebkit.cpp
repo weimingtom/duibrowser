@@ -28,9 +28,17 @@ CWebkitUI::CWebkitUI()
 , view_(NULL)
 , bitmap_bits_(NULL)
 , did_first_layout_(false)
+, finish_layout_(true)
 {
     last_mouse_point_.x = 0;
     last_mouse_point_.y = 0;
+
+	DWORD dwScreenX = GetSystemMetrics(SM_CXSCREEN);
+	DWORD dwScreenY = GetSystemMetrics(SM_CYSCREEN);
+	dwScreenX = static_cast<DWORD>((dwScreenX + 3) / 4 * 4);
+
+	bitmap_bits_ = new BYTE[dwScreenX * dwScreenY * 4];
+	memset(bitmap_bits_, 0xFF, dwScreenX * dwScreenY * 4);
 }
 
 CWebkitUI::~CWebkitUI()
@@ -46,16 +54,20 @@ UINT CWebkitUI::GetControlFlags() const
 
 bool CWebkitUI::LayoutChanged(RECT rc)
 {
-	did_first_layout_ = true;
+	did_first_layout_ = true;	
 
 	CRect invalidateRect = m_rcItem;
 	if (!invalidateRect.IsNull())
 	{
+		finish_layout_ = true;
+
 		invalidateRect.left += rc.left;
 		invalidateRect.top += rc.top;
 		invalidateRect.right = invalidateRect.left + rc.right;
 		invalidateRect.bottom = invalidateRect.top + rc.bottom;
-		InvalidateRect(GetManager()->GetPaintWindow(), &invalidateRect, TRUE);
+
+		if (!IsRectEmpty(&rc))
+			InvalidateRect(GetManager()->GetPaintWindow(), &invalidateRect, FALSE);
 	}
 
 	return did_first_layout_;
@@ -63,9 +75,10 @@ bool CWebkitUI::LayoutChanged(RECT rc)
 
 void CWebkitUI::RestoreSurfaceBuffer()
 {
-	if (bitmap_bits_ != NULL)
-		delete[] bitmap_bits_;
-	bitmap_bits_ = NULL;
+	finish_layout_ = false;
+	//if (bitmap_bits_ != NULL)
+	//	delete[] bitmap_bits_;
+	//bitmap_bits_ = NULL;
 
 	if (view_ != NULL)
 	{
@@ -85,8 +98,8 @@ void CWebkitUI::RestoreSurfaceBuffer()
 		bitmap_header_info_.biClrUsed		= 0;
 		bitmap_header_info_.biClrImportant	= 0;
 
-		bitmap_bits_ = new BYTE[bitmap_header_info_.biSizeImage];
-		memset(bitmap_bits_, 0xFF, bitmap_header_info_.biSizeImage);
+		//bitmap_bits_ = new BYTE[bitmap_header_info_.biSizeImage];
+		//memset(bitmap_bits_, 0xFF, bitmap_header_info_.biSizeImage);
 	}
 }
 
@@ -107,11 +120,11 @@ void CWebkitUI::SetEARasterAndView(IEARaster* raster, View* view)
 		RestoreSurfaceBuffer();
 	}
 
-	if (bitmap_bits_ == NULL)
-	{
-		bitmap_bits_ = new BYTE[bitmap_header_info_.biSizeImage];
-		memset(bitmap_bits_, 0xFF, bitmap_header_info_.biSizeImage);
-	}
+	//if (bitmap_bits_ == NULL)
+	//{
+	//	bitmap_bits_ = new BYTE[bitmap_header_info_.biSizeImage];
+	//	memset(bitmap_bits_, 0xFF, bitmap_header_info_.biSizeImage);
+	//}
 }
 
 void CWebkitUI::SetPos(RECT rc)
@@ -124,8 +137,8 @@ void CWebkitUI::SetPos(RECT rc)
 
 	if ((view_ != NULL) && ((bitmap_header_info_.biWidth != mWidth) || (bitmap_header_info_.biHeight != mHeight)))
 	{
-		view_->SetSize(mWidth, mHeight);
 		RestoreSurfaceBuffer();
+		view_->SetSize(mWidth, mHeight);
 	}
 }
 
@@ -137,7 +150,7 @@ void CWebkitUI::DoEvent(TEventUI& event)
         return;
     }
 
-	if (bitmap_bits_ == NULL) return;
+	if (bitmap_bits_ == NULL || view_ == NULL || !finish_layout_) return;
 
     if( event.Type == UIEVENT_SETFOCUS ) 
     {
@@ -234,18 +247,27 @@ void CWebkitUI::DoEvent(TEventUI& event)
 
 void CWebkitUI::DoPaint(HDC hDC, const RECT& rcPaint)
 {
-	if ((hDC == NULL) || (raster_ == NULL) || (bitmap_bits_ == NULL))
+	if ((hDC == NULL) || (raster_ == NULL) || (bitmap_bits_ == NULL) || !finish_layout_)
 		return;
 
     if( !::IntersectRect(&m_rcPaint, &rcPaint, &m_rcItem) ) return;
 
-	if (did_first_layout_ && bitmap_bits_ != NULL)
+	if (did_first_layout_ && bitmap_bits_ != NULL && finish_layout_)
 	{
-		memcpy_s(bitmap_bits_, bitmap_header_info_.biSizeImage, view_->GetSurface()->GetData(), bitmap_header_info_.biSizeImage);
+		for (int i = 0; i < bitmap_header_info_.biHeight; ++i)
+		{
+			memcpy_s(bitmap_bits_ + (bitmap_header_info_.biWidth * i * 4), \
+				bitmap_header_info_.biSizeImage / bitmap_header_info_.biHeight, \
+				(LPBYTE)view_->GetSurface()->GetData() + (bitmap_header_info_.biWidth * i * 4), \
+				(bitmap_header_info_.biWidth * 4));
+		}
 	}
 	else if (bitmap_bits_ != NULL)
 	{
-		memset(bitmap_bits_, 0xFF, bitmap_header_info_.biSizeImage);
+		DWORD dwScreenX = GetSystemMetrics(SM_CXSCREEN);
+		DWORD dwScreenY = GetSystemMetrics(SM_CYSCREEN);
+		dwScreenX = static_cast<DWORD>((dwScreenX + 3) / 4 * 4);
+		memset(bitmap_bits_, 0xFF, dwScreenX * dwScreenY * 4);
 	}
 
 	::SetStretchBltMode(hDC, COLORONCOLOR);

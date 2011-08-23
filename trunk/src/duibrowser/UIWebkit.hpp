@@ -66,6 +66,7 @@ private:
 	BITMAPINFOHEADER bitmap_header_info_;
 	bool		did_first_layout_;
     POINT       last_mouse_point_;
+	bool		finish_layout_;
 };
 
 } // namespace DuiLib
