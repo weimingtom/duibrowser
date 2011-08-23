@@ -71,6 +71,8 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 
 	CPaintManagerUI::MessageLoop();
 
+	WindowImplBase::Cleanup();
+
 	::CoUninitialize();
 
 //#if defined(WIN32)

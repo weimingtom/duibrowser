@@ -82,6 +82,8 @@ public:
 
 	virtual LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
+	static void Cleanup();
+
 protected:
 	virtual tString GetSkinFolder();
 	virtual tString GetSkinFile() = 0;
@@ -90,6 +92,8 @@ protected:
 
 protected:
 	CPaintManagerUI paint_manager_;
+
+	static LPBYTE resource_zip_buffer_;
 };
 
 #endif // WIN_IMPL_BASE_HPP

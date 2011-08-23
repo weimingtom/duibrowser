@@ -107,7 +107,7 @@ void PopupMenu::Notify(TNotifyUI& msg)
 			{
 				CListContainerElementUI* menu_item = static_cast<CListContainerElementUI*>(msg.pSender);
 				int selected_item = menu_list->GetItemIndex(msg.pSender);
-				CLabelUI* item_title = static_cast<CLabelUI*>(paint_manager_.FindControl(menu_item, kMenuItemTitleName));
+				CLabelUI* item_title = static_cast<CLabelUI*>(paint_manager_.FindSubControlByName(menu_item, kMenuItemTitleName));
 				if ((item_title != NULL) && (selected_item >= 0) && (selected_item < static_cast<int>(menu_item_tags_.size())))
 				{
 					fire = item_title->IsEnabled();
@@ -135,9 +135,9 @@ bool PopupMenu::AddMenuItem(std::wstring menu_item_title, int menu_item_tag, boo
 		{
 			menu_item_tags_.push_back(menu_item_tag);
 
-			CLabelUI* item_title = static_cast<CLabelUI*>(paint_manager_.FindControl(menu_item, kMenuItemTitleName));
-			CControlUI* item_image = paint_manager_.FindControl(menu_item, kMenuItemImageName);
-			CControlUI* underline = paint_manager_.FindControl(menu_item, kMenuItemUnderlineName);
+			CLabelUI* item_title = static_cast<CLabelUI*>(paint_manager_.FindSubControlByName(menu_item, kMenuItemTitleName));
+			CControlUI* item_image = paint_manager_.FindSubControlByName(menu_item, kMenuItemImageName);
+			CControlUI* underline = paint_manager_.FindSubControlByName(menu_item, kMenuItemUnderlineName);
 			if ((item_title != NULL) && (item_image != NULL) && (underline != NULL))
 			{
 				if (checked)

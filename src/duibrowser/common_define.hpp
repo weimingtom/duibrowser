@@ -29,7 +29,11 @@ typedef std::basic_string<TCHAR> tString;
 	using namespace std;
 #endif
 
+#define USE(FEATURE) (defined USE_##FEATURE  && USE_##FEATURE)
+#define ENABLE(FEATURE) (defined ENABLE_##FEATURE  && ENABLE_##FEATURE)
+
 #define USE_ZIP_SKIN 1
+#define USE_EMBEDED_RESOURCE 1
 
 #define	WM_MENU		WM_USER + 101
 
