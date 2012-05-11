@@ -79,12 +79,12 @@ const int kViewTickTimerId = 1001;
 const int kViewTickTimerElapse = 75;
 
 const int kStartupTimerId = 1002;
-const int kStartupTimerElapse = 500;
+const int kStartupTimerElapse = 20;
 
 const int kDefaultFontSize = 18;
 const int kMiniFontSize = 12;
 const int kPageTimeoutSeconds = 30;
-const int kLoadingIconChangingTimeElapse = 500;
+const int kLoadingIconChangingTimeElapse = 200;
 const int kLoadingIconsCount = 4;
 
 const TCHAR* const kWebkitControlName = _T("webkit");
@@ -545,25 +545,25 @@ void MainFrame::InitEAWebkit()
 #else
 		swprintf_s(szFontDir, MAX_PATH - 1, L"%s\\Fonts", szWindowsDir);
 #endif
-		uint32_t nCount = font_server_->AddDirectory(szFontDir, L"*.tt?");
-		//uint32_t nCount = font_server_->AddDirectory(L"./", L"*.tt?");
+		//uint32_t nCount = font_server_->AddDirectory(szFontDir, L"*.tt?");
+		uint32_t nCount = font_server_->AddDirectory(NULL, L"SIMSUN.TTC");
 
 		font_style_ = font_server_->CreateTextStyle();
 		font_style_->SetSize(static_cast<float>(kDefaultFontSize));
 		font_style_->SetSmooth(kSmoothEnabled);
 		
-		nCount = font_server_->EnumerateFonts(NULL, 0);
-		if (nCount > 0)
-		{
-			IFontDescription* font_description_array = new IFontDescription[nCount];
-			font_server_->EnumerateFonts(font_description_array, nCount);
-			for (uint32_t index = 0; index < nCount; ++index)
-			{
-				if (_tcsicmp(_T("Simsun"), (font_description_array + index)->mFamily) == 0)
-				{}
-			}
-			delete[] font_description_array;
-		}
+		//nCount = font_server_->EnumerateFonts(NULL, 0);
+		//if (nCount > 0)
+		//{
+		//	IFontDescription* font_description_array = new IFontDescription[nCount];
+		//	font_server_->EnumerateFonts(font_description_array, nCount);
+		//	for (uint32_t index = 0; index < nCount; ++index)
+		//	{
+		//		if (_tcsicmp(_T("Simsun"), (font_description_array + index)->mFamily) == 0)
+		//		{}
+		//	}
+		//	delete[] font_description_array;
+		//}
 
 		Parameters& param = webkit_->GetParameters();
 		param.mpUserAgent = user_agent_;
